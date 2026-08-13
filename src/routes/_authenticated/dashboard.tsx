@@ -88,9 +88,19 @@ function Dashboard() {
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </Button>
+          <div className="flex items-center gap-1">
+            {isAdmin && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/admin">
+                  <ShieldCheck className="mr-2 h-4 w-4" /> Admin
+                </Link>
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </Button>
+          </div>
+
         </div>
       </header>
 
