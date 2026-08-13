@@ -16,7 +16,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, Plus, Sparkles, User } from "lucide-react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { GraduationCap, LogOut, Plus, ShieldCheck, Sparkles, User } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
