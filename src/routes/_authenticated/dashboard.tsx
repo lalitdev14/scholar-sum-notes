@@ -38,8 +38,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAdmin } = useIsAdmin();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
+
 
   const { data: classes, isPending } = useQuery({
     queryKey: ["classes"],
