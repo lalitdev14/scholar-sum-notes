@@ -16,7 +16,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, Plus, Sparkles, User } from "lucide-react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { GraduationCap, LogOut, Plus, ShieldCheck, Sparkles, User } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -36,8 +38,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAdmin } = useIsAdmin();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
+
 
   const { data: classes, isPending } = useQuery({
     queryKey: ["classes"],
@@ -84,9 +88,19 @@ function Dashboard() {
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={signOut}>
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </Button>
+          <div className="flex items-center gap-1">
+            {isAdmin && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/admin">
+                  <ShieldCheck className="mr-2 h-4 w-4" /> Admin
+                </Link>
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </Button>
+          </div>
+
         </div>
       </header>
 
