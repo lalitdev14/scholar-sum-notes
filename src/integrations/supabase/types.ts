@@ -201,22 +201,28 @@ export type Database = {
       }
       universities: {
         Row: {
+          accent_color: string
           created_at: string
           email_domain: string
           id: string
           name: string
+          primary_color: string
         }
         Insert: {
+          accent_color?: string
           created_at?: string
           email_domain: string
           id?: string
           name: string
+          primary_color?: string
         }
         Update: {
+          accent_color?: string
           created_at?: string
           email_domain?: string
           id?: string
           name?: string
+          primary_color?: string
         }
         Relationships: []
       }
