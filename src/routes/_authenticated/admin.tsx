@@ -63,6 +63,29 @@ function AdminPanel() {
     enabled: isAdmin,
   });
 
+  const fetchRequests = useServerFn(getFacultyRequests);
+  const reviewRequest = useServerFn(reviewFacultyRequest);
+
+  const { data: facultyRequests, isPending: requestsPending } = useQuery({
+    queryKey: ["admin-faculty-requests"],
+    queryFn: () => fetchRequests({ data: undefined as never }),
+    enabled: isAdmin,
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: (vars: { requestId: string; approve: boolean }) =>
+      reviewRequest({ data: { ...vars, note: "" } }),
+    onSuccess: () => {
+      toast.success("Faculty request updated");
+      queryClient.invalidateQueries({ queryKey: ["admin-faculty-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-directory"] });
+      queryClient.invalidateQueries({ queryKey: ["my-roles"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
+
   const roleMutation = useMutation({
     mutationFn: (vars: { userId: string; role: "admin" | "faculty" | "student"; grant: boolean }) =>
       changeRole({ data: vars }),
