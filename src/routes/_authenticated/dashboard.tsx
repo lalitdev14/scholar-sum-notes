@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, Plus, Sparkles, User } from "lucide-react";
+import { BadgeCheck, Plus, Search, Sparkles, User } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
