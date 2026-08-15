@@ -18,7 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BadgeCheck, GraduationCap, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { BadgeCheck, ShieldCheck, Trash2, Upload } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/_authenticated/admin")({
