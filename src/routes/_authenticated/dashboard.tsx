@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { Plus, Sparkles, User } from "lucide-react";
+import { BadgeCheck, Plus, Sparkles, User } from "lucide-react";
+
 
 
 
