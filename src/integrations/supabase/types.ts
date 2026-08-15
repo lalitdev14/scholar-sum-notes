@@ -88,6 +88,53 @@ export type Database = {
         }
         Relationships: []
       }
+      faculty_requests: {
+        Row: {
+          admin_note: string
+          created_at: string
+          department: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          university_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string
+          created_at?: string
+          department?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string
+          created_at?: string
+          department?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faculty_requests_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           class_id: string
@@ -128,16 +175,48 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          university_id: string | null
         }
         Insert: {
           created_at?: string
           full_name?: string
           id: string
+          university_id?: string | null
         }
         Update: {
           created_at?: string
           full_name?: string
           id?: string
+          university_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universities: {
+        Row: {
+          created_at: string
+          email_domain: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          email_domain: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          email_domain?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }
