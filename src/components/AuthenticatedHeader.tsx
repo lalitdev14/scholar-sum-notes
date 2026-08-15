@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useRoles } from "@/hooks/useRoles";
 import { GraduationCap, Home, LogOut, ShieldCheck, BadgeCheck, User, University } from "lucide-react";
 import { ReactNode } from "react";
+import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 type AuthenticatedHeaderProps = {
   trailing?: ReactNode;
@@ -13,6 +14,7 @@ type AuthenticatedHeaderProps = {
 export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
   const navigate = useNavigate();
   const { isAdmin, isFaculty } = useRoles();
+  const uniTheme = useUniversityTheme();
 
   const { data: me } = useQuery({
     queryKey: ["my-profile"],
@@ -42,10 +44,11 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
 
   return (
     <header className="border-b border-border/70">
+      <div className="h-1 w-full" style={{ backgroundImage: uniTheme.gradient }} />
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5">
         <div className="flex items-center gap-6">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
+            <GraduationCap className="h-5 w-5" style={{ color: uniTheme.primary }} />
             <span className="font-display text-xl">LectureLoop</span>
           </Link>
 
@@ -64,8 +67,11 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
                 {me.full_name}
               </span>
               {universityName && (
-                <span className="flex items-center gap-1.5">
-                  <University className="h-3.5 w-3.5" />
+                <span
+                  className="flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-1 text-foreground"
+                  style={{ backgroundImage: uniTheme.softGradient }}
+                >
+                  <University className="h-3.5 w-3.5" style={{ color: uniTheme.accent }} />
                   {universityName}
                 </span>
               )}
