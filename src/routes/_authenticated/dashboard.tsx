@@ -42,8 +42,21 @@ function Dashboard() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
-
-
+  const { data: me } = useQuery({
+    queryKey: ["my-profile"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", userId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: classes, isPending } = useQuery({
     queryKey: ["classes"],
@@ -82,6 +95,14 @@ function Dashboard() {
       <AuthenticatedHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-12">
+        <div className="mb-8">
+          <h1 className="text-3xl">
+            Welcome back{me?.full_name ? `, ${me.full_name}` : ""}
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            Here is everything happening in your classes today.
+          </p>
+        </div>
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
