@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { BadgeCheck, Plus, Sparkles, User } from "lucide-react";
+import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
 
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const queryClient = useQueryClient();
+  const uniTheme = useUniversityTheme();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
