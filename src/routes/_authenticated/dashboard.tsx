@@ -294,11 +294,18 @@ function Dashboard() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           {isPending && <p className="text-muted-foreground">Loading classes…</p>}
+          {!isPending && classes?.length === 0 && (
+            <p className="text-muted-foreground">
+              You haven't enrolled in any subjects yet — use “Enroll in subject” to search by name or code.
+            </p>
+          )}
           {classes?.map((klass) => {
+
             const summary = Array.isArray(klass.class_summaries)
               ? klass.class_summaries[0]
               : klass.class_summaries;
