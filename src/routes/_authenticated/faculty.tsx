@@ -8,7 +8,9 @@ import { useRoles } from "@/hooks/useRoles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { BadgeCheck, GraduationCap, ShieldCheck, Sparkles } from "lucide-react";
+import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { BadgeCheck, Sparkles } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/faculty")({
   head: () => ({
