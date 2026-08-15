@@ -95,14 +95,20 @@ function Dashboard() {
       <AuthenticatedHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-12">
-        <div className="mb-8">
+        <div
+          className="mb-8 rounded-2xl border border-border/60 px-6 py-7"
+          style={{ backgroundImage: uniTheme.softGradient }}
+        >
           <h1 className="text-3xl">
             Welcome back{me?.full_name ? `, ${me.full_name}` : ""}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Here is everything happening in your classes today.
+            {uniTheme.name
+              ? `${uniTheme.name} — here is everything happening in your classes today.`
+              : "Here is everything happening in your classes today."}
           </p>
         </div>
+
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
