@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { useRoles } from "@/hooks/useRoles";
-import { BadgeCheck, GraduationCap, LogOut, Plus, ShieldCheck, Sparkles, User } from "lucide-react";
+import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { Plus, Sparkles, User } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
