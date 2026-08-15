@@ -41,16 +41,37 @@ function AdminPanel() {
   const { isAdmin, isPending: checkingRole } = useIsAdmin();
   const queryClient = useQueryClient();
   const [raw, setRaw] = useState("");
+  const [search, setSearch] = useState("");
 
   const fetchOverview = useServerFn(getAdminOverview);
   const upload = useServerFn(uploadSubjects);
   const removeClass = useServerFn(deleteClass);
+  const fetchDirectory = useServerFn(getUserDirectory);
+  const changeRole = useServerFn(setUserRole);
 
   const { data, isPending } = useQuery({
     queryKey: ["admin-overview"],
     queryFn: () => fetchOverview({ data: undefined as never }),
     enabled: isAdmin,
   });
+
+  const { data: directory, isPending: directoryPending } = useQuery({
+    queryKey: ["admin-directory"],
+    queryFn: () => fetchDirectory({ data: undefined as never }),
+    enabled: isAdmin,
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: (vars: { userId: string; role: "admin" | "faculty" | "student"; grant: boolean }) =>
+      changeRole({ data: vars }),
+    onSuccess: () => {
+      toast.success("Roles updated");
+      queryClient.invalidateQueries({ queryKey: ["admin-directory"] });
+      queryClient.invalidateQueries({ queryKey: ["my-roles"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
