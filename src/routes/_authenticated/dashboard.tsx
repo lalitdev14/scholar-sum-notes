@@ -42,8 +42,21 @@ function Dashboard() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
-
-
+  const { data: me } = useQuery({
+    queryKey: ["my-profile"],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", userId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: classes, isPending } = useQuery({
     queryKey: ["classes"],
