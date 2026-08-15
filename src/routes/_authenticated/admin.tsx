@@ -132,9 +132,17 @@ function AdminPanel() {
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
           </Link>
-          <Badge variant="secondary">
-            <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Admin
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/faculty">
+                <BadgeCheck className="mr-2 h-4 w-4" /> Faculty review
+              </Link>
+            </Button>
+            <Badge variant="secondary">
+              <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Admin
+            </Badge>
+          </div>
+
         </div>
       </header>
 
