@@ -6,7 +6,9 @@ import { toast } from "sonner";
 import {
   deleteClass,
   getAdminOverview,
+  getFacultyRequests,
   getUserDirectory,
+  reviewFacultyRequest,
   setUserRole,
   uploadSubjects,
 } from "@/lib/admin.functions";
