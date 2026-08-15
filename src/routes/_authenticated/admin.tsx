@@ -248,6 +248,51 @@ function AdminPanel() {
         </section>
 
         <section className="mt-10">
+          <h2 className="text-2xl">Faculty verification requests</h2>
+          <p className="text-sm text-muted-foreground">
+            Approve to grant faculty review powers, reject to keep the account student-only.
+          </p>
+          <div className="mt-4 grid gap-3">
+            {facultyRequests?.map((r) => (
+              <div key={r.id} className="surface-paper flex flex-wrap items-center gap-4 rounded-xl p-5">
+                <div className="min-w-52 flex-1">
+                  <p className="text-lg">{r.full_name || r.email || "Unknown"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {r.email}
+                    {r.department ? ` · ${r.department}` : ""}
+                    {r.university ? ` · ${r.university}` : ""}
+                  </p>
+                </div>
+                <Badge variant={r.status === "approved" ? "default" : r.status === "rejected" ? "outline" : "secondary"}>
+                  {r.status}
+                </Badge>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    disabled={reviewMutation.isPending || r.status === "approved"}
+                    onClick={() => reviewMutation.mutate({ requestId: r.id, approve: true })}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={reviewMutation.isPending || r.status === "rejected"}
+                    onClick={() => reviewMutation.mutate({ requestId: r.id, approve: false })}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {!requestsPending && !facultyRequests?.length && (
+              <p className="text-muted-foreground">No faculty requests yet.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="mt-10">
+
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl">Student & account directory</h2>
