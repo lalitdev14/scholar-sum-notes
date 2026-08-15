@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, GraduationCap, ShieldCheck, Sparkles } from "lucide-react";
+import { BadgeCheck, ShieldCheck, Sparkles } from "lucide-react";
+
 
 
 
