@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -20,13 +21,35 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
+type Role = "student" | "faculty";
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [role, setRole] = useState<Role>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [universityId, setUniversityId] = useState("");
+  const [department, setDepartment] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { data: universities } = useQuery({
+    queryKey: ["universities"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("universities")
+        .select("id, name, email_domain")
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const selectedUniversity = useMemo(
+    () => universities?.find((u) => u.id === universityId) ?? null,
+    [universities, universityId],
+  );
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -43,21 +66,40 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        if (!selectedUniversity) throw new Error("Please select your university.");
+        const domain = email.trim().split("@")[1]?.toLowerCase() ?? "";
+        if (domain !== selectedUniversity.email_domain.toLowerCase()) {
+          throw new Error(
+            `Use your university email ending in @${selectedUniversity.email_domain}.`,
+          );
+        }
+        if (role === "faculty" && !department.trim()) {
+          throw new Error("Please enter your department.");
+        }
+
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: fullName },
+            data: {
+              full_name: fullName,
+              requested_role: role,
+              university_id: selectedUniversity.id,
+              department: department.trim(),
+            },
           },
         });
         if (error) throw error;
+        if (role === "faculty") {
+          toast.success("Faculty request submitted — an admin will verify your account.");
+        }
         if (!data.session) {
           toast.success("Check your email to confirm your account.");
           return;
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
       }
     } catch (err) {
@@ -92,22 +134,84 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Sign in to keep taking notes."
-              : "Create a student account to start taking notes."}
+              : "Create an account with your university email."}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full name</Label>
-                <Input
-                  id="name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ada Lovelace"
-                  required
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label>I am a</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["student", "faculty"] as const).map((r) => (
+                      <Button
+                        key={r}
+                        type="button"
+                        variant={role === r ? "default" : "outline"}
+                        onClick={() => setRole(r)}
+                        className="capitalize"
+                      >
+                        {r}
+                      </Button>
+                    ))}
+                  </div>
+                  {role === "faculty" && (
+                    <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      Faculty accounts need admin verification before review powers are enabled.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full name</Label>
+                  <Input
+                    id="name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Ada Lovelace"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="university">University</Label>
+                  <select
+                    id="university"
+                    value={universityId}
+                    onChange={(e) => setUniversityId(e.target.value)}
+                    required
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Select your university</option>
+                    {universities?.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} (@{u.email_domain})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedUniversity && (
+                    <p className="text-xs text-muted-foreground">
+                      Only @{selectedUniversity.email_domain} email addresses are accepted.
+                    </p>
+                  )}
+                </div>
+
+                {role === "faculty" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Input
+                      id="department"
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                      placeholder="Computer Science"
+                      required
+                    />
+                  </div>
+                )}
+              </>
             )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -115,7 +219,9 @@ function AuthPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@university.edu"
+                placeholder={
+                  selectedUniversity ? `you@${selectedUniversity.email_domain}` : "you@university.edu"
+                }
                 required
               />
             </div>
