@@ -16,8 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { GraduationCap, LogOut, Plus, ShieldCheck, Sparkles, User } from "lucide-react";
+import { useRoles } from "@/hooks/useRoles";
+import { BadgeCheck, GraduationCap, LogOut, Plus, ShieldCheck, Sparkles, User } from "lucide-react";
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin, isFaculty } = useRoles();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
@@ -48,7 +48,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("classes")
-        .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at)")
+        .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed)")
         .order("subject");
       if (error) throw error;
       return data;
@@ -93,6 +93,13 @@ function Dashboard() {
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/admin">
                   <ShieldCheck className="mr-2 h-4 w-4" /> Admin
+                </Link>
+              </Button>
+            )}
+            {(isFaculty || isAdmin) && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/faculty">
+                  <BadgeCheck className="mr-2 h-4 w-4" /> Faculty
                 </Link>
               </Button>
             )}
@@ -195,7 +202,14 @@ function Dashboard() {
                       {klass.professor}
                     </p>
                   </div>
-                  <Badge variant="secondary">{klass.code}</Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge variant="secondary">{klass.code}</Badge>
+                    {summary?.reviewed && (
+                      <Badge>
+                        <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Faculty reviewed
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 <p className="prose-notes mt-4 line-clamp-4 text-sm text-muted-foreground">
