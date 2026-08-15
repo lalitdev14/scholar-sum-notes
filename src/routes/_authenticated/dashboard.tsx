@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, Plus, Sparkles, User } from "lucide-react";
+import { BadgeCheck, Plus, Search, Sparkles, User } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
@@ -42,6 +42,8 @@ function Dashboard() {
   const queryClient = useQueryClient();
   const uniTheme = useUniversityTheme();
   const [open, setOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
   const { data: me } = useQuery({
@@ -60,37 +62,95 @@ function Dashboard() {
     },
   });
 
-  const { data: classes, isPending } = useQuery({
-    queryKey: ["classes"],
+  const { data: enrollments } = useQuery({
+    queryKey: ["my-enrollments"],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return [] as string[];
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select("class_id")
+        .eq("user_id", userId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.class_id);
+    },
+  });
+
+  const enrolledIds = enrollments ?? [];
+
+  const { data: classes, isPending } = useQuery({
+    queryKey: ["classes", enrolledIds],
+    enabled: enrollments !== undefined,
+    queryFn: async () => {
+      if (enrolledIds.length === 0) return [];
       const { data, error } = await supabase
         .from("classes")
         .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed)")
+        .in("id", enrolledIds)
         .order("subject");
       if (error) throw error;
       return data;
     },
   });
 
-  async function createClass(e: React.FormEvent) {
-    e.preventDefault();
+  const { data: searchResults, isFetching: searching } = useQuery({
+    queryKey: ["class-search", search],
+    enabled: enrollOpen && search.trim().length > 0,
+    queryFn: async () => {
+      const term = search.trim();
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, subject, professor, code, term")
+        .or(`subject.ilike.%${term}%,code.ilike.%${term}%`)
+        .order("subject")
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function enroll(classId: string) {
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("classes").insert({
-      subject: form.subject,
-      professor: form.professor,
-      code: form.code,
-      term: form.term,
-      created_by: userData.user?.id ?? null,
-    });
+    const userId = userData.user?.id;
+    if (!userId) return;
+    const { error } = await supabase.from("enrollments").insert({ user_id: userId, class_id: classId });
     if (error) {
       toast.error(error.message);
       return;
     }
+    toast.success("Enrolled");
+    queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
+  }
+
+  async function createClass(e: React.FormEvent) {
+    e.preventDefault();
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: created, error } = await supabase
+      .from("classes")
+      .insert({
+        subject: form.subject,
+        professor: form.professor,
+        code: form.code,
+        term: form.term,
+        created_by: userData.user?.id ?? null,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (created && userData.user?.id) {
+      await supabase.from("enrollments").insert({ user_id: userData.user.id, class_id: created.id });
+    }
     toast.success("Class added");
     setOpen(false);
     setForm({ subject: "", professor: "", code: "", term: "" });
+    queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
     queryClient.invalidateQueries({ queryKey: ["classes"] });
   }
+
 
   return (
     <div className="min-h-screen">
@@ -116,11 +176,66 @@ function Dashboard() {
           <div>
             <h1 className="text-4xl">Your classes</h1>
             <p className="mt-1 text-muted-foreground">
-              Pick a class to take notes. Everyone's notes merge into one refined summary.
+              Only the subjects you've enrolled in show here. Search by subject name or code to add more.
             </p>
           </div>
 
+          <div className="flex flex-wrap gap-2">
+          <Dialog open={enrollOpen} onOpenChange={setEnrollOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary">
+                <Search className="mr-2 h-4 w-4" /> Enroll in subject
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Find your subjects</DialogTitle>
+                <DialogDescription>
+                  Search by subject name or subject code, then enroll to see it on your dashboard.
+                </DialogDescription>
+              </DialogHeader>
+              <Input
+                autoFocus
+                placeholder="e.g. Fundamental Algorithms or CSCI-GA 1170"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <div className="max-h-72 space-y-2 overflow-y-auto">
+                {search.trim() === "" && (
+                  <p className="text-sm text-muted-foreground">Start typing to search the class catalogue.</p>
+                )}
+                {search.trim() !== "" && searching && (
+                  <p className="text-sm text-muted-foreground">Searching…</p>
+                )}
+                {search.trim() !== "" && !searching && searchResults?.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No subject matches that name or code.</p>
+                )}
+                {searchResults?.map((klass) => {
+                  const already = enrolledIds.includes(klass.id);
+                  return (
+                    <div
+                      key={klass.id}
+                      className="flex items-center justify-between gap-4 rounded-lg border border-border/60 px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-medium">{klass.subject}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {klass.code} · {klass.professor}
+                          {klass.term ? ` · ${klass.term}` : ""}
+                        </p>
+                      </div>
+                      <Button size="sm" disabled={already} onClick={() => enroll(klass.id)}>
+                        {already ? "Enrolled" : "Enroll"}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={open} onOpenChange={setOpen}>
+
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" /> Add class
@@ -179,11 +294,18 @@ function Dashboard() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           {isPending && <p className="text-muted-foreground">Loading classes…</p>}
+          {!isPending && classes?.length === 0 && (
+            <p className="text-muted-foreground">
+              You haven't enrolled in any subjects yet — use “Enroll in subject” to search by name or code.
+            </p>
+          )}
           {classes?.map((klass) => {
+
             const summary = Array.isArray(klass.class_summaries)
               ? klass.class_summaries[0]
               : klass.class_summaries;
