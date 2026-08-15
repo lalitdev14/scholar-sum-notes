@@ -42,6 +42,8 @@ function Dashboard() {
   const queryClient = useQueryClient();
   const uniTheme = useUniversityTheme();
   const [open, setOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
   const { data: me } = useQuery({
@@ -60,37 +62,95 @@ function Dashboard() {
     },
   });
 
-  const { data: classes, isPending } = useQuery({
-    queryKey: ["classes"],
+  const { data: enrollments } = useQuery({
+    queryKey: ["my-enrollments"],
     queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return [] as string[];
+      const { data, error } = await supabase
+        .from("enrollments")
+        .select("class_id")
+        .eq("user_id", userId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.class_id);
+    },
+  });
+
+  const enrolledIds = enrollments ?? [];
+
+  const { data: classes, isPending } = useQuery({
+    queryKey: ["classes", enrolledIds],
+    enabled: enrollments !== undefined,
+    queryFn: async () => {
+      if (enrolledIds.length === 0) return [];
       const { data, error } = await supabase
         .from("classes")
         .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed)")
+        .in("id", enrolledIds)
         .order("subject");
       if (error) throw error;
       return data;
     },
   });
 
-  async function createClass(e: React.FormEvent) {
-    e.preventDefault();
+  const { data: searchResults, isFetching: searching } = useQuery({
+    queryKey: ["class-search", search],
+    enabled: enrollOpen && search.trim().length > 0,
+    queryFn: async () => {
+      const term = search.trim();
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, subject, professor, code, term")
+        .or(`subject.ilike.%${term}%,code.ilike.%${term}%`)
+        .order("subject")
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  async function enroll(classId: string) {
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("classes").insert({
-      subject: form.subject,
-      professor: form.professor,
-      code: form.code,
-      term: form.term,
-      created_by: userData.user?.id ?? null,
-    });
+    const userId = userData.user?.id;
+    if (!userId) return;
+    const { error } = await supabase.from("enrollments").insert({ user_id: userId, class_id: classId });
     if (error) {
       toast.error(error.message);
       return;
     }
+    toast.success("Enrolled");
+    queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
+  }
+
+  async function createClass(e: React.FormEvent) {
+    e.preventDefault();
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: created, error } = await supabase
+      .from("classes")
+      .insert({
+        subject: form.subject,
+        professor: form.professor,
+        code: form.code,
+        term: form.term,
+        created_by: userData.user?.id ?? null,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (created && userData.user?.id) {
+      await supabase.from("enrollments").insert({ user_id: userData.user.id, class_id: created.id });
+    }
     toast.success("Class added");
     setOpen(false);
     setForm({ subject: "", professor: "", code: "", term: "" });
+    queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
     queryClient.invalidateQueries({ queryKey: ["classes"] });
   }
+
 
   return (
     <div className="min-h-screen">
