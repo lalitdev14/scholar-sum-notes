@@ -3,13 +3,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { deleteClass, getAdminOverview, uploadSubjects } from "@/lib/admin.functions";
+import {
+  deleteClass,
+  getAdminOverview,
+  getUserDirectory,
+  setUserRole,
+  uploadSubjects,
+} from "@/lib/admin.functions";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { GraduationCap, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { BadgeCheck, GraduationCap, ShieldCheck, Trash2, Upload } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -33,16 +41,37 @@ function AdminPanel() {
   const { isAdmin, isPending: checkingRole } = useIsAdmin();
   const queryClient = useQueryClient();
   const [raw, setRaw] = useState("");
+  const [search, setSearch] = useState("");
 
   const fetchOverview = useServerFn(getAdminOverview);
   const upload = useServerFn(uploadSubjects);
   const removeClass = useServerFn(deleteClass);
+  const fetchDirectory = useServerFn(getUserDirectory);
+  const changeRole = useServerFn(setUserRole);
 
   const { data, isPending } = useQuery({
     queryKey: ["admin-overview"],
     queryFn: () => fetchOverview({ data: undefined as never }),
     enabled: isAdmin,
   });
+
+  const { data: directory, isPending: directoryPending } = useQuery({
+    queryKey: ["admin-directory"],
+    queryFn: () => fetchDirectory({ data: undefined as never }),
+    enabled: isAdmin,
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: (vars: { userId: string; role: "admin" | "faculty" | "student"; grant: boolean }) =>
+      changeRole({ data: vars }),
+    onSuccess: () => {
+      toast.success("Roles updated");
+      queryClient.invalidateQueries({ queryKey: ["admin-directory"] });
+      queryClient.invalidateQueries({ queryKey: ["my-roles"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -103,9 +132,17 @@ function AdminPanel() {
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
           </Link>
-          <Badge variant="secondary">
-            <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Admin
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/faculty">
+                <BadgeCheck className="mr-2 h-4 w-4" /> Faculty review
+              </Link>
+            </Button>
+            <Badge variant="secondary">
+              <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Admin
+            </Badge>
+          </div>
+
         </div>
       </header>
 
@@ -209,7 +246,92 @@ function AdminPanel() {
             )}
           </div>
         </section>
+
+        <section className="mt-10">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl">Student & account directory</h2>
+              <p className="text-sm text-muted-foreground">
+                Every registered account: email, sign-in method, activity and roles.
+              </p>
+            </div>
+            <Input
+              className="max-w-xs"
+              placeholder="Search name or email"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="mt-4 overflow-x-auto rounded-xl border border-border/70">
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="p-3">Student</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3">Sign-in</th>
+                  <th className="p-3">Notes</th>
+                  <th className="p-3">Last sign-in</th>
+                  <th className="p-3">Roles</th>
+                </tr>
+              </thead>
+              <tbody>
+                {directory
+                  ?.filter((u) =>
+                    `${u.full_name} ${u.email}`.toLowerCase().includes(search.trim().toLowerCase()),
+                  )
+                  .map((u) => (
+                    <tr key={u.id} className="border-t border-border/60 align-top">
+                      <td className="p-3">{u.full_name || "—"}</td>
+                      <td className="p-3">
+                        {u.email}
+                        {!u.email_confirmed && (
+                          <Badge variant="outline" className="ml-2">
+                            unconfirmed
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="p-3 text-muted-foreground">{u.provider}</td>
+                      <td className="p-3 text-muted-foreground">{u.notes_count}</td>
+                      <td className="p-3 text-muted-foreground">
+                        {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString() : "never"}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(["admin", "faculty", "student"] as const).map((role) => {
+                            const has = u.roles.includes(role);
+                            return (
+                              <Button
+                                key={role}
+                                size="sm"
+                                variant={has ? "default" : "outline"}
+                                disabled={roleMutation.isPending}
+                                onClick={() =>
+                                  roleMutation.mutate({ userId: u.id, role, grant: !has })
+                                }
+                              >
+                                {role}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                {!directoryPending && !directory?.length && (
+                  <tr>
+                    <td className="p-3 text-muted-foreground" colSpan={6}>
+                      No accounts yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            {directoryPending && <p className="p-3 text-muted-foreground">Loading accounts…</p>}
+          </div>
+        </section>
       </main>
+
     </div>
   );
 }

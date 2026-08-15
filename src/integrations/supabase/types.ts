@@ -19,6 +19,10 @@ export type Database = {
           class_id: string
           key_points: Json
           notes_count: number
+          review_note: string
+          reviewed: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
           summary: string
           updated_at: string
         }
@@ -26,6 +30,10 @@ export type Database = {
           class_id: string
           key_points?: Json
           notes_count?: number
+          review_note?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           summary?: string
           updated_at?: string
         }
@@ -33,6 +41,10 @@ export type Database = {
           class_id?: string
           key_points?: Json
           notes_count?: number
+          review_note?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           summary?: string
           updated_at?: string
         }
@@ -162,9 +174,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_reviewer: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "student"
+      app_role: "admin" | "student" | "faculty"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -292,7 +305,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "student"],
+      app_role: ["admin", "student", "faculty"],
     },
   },
 } as const
