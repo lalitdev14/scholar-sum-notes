@@ -176,11 +176,66 @@ function Dashboard() {
           <div>
             <h1 className="text-4xl">Your classes</h1>
             <p className="mt-1 text-muted-foreground">
-              Pick a class to take notes. Everyone's notes merge into one refined summary.
+              Only the subjects you've enrolled in show here. Search by subject name or code to add more.
             </p>
           </div>
 
+          <div className="flex flex-wrap gap-2">
+          <Dialog open={enrollOpen} onOpenChange={setEnrollOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary">
+                <Search className="mr-2 h-4 w-4" /> Enroll in subject
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Find your subjects</DialogTitle>
+                <DialogDescription>
+                  Search by subject name or subject code, then enroll to see it on your dashboard.
+                </DialogDescription>
+              </DialogHeader>
+              <Input
+                autoFocus
+                placeholder="e.g. Fundamental Algorithms or CSCI-GA 1170"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <div className="max-h-72 space-y-2 overflow-y-auto">
+                {search.trim() === "" && (
+                  <p className="text-sm text-muted-foreground">Start typing to search the class catalogue.</p>
+                )}
+                {search.trim() !== "" && searching && (
+                  <p className="text-sm text-muted-foreground">Searching…</p>
+                )}
+                {search.trim() !== "" && !searching && searchResults?.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No subject matches that name or code.</p>
+                )}
+                {searchResults?.map((klass) => {
+                  const already = enrolledIds.includes(klass.id);
+                  return (
+                    <div
+                      key={klass.id}
+                      className="flex items-center justify-between gap-4 rounded-lg border border-border/60 px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-medium">{klass.subject}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {klass.code} · {klass.professor}
+                          {klass.term ? ` · ${klass.term}` : ""}
+                        </p>
+                      </div>
+                      <Button size="sm" disabled={already} onClick={() => enroll(klass.id)}>
+                        {already ? "Enrolled" : "Enroll"}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={open} onOpenChange={setOpen}>
+
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" /> Add class
