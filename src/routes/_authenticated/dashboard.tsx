@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { useRoles } from "@/hooks/useRoles";
-import { BadgeCheck, GraduationCap, LogOut, Plus, ShieldCheck, Sparkles, User } from "lucide-react";
+import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { BadgeCheck, Plus, Sparkles, User } from "lucide-react";
+
+
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -36,11 +38,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin, isFaculty } = useRoles();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
+
+
 
 
   const { data: classes, isPending } = useQuery({
@@ -75,43 +77,12 @@ function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["classes"] });
   }
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth" });
-  }
-
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border/70">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            <span className="font-display text-xl">LectureLoop</span>
-          </Link>
-          <div className="flex items-center gap-1">
-            {isAdmin && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/admin">
-                  <ShieldCheck className="mr-2 h-4 w-4" /> Admin
-                </Link>
-              </Button>
-            )}
-            {(isFaculty || isAdmin) && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/faculty">
-                  <BadgeCheck className="mr-2 h-4 w-4" /> Faculty
-                </Link>
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
-            </Button>
-          </div>
-
-        </div>
-      </header>
+      <AuthenticatedHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-12">
+
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl">Your classes</h1>

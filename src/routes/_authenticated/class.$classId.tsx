@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { BadgeCheck, ArrowLeft, Save, Sparkles, User } from "lucide-react";
+import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { BadgeCheck, Save, Sparkles, User } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/class/$classId")({
   head: () => ({
@@ -123,19 +125,10 @@ function ClassPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border/70">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5">
-          <Link
-            to="/dashboard"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> All classes
-          </Link>
-          {klass && <Badge variant="secondary">{klass.code}</Badge>}
-        </div>
-      </header>
+      <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl">{klass?.subject ?? "Class"}</h1>
