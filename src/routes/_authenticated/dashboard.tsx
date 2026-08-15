@@ -77,43 +77,12 @@ function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["classes"] });
   }
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth" });
-  }
-
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border/70">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            <span className="font-display text-xl">LectureLoop</span>
-          </Link>
-          <div className="flex items-center gap-1">
-            {isAdmin && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/admin">
-                  <ShieldCheck className="mr-2 h-4 w-4" /> Admin
-                </Link>
-              </Button>
-            )}
-            {(isFaculty || isAdmin) && (
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/faculty">
-                  <BadgeCheck className="mr-2 h-4 w-4" /> Faculty
-                </Link>
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
-            </Button>
-          </div>
-
-        </div>
-      </header>
+      <AuthenticatedHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-12">
+
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl">Your classes</h1>
