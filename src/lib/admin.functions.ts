@@ -121,3 +121,84 @@ export const deleteClass = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const getUserDirectory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as never);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: usersRes, error: usersError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (usersError) throw new Error(usersError.message);
+
+    const [profilesRes, rolesRes, notesRes] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, full_name"),
+      supabaseAdmin.from("user_roles").select("user_id, role"),
+      supabaseAdmin.from("notes").select("user_id, updated_at"),
+    ]);
+
+    const names = new Map((profilesRes.data ?? []).map((p) => [p.id, p.full_name]));
+    const roles = new Map<string, string[]>();
+    for (const r of rolesRes.data ?? []) {
+      roles.set(r.user_id, [...(roles.get(r.user_id) ?? []), r.role as string]);
+    }
+    const notes = notesRes.data ?? [];
+
+    return (usersRes.users ?? []).map((u) => {
+      const own = notes.filter((n) => n.user_id === u.id);
+      const last = own
+        .map((n) => n.updated_at)
+        .sort()
+        .at(-1);
+      return {
+        id: u.id,
+        email: u.email ?? "",
+        full_name: names.get(u.id) ?? "",
+        provider: (u.app_metadata?.provider as string) ?? "email",
+        email_confirmed: Boolean(u.email_confirmed_at),
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at ?? null,
+        roles: roles.get(u.id) ?? [],
+        notes_count: own.length,
+        last_note_at: last ?? null,
+      };
+    });
+  });
+
+export const setUserRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        role: z.enum(["admin", "faculty", "student"]),
+        grant: z.boolean(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as never);
+    if (data.userId === context.userId && data.role === "admin" && !data.grant) {
+      throw new Error("You cannot remove your own admin role.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.grant) {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .upsert({ user_id: data.userId, role: data.role as never }, { onConflict: "user_id,role" });
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.userId)
+        .eq("role", data.role as never);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
