@@ -3,13 +3,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { deleteClass, getAdminOverview, uploadSubjects } from "@/lib/admin.functions";
+import {
+  deleteClass,
+  getAdminOverview,
+  getUserDirectory,
+  setUserRole,
+  uploadSubjects,
+} from "@/lib/admin.functions";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { GraduationCap, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { BadgeCheck, GraduationCap, ShieldCheck, Trash2, Upload } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
