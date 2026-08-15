@@ -77,19 +77,16 @@ function FacultyReview() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-border/70">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            <span className="font-display text-xl">LectureLoop</span>
-          </Link>
+      <AuthenticatedHeader
+        trailing={
           <Badge variant="secondary">
             <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Faculty
           </Badge>
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto max-w-5xl px-6 py-12">
+
         <h1 className="text-4xl">Review class summaries</h1>
         <p className="mt-1 text-muted-foreground">
           Read the AI-refined summary of each class and mark it reviewed so students know it is trusted.
