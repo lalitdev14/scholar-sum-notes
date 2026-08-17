@@ -125,6 +125,30 @@ function ClassPage() {
 
   const studentCount = (klass as any)?.enrollments?.[0]?.count ?? 0;
 
+  const { data: classmates } = useQuery({
+    queryKey: ["classmates", classId],
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("enrollments")
+        .select("user_id, created_at")
+        .eq("class_id", classId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const ids = (rows ?? []).map((r) => r.user_id);
+      if (ids.length === 0) return [] as { id: string; full_name: string }[];
+      const { data: people, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", ids);
+      if (pErr) throw pErr;
+      return ids.map((id) => ({
+        id,
+        full_name: people?.find((p) => p.id === id)?.full_name || "Student",
+      }));
+    },
+  });
+
+
   const { data: myNote } = useQuery({
     queryKey: ["my-note", classId],
     queryFn: async () => {
