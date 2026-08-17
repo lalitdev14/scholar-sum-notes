@@ -86,7 +86,7 @@ function Dashboard() {
       if (enrolledIds.length === 0) return [];
       const { data, error } = await supabase
         .from("classes")
-        .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed)")
+        .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed), enrollments(count)")
         .in("id", enrolledIds)
         .order("subject");
       if (error) throw error;
