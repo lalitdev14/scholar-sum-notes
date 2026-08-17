@@ -21,9 +21,15 @@ npm i
 npm run dev
 ```
 
+## Deploying to GitHub + Vercel
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full walkthrough, including the
+environment variables Vercel needs.
+
 ## Built with
 
-- TanStack Start
+- TanStack Start (React UI + server functions in one codebase)
 - TypeScript
 - React
 - Tailwind CSS
+- Supabase (database, auth, storage)
