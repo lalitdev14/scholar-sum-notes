@@ -35,11 +35,31 @@ function ClassPage() {
   const queryClient = useQueryClient();
   const save = useServerFn(saveNote);
   const refresh = useServerFn(refreshClassSummary);
+  const transcribe = useServerFn(transcribeHandwriting);
 
   const [content, setContent] = useState("");
   const [noteId, setNoteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
+  const [converting, setConverting] = useState(false);
+
+  async function handleConvert(imageDataUrl: string) {
+    setConverting(true);
+    try {
+      const res = await transcribe({ data: { imageDataUrl } });
+      if (!res.text) {
+        toast.error("Nothing legible found on the canvas.");
+        return;
+      }
+      setContent((prev) => (prev.trim() ? `${prev.trim()}\n\n${res.text}` : res.text));
+      toast.success("Handwriting converted to text");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not convert handwriting");
+    } finally {
+      setConverting(false);
+    }
+  }
+
 
   const { data: klass } = useQuery({
     queryKey: ["class", classId],
