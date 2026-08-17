@@ -115,13 +115,15 @@ function ClassPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("classes")
-        .select("id, subject, professor, code, term")
+        .select("id, subject, professor, code, term, enrollments(count)")
         .eq("id", classId)
         .single();
       if (error) throw error;
       return data;
     },
   });
+
+  const studentCount = (klass as any)?.enrollments?.[0]?.count ?? 0;
 
   const { data: myNote } = useQuery({
     queryKey: ["my-note", classId],
