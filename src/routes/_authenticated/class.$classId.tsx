@@ -3,13 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { saveNote, refreshClassSummary } from "@/lib/notes.functions";
+import { saveNote, refreshClassSummary, transcribeHandwriting } from "@/lib/notes.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { BadgeCheck, Save, Sparkles, User } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/_authenticated/class/$classId")({
