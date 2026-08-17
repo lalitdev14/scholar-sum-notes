@@ -43,18 +43,19 @@ function ClassPage() {
   const [summarizing, setSummarizing] = useState(false);
   const [converting, setConverting] = useState(false);
 
-  async function handleConvert(imageDataUrl: string) {
+  async function handleConvert(imageDataUrl: string): Promise<boolean> {
     setConverting(true);
     try {
       const res = await transcribe({ data: { imageDataUrl } });
       if (!res.text) {
         toast.error("Nothing legible found on the canvas.");
-        return;
+        return false;
       }
-      setContent((prev) => (prev.trim() ? `${prev.trim()}\n\n${res.text}` : res.text));
-      toast.success("Handwriting converted to text");
+      setContent((prev) => (prev.trim() ? `${prev.trim()}\n${res.text}` : res.text));
+      return true;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not convert handwriting");
+      return false;
     } finally {
       setConverting(false);
     }
