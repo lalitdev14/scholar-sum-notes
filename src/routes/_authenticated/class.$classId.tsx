@@ -43,6 +43,28 @@ function ClassPage() {
   const [summarizing, setSummarizing] = useState(false);
   const [converting, setConverting] = useState(false);
 
+  async function archiveHandwriting(imageDataUrl: string, transcript: string) {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return;
+      const blob = await (await fetch(imageDataUrl)).blob();
+      const path = `${userId}/${classId}/${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("handwriting")
+        .upload(path, blob, { contentType: "image/png" });
+      if (uploadError) throw uploadError;
+      const { error: insertError } = await supabase
+        .from("handwriting_pages")
+        .insert({ class_id: classId, user_id: userId, image_path: path, transcript });
+      if (insertError) throw insertError;
+      queryClient.invalidateQueries({ queryKey: ["handwriting", classId] });
+    } catch (err) {
+      console.error("Could not archive handwriting", err);
+      toast.error("Text captured, but the handwritten copy could not be saved.");
+    }
+  }
+
   async function handleConvert(imageDataUrl: string): Promise<boolean> {
     setConverting(true);
     try {
@@ -52,6 +74,7 @@ function ClassPage() {
         return false;
       }
       setContent((prev) => (prev.trim() ? `${prev.trim()}\n${res.text}` : res.text));
+      void archiveHandwriting(imageDataUrl, res.text);
       return true;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not convert handwriting");
@@ -60,6 +83,31 @@ function ClassPage() {
       setConverting(false);
     }
   }
+
+  const { data: pages } = useQuery({
+    queryKey: ["handwriting", classId],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("handwriting_pages")
+        .select("id, image_path, transcript, created_at")
+        .eq("class_id", classId)
+        .eq("user_id", userData.user!.id)
+        .order("created_at", { ascending: false })
+        .limit(24);
+      if (error) throw error;
+      const signed = await Promise.all(
+        (data ?? []).map(async (row) => {
+          const { data: url } = await supabase.storage
+            .from("handwriting")
+            .createSignedUrl(row.image_path, 3600);
+          return { ...row, url: url?.signedUrl ?? null };
+        }),
+      );
+      return signed;
+    },
+  });
+
 
 
   const { data: klass } = useQuery({
