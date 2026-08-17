@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { ShieldCheck, Trash2, Upload } from "lucide-react";
 
 
 
@@ -153,13 +153,7 @@ function AdminPanel() {
 
   return (
     <div className="min-h-screen">
-      <AuthenticatedHeader
-        trailing={
-          <Badge variant="secondary">
-            <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Admin
-          </Badge>
-        }
-      />
+      <AuthenticatedHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-12">
 
