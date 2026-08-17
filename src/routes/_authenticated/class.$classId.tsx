@@ -125,6 +125,30 @@ function ClassPage() {
 
   const studentCount = (klass as any)?.enrollments?.[0]?.count ?? 0;
 
+  const { data: classmates } = useQuery({
+    queryKey: ["classmates", classId],
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("enrollments")
+        .select("user_id, created_at")
+        .eq("class_id", classId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const ids = (rows ?? []).map((r) => r.user_id);
+      if (ids.length === 0) return [] as { id: string; full_name: string }[];
+      const { data: people, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", ids);
+      if (pErr) throw pErr;
+      return ids.map((id) => ({
+        id,
+        full_name: people?.find((p) => p.id === id)?.full_name || "Student",
+      }));
+    },
+  });
+
+
   const { data: myNote } = useQuery({
     queryKey: ["my-note", classId],
     queryFn: async () => {
@@ -349,6 +373,33 @@ function ClassPage() {
               </p>
             )}
           </aside>
+
+          <section className="surface-paper rounded-xl p-6 lg:col-span-5">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <h2 className="text-2xl">Students in this class</h2>
+            </div>
+            {classmates && classmates.length > 0 ? (
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {classmates.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm"
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold">
+                      {s.full_name.slice(0, 1).toUpperCase()}
+                    </span>
+                    {s.full_name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">
+                No students have joined this class yet.
+              </p>
+            )}
+          </section>
+
         </div>
       </main>
     </div>
