@@ -67,9 +67,9 @@ export const refreshClassSummary = createServerFn({ method: "POST" })
 
     if (!corpus.trim()) throw new Error("No notes to summarize yet.");
 
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const { resolveTextModel } = await import("./ai-gateway.server");
     const { streamText, Output } = await import("ai");
-    const gateway = createLovableAiGatewayProvider(apiKey);
+    const model = resolveTextModel();
 
     const schema = z.object({
       summary: z.string(),
@@ -77,7 +77,8 @@ export const refreshClassSummary = createServerFn({ method: "POST" })
     });
 
     const result = streamText({
-      model: gateway("google/gemini-3.5-flash"),
+      model,
+
       output: Output.object({ schema }),
       system:
         "You merge multiple students' raw class notes into one refined, accurate class summary. " +
