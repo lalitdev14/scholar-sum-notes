@@ -325,6 +325,7 @@ export type Database = {
       }
       is_classmate: { Args: { target_class_id: string }; Returns: boolean }
       is_reviewer: { Args: { _user_id: string }; Returns: boolean }
+      shares_class_with: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "student" | "faculty"
