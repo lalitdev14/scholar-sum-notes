@@ -176,12 +176,24 @@ function ClassPage() {
                 {saving ? "Saving…" : "Save"}
               </Button>
             </div>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing what the professor is covering…"
-              className="mt-4 min-h-[460px] resize-none bg-transparent text-base leading-relaxed"
-            />
+            <Tabs defaultValue="type" className="mt-4">
+              <TabsList>
+                <TabsTrigger value="type">Type</TabsTrigger>
+                <TabsTrigger value="write">Handwrite</TabsTrigger>
+              </TabsList>
+              <TabsContent value="type">
+                <Textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Start writing what the professor is covering…"
+                  className="min-h-[460px] resize-none bg-transparent text-base leading-relaxed"
+                />
+              </TabsContent>
+              <TabsContent value="write">
+                <HandwritingCanvas onConvert={handleConvert} converting={converting} />
+              </TabsContent>
+            </Tabs>
+
             <p className="mt-3 text-xs text-muted-foreground">
               Only you can see your raw notes. They are merged anonymously into the class summary.
             </p>
