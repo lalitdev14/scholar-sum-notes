@@ -48,17 +48,38 @@ const steps = [
 ];
 
 function Landing() {
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) setSignedIn(!!data.session);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(!!session);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="h-5 w-5" />
-          <span className="font-display text-xl">LectureLoop</span>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/auth">Sign in</Link>
-        </Button>
-      </header>
+      {signedIn ? (
+        <AuthenticatedHeader />
+      ) : (
+        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5" />
+            <span className="font-display text-xl">LectureLoop</span>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/auth">Sign in</Link>
+          </Button>
+        </header>
+      )}
+
 
       <main>
         <section className="mx-auto max-w-4xl px-6 pb-16 pt-16 text-center">
