@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_classmate(uuid) FROM public; GRANT EXECUTE ON FUNCTION public.is_classmate(uuid) TO authenticated;
