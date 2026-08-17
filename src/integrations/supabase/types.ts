@@ -164,6 +164,41 @@ export type Database = {
           },
         ]
       }
+      handwriting_pages: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          image_path: string
+          transcript: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          image_path: string
+          transcript?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          image_path?: string
+          transcript?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "handwriting_pages_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           class_id: string
