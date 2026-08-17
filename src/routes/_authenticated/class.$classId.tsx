@@ -206,10 +206,22 @@ function ClassPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl">{klass?.subject ?? "Class"}</h1>
-            <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="h-3.5 w-3.5" />
-              {klass?.professor}
-              {klass?.term ? ` · ${klass.term}` : ""}
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
+                <User className="h-3.5 w-3.5" />
+                {klass?.professor}
+              </span>
+              {klass?.term ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="opacity-60">·</span>
+                  {klass.term}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-2">
+                <span className="opacity-60">·</span>
+                <Users className="h-3.5 w-3.5" />
+                {studentCount} student{studentCount === 1 ? "" : "s"}
+              </span>
             </p>
           </div>
           <Button onClick={handleSummarize} disabled={summarizing}>
