@@ -43,16 +43,15 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
       : (me?.universities as { name?: string } | null)?.name ?? "";
 
   return (
-    <header className="border-b border-border/70">
-      <div className="h-1 w-full" style={{ backgroundImage: uniTheme.gradient }} />
+    <header className="border-b border-black/10" style={{ backgroundColor: uniTheme.primary, color: "#fff" }}>
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5">
         <div className="flex items-center gap-6">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" style={{ color: uniTheme.primary }} />
-            <span className="font-display text-xl">LectureLoop</span>
+          <Link to="/dashboard" className="flex items-center gap-2" style={{ color: "#fff" }}>
+            <GraduationCap className="h-5 w-5" style={{ color: "#fff" }} />
+            <span className="font-display text-xl font-bold">LectureLoop</span>
           </Link>
 
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
             <Link to="/">
               <Home className="mr-2 h-4 w-4" /> Home
             </Link>
@@ -61,17 +60,17 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
 
         <div className="flex items-center gap-1">
           {me?.full_name && (
-            <div className="hidden items-center gap-3 text-sm text-muted-foreground sm:flex">
+            <div className="hidden items-center gap-3 text-sm text-white/90 sm:flex">
               <span className="flex items-center gap-1.5">
                 <User className="h-3.5 w-3.5" />
                 {me.full_name}
               </span>
               {universityName && (
                 <span
-                  className="flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-1 text-foreground"
-                  style={{ backgroundImage: uniTheme.softGradient }}
+                  className="flex items-center gap-1.5 rounded-full border border-white/30 px-2.5 py-1 text-white"
+                  style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
                 >
-                  <University className="h-3.5 w-3.5" style={{ color: uniTheme.accent }} />
+                  <University className="h-3.5 w-3.5" style={{ color: "#fff" }} />
                   {universityName}
                 </span>
               )}
@@ -79,21 +78,21 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
           )}
 
           {isAdmin && (
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
               <Link to="/admin">
                 <ShieldCheck className="mr-2 h-4 w-4" /> Admin
               </Link>
             </Button>
           )}
           {(isFaculty || isAdmin) && (
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
               <Link to="/faculty">
                 <BadgeCheck className="mr-2 h-4 w-4" /> Faculty
               </Link>
             </Button>
           )}
           {trailing}
-          <Button variant="ghost" size="sm" onClick={signOut}>
+          <Button variant="ghost" size="sm" onClick={signOut} className="text-white hover:bg-white/10">
             <LogOut className="mr-2 h-4 w-4" /> Sign out
           </Button>
         </div>
