@@ -116,15 +116,13 @@ export const transcribeHandwriting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => TranscribeInput.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) throw new Error("AI is not configured yet.");
-
-    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText } = await import("ai");
-    const gateway = createLovableAiGatewayProvider(apiKey);
+    const model = resolveTextModel();
 
     const result = await generateText({
-      model: gateway("google/gemini-3.5-flash"),
+      model,
+
       system:
         "You transcribe handwritten class notes from an image. Return ONLY the transcribed text, " +
         "preserving line breaks, bullets, formulas and indentation. No commentary, no markdown fences. " +
