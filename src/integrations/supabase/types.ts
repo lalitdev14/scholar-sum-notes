@@ -323,6 +323,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_classmate: { Args: { target_class_id: string }; Returns: boolean }
       is_reviewer: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
