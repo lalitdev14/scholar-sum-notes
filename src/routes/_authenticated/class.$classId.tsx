@@ -3,13 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { saveNote, refreshClassSummary } from "@/lib/notes.functions";
+import { saveNote, refreshClassSummary, transcribeHandwriting } from "@/lib/notes.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { BadgeCheck, Save, Sparkles, User } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/_authenticated/class/$classId")({
@@ -32,11 +35,31 @@ function ClassPage() {
   const queryClient = useQueryClient();
   const save = useServerFn(saveNote);
   const refresh = useServerFn(refreshClassSummary);
+  const transcribe = useServerFn(transcribeHandwriting);
 
   const [content, setContent] = useState("");
   const [noteId, setNoteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
+  const [converting, setConverting] = useState(false);
+
+  async function handleConvert(imageDataUrl: string) {
+    setConverting(true);
+    try {
+      const res = await transcribe({ data: { imageDataUrl } });
+      if (!res.text) {
+        toast.error("Nothing legible found on the canvas.");
+        return;
+      }
+      setContent((prev) => (prev.trim() ? `${prev.trim()}\n\n${res.text}` : res.text));
+      toast.success("Handwriting converted to text");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not convert handwriting");
+    } finally {
+      setConverting(false);
+    }
+  }
+
 
   const { data: klass } = useQuery({
     queryKey: ["class", classId],
@@ -153,12 +176,24 @@ function ClassPage() {
                 {saving ? "Saving…" : "Save"}
               </Button>
             </div>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing what the professor is covering…"
-              className="mt-4 min-h-[460px] resize-none bg-transparent text-base leading-relaxed"
-            />
+            <Tabs defaultValue="type" className="mt-4">
+              <TabsList>
+                <TabsTrigger value="type">Type</TabsTrigger>
+                <TabsTrigger value="write">Handwrite</TabsTrigger>
+              </TabsList>
+              <TabsContent value="type">
+                <Textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Start writing what the professor is covering…"
+                  className="min-h-[460px] resize-none bg-transparent text-base leading-relaxed"
+                />
+              </TabsContent>
+              <TabsContent value="write">
+                <HandwritingCanvas onConvert={handleConvert} converting={converting} />
+              </TabsContent>
+            </Tabs>
+
             <p className="mt-3 text-xs text-muted-foreground">
               Only you can see your raw notes. They are merged anonymously into the class summary.
             </p>
