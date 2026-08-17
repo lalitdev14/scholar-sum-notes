@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Eraser, Pen, Undo2, Sparkles } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 type Stroke = { points: { x: number; y: number; p: number }[]; erase: boolean };
 
@@ -8,7 +10,7 @@ export function HandwritingCanvas({
   onConvert,
   converting,
 }: {
-  onConvert: (dataUrl: string) => void;
+  onConvert: (dataUrl: string) => Promise<boolean> | void;
   converting?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -16,6 +18,10 @@ export function HandwritingCanvas({
   const drawingRef = useRef<Stroke | null>(null);
   const [tool, setTool] = useState<"pen" | "eraser">("pen");
   const [isEmpty, setIsEmpty] = useState(true);
+  const [live, setLive] = useState(true);
+  const liveRef = useRef(true);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const busyRef = useRef(false);
 
   function redraw() {
     const canvas = canvasRef.current;
@@ -59,6 +65,33 @@ export function HandwritingCanvas({
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  async function convertNow(clearAfter: boolean) {
+    const canvas = canvasRef.current;
+    if (!canvas || busyRef.current || strokesRef.current.length === 0) return;
+    busyRef.current = true;
+    try {
+      const ok = await onConvert(canvas.toDataURL("image/png"));
+      if (clearAfter && ok !== false) clear();
+    } finally {
+      busyRef.current = false;
+    }
+  }
+
+  function scheduleLiveConvert() {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    if (!liveRef.current) return;
+    idleTimer.current = setTimeout(() => void convertNow(true), 1600);
+  }
+
+  useEffect(() => {
+    liveRef.current = live;
+    if (!live && idleTimer.current) clearTimeout(idleTimer.current);
+  }, [live]);
+
+  useEffect(() => () => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+  }, []);
+
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
     return {
@@ -69,6 +102,7 @@ export function HandwritingCanvas({
   }
 
   function down(e: React.PointerEvent<HTMLCanvasElement>) {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
     // Ignore finger scrolling when a stylus is in use; pen and mouse draw.
     e.currentTarget.setPointerCapture(e.pointerId);
     const erase = tool === "eraser" || e.buttons === 32;
@@ -99,6 +133,7 @@ export function HandwritingCanvas({
     }
     drawingRef.current = null;
     redraw();
+    scheduleLiveConvert();
   }
 
   function undo() {
@@ -138,15 +173,17 @@ export function HandwritingCanvas({
         <Button type="button" size="sm" variant="ghost" onClick={clear} disabled={isEmpty}>
           Clear
         </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <Switch id="live-convert" checked={live} onCheckedChange={setLive} />
+          <Label htmlFor="live-convert" className="text-xs text-muted-foreground">
+            Live convert
+          </Label>
+        </div>
         <Button
           type="button"
           size="sm"
-          className="ml-auto"
           disabled={isEmpty || converting}
-          onClick={() => {
-            const canvas = canvasRef.current;
-            if (canvas) onConvert(canvas.toDataURL("image/png"));
-          }}
+          onClick={() => void convertNow(true)}
         >
           <Sparkles className="mr-2 h-4 w-4" />
           {converting ? "Converting…" : "Convert to text"}
@@ -163,8 +200,9 @@ export function HandwritingCanvas({
         className="mt-4 h-[460px] w-full touch-none rounded-lg border border-border bg-white"
       />
       <p className="mt-3 text-xs text-muted-foreground">
-        Write with an Apple Pencil or stylus on iPad — pressure is captured. Convert turns your
-        handwriting into text and appends it to your notes.
+        Write with an Apple Pencil or stylus on iPad — pressure is captured. With live convert on,
+        each line is turned into typed text about a second after you stop writing, and the canvas
+        clears so you can keep going.
       </p>
     </div>
   );
