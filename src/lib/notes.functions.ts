@@ -107,3 +107,38 @@ export const refreshClassSummary = createServerFn({ method: "POST" })
 
     return { summary: output.summary, key_points: output.key_points, notes_count: notes?.length ?? 0 };
   });
+
+const TranscribeInput = z.object({
+  imageDataUrl: z.string().startsWith("data:image/").max(12_000_000),
+});
+
+export const transcribeHandwriting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => TranscribeInput.parse(input))
+  .handler(async ({ data }) => {
+    const apiKey = process.env["LOVABLE_API_KEY"];
+    if (!apiKey) throw new Error("AI is not configured yet.");
+
+    const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
+    const { generateText } = await import("ai");
+    const gateway = createLovableAiGatewayProvider(apiKey);
+
+    const result = await generateText({
+      model: gateway("google/gemini-3.5-flash"),
+      system:
+        "You transcribe handwritten class notes from an image. Return ONLY the transcribed text, " +
+        "preserving line breaks, bullets, formulas and indentation. No commentary, no markdown fences. " +
+        "If nothing is legible, return an empty string.",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Transcribe this handwriting." },
+            { type: "image", image: new URL(data.imageDataUrl) },
+          ],
+        },
+      ],
+    });
+
+    return { text: (result.text ?? "").trim() };
+  });
