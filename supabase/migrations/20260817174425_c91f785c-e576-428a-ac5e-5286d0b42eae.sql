@@ -1,0 +1,1 @@
+CREATE POLICY "Enrolled students can see classmates" ON public.enrollments FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.enrollments e WHERE e.class_id = enrollments.class_id AND e.user_id = auth.uid()));

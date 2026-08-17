@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, Plus, Search, Sparkles, User } from "lucide-react";
+import { BadgeCheck, Plus, Search, Sparkles, User, Users } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
@@ -86,7 +86,7 @@ function Dashboard() {
       if (enrolledIds.length === 0) return [];
       const { data, error } = await supabase
         .from("classes")
-        .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed)")
+        .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed), enrollments(count)")
         .in("id", enrolledIds)
         .order("subject");
       if (error) throw error;
@@ -309,6 +309,7 @@ function Dashboard() {
             const summary = Array.isArray(klass.class_summaries)
               ? klass.class_summaries[0]
               : klass.class_summaries;
+            const studentCount = (klass as any)?.enrollments?.[0]?.count ?? 0;
             return (
               <Link
                 key={klass.id}
@@ -322,6 +323,10 @@ function Dashboard() {
                     <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                       <User className="h-3.5 w-3.5" />
                       {klass.professor}
+                    </p>
+                    <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-3.5 w-3.5" />
+                      {studentCount} student{studentCount === 1 ? "" : "s"}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
