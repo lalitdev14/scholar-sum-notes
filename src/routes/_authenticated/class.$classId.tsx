@@ -192,6 +192,14 @@ function ClassPage() {
               </TabsContent>
               <TabsContent value="write">
                 <HandwritingCanvas onConvert={handleConvert} converting={converting} />
+                <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-4">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Live transcript {converting ? "· converting…" : ""}
+                  </p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
+                    {content || "Your handwriting will appear here as typed text."}
+                  </p>
+                </div>
               </TabsContent>
             </Tabs>
 
