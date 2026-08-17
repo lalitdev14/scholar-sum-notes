@@ -248,6 +248,41 @@ function ClassPage() {
                     {content || "Your handwriting will appear here as typed text."}
                   </p>
                 </div>
+
+                <div className="mt-6">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Saved handwritten pages
+                  </p>
+                  {pages && pages.length > 0 ? (
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {pages.map((page) => (
+                        <a
+                          key={page.id}
+                          href={page.url ?? undefined}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block overflow-hidden rounded-lg border border-border/60 bg-white"
+                        >
+                          {page.url && (
+                            <img
+                              src={page.url}
+                              alt={`Handwritten note from ${new Date(page.created_at).toLocaleString()}`}
+                              loading="lazy"
+                              className="h-28 w-full object-cover"
+                            />
+                          )}
+                          <span className="block px-2 py-1 text-[10px] text-muted-foreground">
+                            {new Date(page.created_at).toLocaleString()}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Every page you convert is archived here as the original handwriting.
+                    </p>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
 
