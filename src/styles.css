@@ -151,8 +151,7 @@
   }
 
   body {
-    background: var(--gradient-paper);
-    background-attachment: fixed;
+    background: oklch(1 0 0);
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
