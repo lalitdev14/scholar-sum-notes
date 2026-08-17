@@ -58,19 +58,39 @@ Copy them from `.env.example`. Set each one for **Production, Preview and Develo
 | `SUPABASE_URL` | server functions |
 | `SUPABASE_PUBLISHABLE_KEY` | server functions (auth middleware) |
 | `SUPABASE_SERVICE_ROLE_KEY` | admin panel, faculty review queue, summary writes |
-| `LOVABLE_API_KEY` | AI summaries + handwriting transcription |
+| one AI key (see below) | AI summaries + handwriting transcription |
 
-### Two values you must obtain yourself
+### AI key (pluggable)
 
-- **`SUPABASE_SERVICE_ROLE_KEY`** — not exposed by Lovable Cloud. Without it the admin
-  panel, faculty review queue and summary upsert fail on Vercel.
-- **`LOVABLE_API_KEY`** — injected automatically inside Lovable, but not available for
-  external hosting.
+`src/lib/ai-gateway.server.ts` picks the first provider it finds, so you are not tied
+to Lovable's gateway:
 
-If you want full functionality on Vercel, the clean route is to move the database to
-your own Supabase project (run `supabase/migrations/*.sql` there, then use its own URL,
-publishable key and service role key) and swap the AI gateway call in
-`src/lib/ai-gateway.server.ts` for your own provider key (e.g. OpenAI or Google AI).
+| Set this | Provider used | Default model |
+| --- | --- | --- |
+| `LOVABLE_API_KEY` | Lovable AI Gateway (automatic inside Lovable) | `google/gemini-3.5-flash` |
+| `OPENAI_API_KEY` | OpenAI | `gpt-4o-mini` |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI | `gemini-2.5-flash` |
+| `AI_BASE_URL` + `AI_API_KEY` | any OpenAI-compatible endpoint | `gpt-4o-mini` |
+
+Override the model anywhere with `AI_TEXT_MODEL`. `LOVABLE_API_KEY` is not available
+outside Lovable, so on Vercel set an OpenAI or Google key instead.
+
+## 3b. Moving to your own Supabase project (optional but recommended)
+
+`SUPABASE_SERVICE_ROLE_KEY` cannot be read out of Lovable Cloud, so full admin/faculty
+functionality on Vercel means owning the database:
+
+1. Create a project at supabase.com.
+2. Run every file in `supabase/migrations/` **in filename order** in the SQL editor.
+   They create the tables, roles, RLS policies and helper functions.
+3. Storage → create a **private** bucket named `handwriting` (the handwritten-page
+   archive uploads there).
+4. Authentication → Providers → enable **Google** if you want Google sign-in.
+5. Copy the project URL, publishable key and service role key from
+   Project Settings → API into your Vercel environment variables.
+6. Re-create the admin/faculty/student accounts (sign up, then set roles in the
+   `user_roles` table for the first admin).
+
 
 ## 4. Post-deploy checklist
 
