@@ -41,8 +41,7 @@ export const refreshClassSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ClassInput.parse(input))
   .handler(async ({ data, context }) => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) throw new Error("AI is not configured yet.");
+
 
     const { data: klass, error: classError } = await context.supabase
       .from("classes")
