@@ -81,12 +81,17 @@ export const refreshClassSummary = createServerFn({ method: "POST" })
 
       output: Output.object({ schema }),
       system:
-        "You merge multiple students' raw class notes into one refined, accurate class summary. " +
-        "Deduplicate, resolve contradictions by consensus, keep definitions, formulas and examples. " +
-        "Write clean markdown paragraphs for `summary` (no headings) and 4-8 crisp bullet strings for `key_points`.",
+        "You merge multiple students' raw class notes into ONE refined class summary. " +
+        "STRICT RULE: never add facts, explanations, examples, definitions or context that are not " +
+        "already present in the students' notes. Do not use outside knowledge. Only clean up, " +
+        "reorganise, deduplicate and clarify what the students actually wrote. Resolve contradictions " +
+        "by consensus among the notes; if something is unclear or missing, leave it out rather than " +
+        "inventing it. Keep the students' own definitions, formulas and examples verbatim where possible. " +
+        "Write clean markdown paragraphs for `summary` (no headings) and 4-8 crisp bullet strings for " +
+        "`key_points`, each drawn directly from the notes.",
       prompt:
         `Class: ${klass.subject} (${klass.code}) — ${klass.professor}, ${klass.term}\n\n` +
-        `Combine the following notes into a shared class summary.\n\n${corpus}`,
+        `Refine and merge ONLY the content below into a shared class summary. Add nothing new.\n\n${corpus}`,
     });
 
     let output: z.infer<typeof schema>;
