@@ -175,6 +175,60 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          admin_note: string
+          category: string
+          class_id: string | null
+          created_at: string
+          id: string
+          message: string
+          status: string
+          university_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string
+          category?: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string
+          category?: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          status?: string
+          university_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       handwriting_pages: {
         Row: {
           class_id: string

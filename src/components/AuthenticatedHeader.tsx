@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRoles } from "@/hooks/useRoles";
-import { GraduationCap, Home, LogOut, ShieldCheck, BadgeCheck, User, University } from "lucide-react";
+import { GraduationCap, Home, LogOut, ShieldCheck, BadgeCheck, User, University, MessageSquarePlus } from "lucide-react";
 import { ReactNode } from "react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
@@ -60,6 +60,13 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
           <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
             <Link to="/about">About</Link>
           </Button>
+
+          <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
+            <Link to="/feedback">
+              <MessageSquarePlus className="mr-2 h-4 w-4" /> Feedback
+            </Link>
+          </Button>
+
         </div>
 
         <div className="flex items-center gap-1">
