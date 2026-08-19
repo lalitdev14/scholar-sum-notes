@@ -67,6 +67,7 @@ export type Database = {
           professor: string
           subject: string
           term: string
+          university_id: string | null
         }
         Insert: {
           code: string
@@ -76,6 +77,7 @@ export type Database = {
           professor: string
           subject: string
           term?: string
+          university_id?: string | null
         }
         Update: {
           code?: string
@@ -85,8 +87,17 @@ export type Database = {
           professor?: string
           subject?: string
           term?: string
+          university_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "classes_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       enrollments: {
         Row: {
@@ -316,6 +327,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_university_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
