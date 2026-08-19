@@ -197,10 +197,11 @@ export const getUserDirectory = createServerFn({ method: "POST" })
     let profileQuery = supabaseAdmin.from("profiles").select("id, full_name, university_id");
     if (universityId) profileQuery = profileQuery.eq("university_id", universityId);
 
-    const [profilesRes, rolesRes, notesRes] = await Promise.all([
+    const [profilesRes, rolesRes, notesRes, feedbackRes] = await Promise.all([
       profileQuery,
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.from("notes").select("user_id, updated_at"),
+      supabaseAdmin.from("feedback").select("user_id, created_at"),
     ]);
 
     const names = new Map((profilesRes.data ?? []).map((p) => [p.id, p.full_name]));
@@ -209,13 +210,20 @@ export const getUserDirectory = createServerFn({ method: "POST" })
       roles.set(r.user_id, [...(roles.get(r.user_id) ?? []), r.role as string]);
     }
     const notes = notesRes.data ?? [];
+    const feedback = feedbackRes.data ?? [];
+
 
     return (usersRes.users ?? [])
       .filter((u) => !members || members.has(u.id))
       .map((u) => {
         const own = notes.filter((n) => n.user_id === u.id);
+        const ownFeedback = feedback.filter((f) => f.user_id === u.id);
         const last = own
           .map((n) => n.updated_at)
+          .sort()
+          .at(-1);
+        const lastFeedback = ownFeedback
+          .map((f) => f.created_at)
           .sort()
           .at(-1);
         return {
@@ -229,9 +237,12 @@ export const getUserDirectory = createServerFn({ method: "POST" })
           roles: roles.get(u.id) ?? [],
           notes_count: own.length,
           last_note_at: last ?? null,
+          feedback_count: ownFeedback.length,
+          last_feedback_at: lastFeedback ?? null,
         };
       });
   });
+
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

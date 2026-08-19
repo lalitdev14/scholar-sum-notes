@@ -349,6 +349,8 @@ function AdminPanel() {
                   <th className="p-3">Email</th>
                   <th className="p-3">Sign-in</th>
                   <th className="p-3">Notes</th>
+                  <th className="p-3">Feedback</th>
+
                   <th className="p-3">Last sign-in</th>
                   <th className="p-3">Roles</th>
                   <th className="p-3">Password</th>
@@ -372,6 +374,15 @@ function AdminPanel() {
                       </td>
                       <td className="p-3 text-muted-foreground">{u.provider}</td>
                       <td className="p-3 text-muted-foreground">{u.notes_count}</td>
+                      <td className="p-3 text-muted-foreground">
+                        {u.feedback_count}
+                        {u.last_feedback_at && (
+                          <span className="ml-1 text-xs">
+                            ({new Date(u.last_feedback_at).toLocaleDateString()})
+                          </span>
+                        )}
+                      </td>
+
                       <td className="p-3 text-muted-foreground">
                         {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString() : "never"}
                       </td>
