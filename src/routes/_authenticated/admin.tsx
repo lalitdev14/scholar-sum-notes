@@ -185,12 +185,13 @@ function AdminPanel() {
             : "Monitor every class, note contribution and summary refresh across the campus."}
         </p>
 
-        <section className="mt-8 grid gap-4 sm:grid-cols-4">
+        <section className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {[
             { label: "Classes", value: data?.stats.classes },
             { label: "Notes", value: data?.stats.notes },
             { label: "Students", value: data?.stats.students },
             { label: "Contributors", value: data?.stats.contributors },
+            { label: "Feedback", value: data?.stats.feedback },
           ].map((s) => (
             <div key={s.label} className="surface-paper rounded-xl p-5">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">{s.label}</p>
