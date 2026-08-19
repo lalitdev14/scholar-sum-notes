@@ -349,6 +349,8 @@ function AdminPanel() {
                   <th className="p-3">Email</th>
                   <th className="p-3">Sign-in</th>
                   <th className="p-3">Notes</th>
+                  <th className="p-3">Feedback</th>
+
                   <th className="p-3">Last sign-in</th>
                   <th className="p-3">Roles</th>
                   <th className="p-3">Password</th>
