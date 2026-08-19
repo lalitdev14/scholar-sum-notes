@@ -214,6 +214,30 @@ function ClassPage() {
     }
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("notes")
+        .delete()
+        .eq("class_id", classId)
+        .eq("user_id", userId);
+      if (error) throw error;
+      setNoteId(undefined);
+      setContent("");
+      setConfirmDelete(false);
+      toast.success("Your notes were deleted");
+      queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete your notes");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function handleSummarize() {
     setSummarizing(true);
     try {
