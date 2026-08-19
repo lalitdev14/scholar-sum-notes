@@ -217,8 +217,13 @@ export const getUserDirectory = createServerFn({ method: "POST" })
       .filter((u) => !members || members.has(u.id))
       .map((u) => {
         const own = notes.filter((n) => n.user_id === u.id);
+        const ownFeedback = feedback.filter((f) => f.user_id === u.id);
         const last = own
           .map((n) => n.updated_at)
+          .sort()
+          .at(-1);
+        const lastFeedback = ownFeedback
+          .map((f) => f.created_at)
           .sort()
           .at(-1);
         return {
@@ -232,9 +237,12 @@ export const getUserDirectory = createServerFn({ method: "POST" })
           roles: roles.get(u.id) ?? [],
           notes_count: own.length,
           last_note_at: last ?? null,
+          feedback_count: ownFeedback.length,
+          last_feedback_at: lastFeedback ?? null,
         };
       });
   });
+
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
