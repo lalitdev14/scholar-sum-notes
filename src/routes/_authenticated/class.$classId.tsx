@@ -294,10 +294,48 @@ function ClassPage() {
           <section className="surface-paper rounded-xl p-6 lg:col-span-3">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl">Your notes</h2>
-              <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
-                <Save className="mr-2 h-4 w-4" />
-                {saving ? "Saving…" : "Save"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? "Saving…" : "Save"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={deleting || (!noteId && !content.trim())}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
+            </div>
+
+            <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete your notes for this class?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes everything you have written for this class. It cannot
+                    be undone, and future class summaries will no longer include this content.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Keep my notes</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDelete();
+                    }}
+                    disabled={deleting}
+                  >
+                    {deleting ? "Deleting…" : "Yes, delete permanently"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             </div>
             <Tabs defaultValue="type" className="mt-4">
               <TabsList>
