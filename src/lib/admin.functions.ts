@@ -66,6 +66,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       universityId
         ? supabaseAdmin.from("universities").select("id, name").eq("id", universityId).maybeSingle()
         : Promise.resolve({ data: null, error: null } as never),
+      supabaseAdmin.from("feedback").select("user_id"),
     ]);
 
     if (classesRes.error) throw new Error(classesRes.error.message);
