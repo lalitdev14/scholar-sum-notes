@@ -54,7 +54,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     let profileQuery = supabaseAdmin.from("profiles").select("id, full_name, university_id");
     if (universityId) profileQuery = profileQuery.eq("university_id", universityId);
 
-    const [classesRes, notesRes, profilesRes, summariesRes, universityRes] = await Promise.all([
+    const [classesRes, notesRes, profilesRes, summariesRes, universityRes, feedbackRes] = await Promise.all([
       classQuery,
       supabaseAdmin
         .from("notes")
