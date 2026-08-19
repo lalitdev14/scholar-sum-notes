@@ -125,7 +125,7 @@ function Landing() {
             LectureLoop — shared notes for every seat in the room.
           </span>
           <Link to="/about" className="text-sm font-medium text-primary hover:underline">
-            About Lalit
+            About US
           </Link>
         </div>
       </footer>
