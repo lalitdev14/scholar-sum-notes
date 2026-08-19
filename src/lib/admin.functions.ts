@@ -197,10 +197,11 @@ export const getUserDirectory = createServerFn({ method: "POST" })
     let profileQuery = supabaseAdmin.from("profiles").select("id, full_name, university_id");
     if (universityId) profileQuery = profileQuery.eq("university_id", universityId);
 
-    const [profilesRes, rolesRes, notesRes] = await Promise.all([
+    const [profilesRes, rolesRes, notesRes, feedbackRes] = await Promise.all([
       profileQuery,
       supabaseAdmin.from("user_roles").select("user_id, role"),
       supabaseAdmin.from("notes").select("user_id, updated_at"),
+      supabaseAdmin.from("feedback").select("user_id, created_at"),
     ]);
 
     const names = new Map((profilesRes.data ?? []).map((p) => [p.id, p.full_name]));
@@ -209,6 +210,8 @@ export const getUserDirectory = createServerFn({ method: "POST" })
       roles.set(r.user_id, [...(roles.get(r.user_id) ?? []), r.role as string]);
     }
     const notes = notesRes.data ?? [];
+    const feedback = feedbackRes.data ?? [];
+
 
     return (usersRes.users ?? [])
       .filter((u) => !members || members.has(u.id))
