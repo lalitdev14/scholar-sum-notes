@@ -336,7 +336,7 @@ function ClassPage() {
               </AlertDialogContent>
             </AlertDialog>
 
-            </div>
+
             <Tabs defaultValue="type" className="mt-4">
               <TabsList>
                 <TabsTrigger value="type">Type</TabsTrigger>
