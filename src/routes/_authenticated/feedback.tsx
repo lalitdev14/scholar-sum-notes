@@ -82,13 +82,24 @@ function FeedbackPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("feedback")
-        .select("id, category, message, status, created_at, user_id, profiles:user_id(full_name)")
+        .select("id, category, message, status, created_at, user_id")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
-      return data ?? [];
+      const rows = data ?? [];
+      const ids = [...new Set(rows.map((r) => r.user_id))];
+      const nameById = new Map<string, string>();
+      if (ids.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", ids);
+        for (const p of profs ?? []) nameById.set(p.id, p.full_name);
+      }
+      return rows.map((r) => ({ ...r, author_name: nameById.get(r.user_id) ?? "Student" }));
     },
   });
+
 
   async function submit() {
     const parsed = feedbackSchema.safeParse({ category, message });
