@@ -229,22 +229,26 @@ function AdminPanel() {
           <h2 className="text-2xl">Classes</h2>
           <div className="mt-4 grid gap-4">
             {data?.classes.map((c) => (
-              <div key={c.id} className="surface-paper flex flex-wrap items-center gap-4 rounded-xl p-5">
-                <div className="min-w-52 flex-1">
-                  <p className="text-lg">{c.subject}</p>
-                  <p className="text-sm text-muted-foreground">
+              <div
+                key={c.id}
+                className="surface-paper grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-xl p-5 md:grid-cols-[minmax(0,1fr)_11rem_15rem_auto]"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-lg">{c.subject}</p>
+                  <p className="truncate text-sm text-muted-foreground">
                     {c.code} · {c.professor}
                     {c.term ? ` · ${c.term}` : ""}
                   </p>
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="col-span-2 text-sm text-muted-foreground md:col-span-1 md:text-right">
                   {c.notes_count} notes · {c.contributors} contributors
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="col-span-2 text-xs text-muted-foreground md:col-span-1 md:text-right">
                   {c.summary_updated_at
                     ? `Summary updated ${new Date(c.summary_updated_at).toLocaleString()}`
                     : "No summary yet"}
                 </div>
+
                 <Button
                   variant="ghost"
                   size="sm"
