@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRoles } from "@/hooks/useRoles";
-import { GraduationCap, Home, LogOut, ShieldCheck, BadgeCheck, User, University } from "lucide-react";
+import { GraduationCap, Home, LogOut, ShieldCheck, BadgeCheck, User, University, MessageSquarePlus } from "lucide-react";
 import { ReactNode } from "react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
