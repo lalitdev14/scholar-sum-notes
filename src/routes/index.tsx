@@ -120,8 +120,13 @@ function Landing() {
       </main>
 
       <footer className="border-t border-border/70">
-        <div className="mx-auto max-w-6xl px-6 py-8 text-sm text-muted-foreground">
-          LectureLoop — shared notes for every seat in the room.
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 sm:flex-row">
+          <span className="text-sm text-muted-foreground">
+            LectureLoop — shared notes for every seat in the room.
+          </span>
+          <Link to="/about" className="text-sm font-medium text-primary hover:underline">
+            About Lalit
+          </Link>
         </div>
       </footer>
     </div>
