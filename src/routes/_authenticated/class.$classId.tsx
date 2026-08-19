@@ -228,7 +228,7 @@ function ClassPage() {
         .eq("class_id", classId)
         .eq("user_id", userId);
       if (error) throw error;
-      setNoteId(undefined);
+      setNoteId(null);
       setContent("");
       setConfirmDelete(false);
       toast.success("Your notes were deleted");
