@@ -54,7 +54,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     let profileQuery = supabaseAdmin.from("profiles").select("id, full_name, university_id");
     if (universityId) profileQuery = profileQuery.eq("university_id", universityId);
 
-    const [classesRes, notesRes, profilesRes, summariesRes, universityRes] = await Promise.all([
+    const [classesRes, notesRes, profilesRes, summariesRes, universityRes, feedbackRes] = await Promise.all([
       classQuery,
       supabaseAdmin
         .from("notes")
@@ -66,6 +66,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       universityId
         ? supabaseAdmin.from("universities").select("id, name").eq("id", universityId).maybeSingle()
         : Promise.resolve({ data: null, error: null } as never),
+      supabaseAdmin.from("feedback").select("user_id"),
     ]);
 
     if (classesRes.error) throw new Error(classesRes.error.message);
@@ -109,6 +110,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         notes: notes.length,
         students: profilesRes.data?.length ?? 0,
         contributors: new Set(notes.map((n) => n.user_id)).size,
+        feedback: (feedbackRes.data ?? []).filter((f) => !members || members.has(f.user_id)).length,
       },
       classes,
       activity,

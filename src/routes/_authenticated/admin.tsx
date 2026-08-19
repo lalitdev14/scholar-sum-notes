@@ -185,12 +185,13 @@ function AdminPanel() {
             : "Monitor every class, note contribution and summary refresh across the campus."}
         </p>
 
-        <section className="mt-8 grid gap-4 sm:grid-cols-4">
+        <section className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {[
             { label: "Classes", value: data?.stats.classes },
             { label: "Notes", value: data?.stats.notes },
             { label: "Students", value: data?.stats.students },
             { label: "Contributors", value: data?.stats.contributors },
+            { label: "Feedback", value: data?.stats.feedback },
           ].map((s) => (
             <div key={s.label} className="surface-paper rounded-xl p-5">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">{s.label}</p>
@@ -349,7 +350,6 @@ function AdminPanel() {
                   <th className="p-3">Email</th>
                   <th className="p-3">Sign-in</th>
                   <th className="p-3">Notes</th>
-                  <th className="p-3">Feedback</th>
 
                   <th className="p-3">Last sign-in</th>
                   <th className="p-3">Roles</th>
@@ -374,14 +374,6 @@ function AdminPanel() {
                       </td>
                       <td className="p-3 text-muted-foreground">{u.provider}</td>
                       <td className="p-3 text-muted-foreground">{u.notes_count}</td>
-                      <td className="p-3 text-muted-foreground">
-                        {u.feedback_count}
-                        {u.last_feedback_at && (
-                          <span className="ml-1 text-xs">
-                            ({new Date(u.last_feedback_at).toLocaleDateString()})
-                          </span>
-                        )}
-                      </td>
 
                       <td className="p-3 text-muted-foreground">
                         {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString() : "never"}
