@@ -234,9 +234,9 @@ function FeedbackPage() {
             ) : (
               <ul className="mt-4 space-y-3">
                 {(inbox ?? []).map((f) => {
-                  const profile = f.profiles as { full_name?: string } | { full_name?: string }[] | null;
-                  const name = Array.isArray(profile) ? profile[0]?.full_name : profile?.full_name;
+                  const name = f.author_name;
                   return (
+
                     <li key={f.id} className="rounded-lg border bg-card p-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold">{name ?? "Student"}</span>
