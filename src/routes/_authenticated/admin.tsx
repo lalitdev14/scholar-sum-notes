@@ -54,12 +54,15 @@ function AdminPanel() {
   const queryClient = useQueryClient();
   const [raw, setRaw] = useState("");
   const [search, setSearch] = useState("");
+  const [passwordTarget, setPasswordTarget] = useState<{ id: string; label: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
 
   const fetchOverview = useServerFn(getAdminOverview);
   const upload = useServerFn(uploadSubjects);
   const removeClass = useServerFn(deleteClass);
   const fetchDirectory = useServerFn(getUserDirectory);
   const changeRole = useServerFn(setUserRole);
+  const changePassword = useServerFn(setUserPassword);
 
   const { data, isPending } = useQuery({
     queryKey: ["admin-overview"],
@@ -107,6 +110,16 @@ function AdminPanel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+
+  const passwordMutation = useMutation({
+    mutationFn: (vars: { userId: string; password: string }) => changePassword({ data: vars }),
+    onSuccess: () => {
+      toast.success("Password updated");
+      setPasswordTarget(null);
+      setNewPassword("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -167,7 +180,9 @@ function AdminPanel() {
 
         <h1 className="text-4xl">Admin panel</h1>
         <p className="mt-1 text-muted-foreground">
-          Monitor every class, note contribution and summary refresh across the campus.
+          {data?.scope.universityName
+            ? `Scoped to ${data.scope.universityName} — you manage only this university's classes and accounts.`
+            : "Monitor every class, note contribution and summary refresh across the campus."}
         </p>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-4">
@@ -336,6 +351,7 @@ function AdminPanel() {
                   <th className="p-3">Notes</th>
                   <th className="p-3">Last sign-in</th>
                   <th className="p-3">Roles</th>
+                  <th className="p-3">Password</th>
                 </tr>
               </thead>
               <tbody>
@@ -379,11 +395,24 @@ function AdminPanel() {
                           })}
                         </div>
                       </td>
+                      <td className="p-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setPasswordTarget({ id: u.id, label: u.full_name || u.email });
+                            setNewPassword("");
+                          }}
+                        >
+                          <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                          Reset
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 {!directoryPending && !directory?.length && (
                   <tr>
-                    <td className="p-3 text-muted-foreground" colSpan={6}>
+                    <td className="p-3 text-muted-foreground" colSpan={7}>
                       No accounts yet.
                     </td>
                   </tr>
@@ -395,6 +424,36 @@ function AdminPanel() {
         </section>
       </main>
 
+      <Dialog open={Boolean(passwordTarget)} onOpenChange={(open) => !open && setPasswordTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set a new password</DialogTitle>
+            <DialogDescription>
+              This immediately replaces the password for {passwordTarget?.label}. Share it with them securely.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              id="new-password"
+              type="text"
+              value={newPassword}
+              minLength={8}
+              placeholder="At least 8 characters"
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </div>
+          <Button
+            disabled={newPassword.trim().length < 8 || passwordMutation.isPending}
+            onClick={() =>
+              passwordTarget &&
+              passwordMutation.mutate({ userId: passwordTarget.id, password: newPassword })
+            }
+          >
+            {passwordMutation.isPending ? "Updating…" : "Update password"}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
