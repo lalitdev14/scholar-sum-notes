@@ -11,7 +11,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, Save, Sparkles, User, Users } from "lucide-react";
+import { BadgeCheck, Save, Sparkles, Trash2, User, Users } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 
@@ -42,6 +52,8 @@ function ClassPage() {
   const [saving, setSaving] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function archiveHandwriting(imageDataUrl: string, transcript: string) {
     try {
@@ -204,6 +216,30 @@ function ClassPage() {
     }
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("notes")
+        .delete()
+        .eq("class_id", classId)
+        .eq("user_id", userId);
+      if (error) throw error;
+      setNoteId(null);
+      setContent("");
+      setConfirmDelete(false);
+      toast.success("Your notes were deleted");
+      queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete your notes");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function handleSummarize() {
     setSummarizing(true);
     try {
@@ -258,11 +294,49 @@ function ClassPage() {
           <section className="surface-paper rounded-xl p-6 lg:col-span-3">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl">Your notes</h2>
-              <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
-                <Save className="mr-2 h-4 w-4" />
-                {saving ? "Saving…" : "Save"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? "Saving…" : "Save"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={deleting || (!noteId && !content.trim())}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
             </div>
+
+            <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete your notes for this class?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes everything you have written for this class. It cannot
+                    be undone, and future class summaries will no longer include this content.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Keep my notes</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDelete();
+                    }}
+                    disabled={deleting}
+                  >
+                    {deleting ? "Deleting…" : "Yes, delete permanently"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+
             <Tabs defaultValue="type" className="mt-4">
               <TabsList>
                 <TabsTrigger value="type">Type</TabsTrigger>
