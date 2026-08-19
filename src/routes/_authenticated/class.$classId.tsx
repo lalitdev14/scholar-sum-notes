@@ -52,6 +52,8 @@ function ClassPage() {
   const [saving, setSaving] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function archiveHandwriting(imageDataUrl: string, transcript: string) {
     try {
