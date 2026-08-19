@@ -56,6 +56,10 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
               <Home className="mr-2 h-4 w-4" /> Home
             </Link>
           </Button>
+
+          <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
+            <Link to="/about">About</Link>
+          </Button>
         </div>
 
         <div className="flex items-center gap-1">
