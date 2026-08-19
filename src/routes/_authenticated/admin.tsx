@@ -9,6 +9,7 @@ import {
   getFacultyRequests,
   getUserDirectory,
   reviewFacultyRequest,
+  setUserPassword,
   setUserRole,
   uploadSubjects,
 } from "@/lib/admin.functions";
