@@ -110,6 +110,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         notes: notes.length,
         students: profilesRes.data?.length ?? 0,
         contributors: new Set(notes.map((n) => n.user_id)).size,
+        feedback: (feedbackRes.data ?? []).filter((f) => !members || members.has(f.user_id)).length,
       },
       classes,
       activity,
