@@ -156,7 +156,7 @@ function Dashboard() {
     <div className="min-h-screen">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-6xl px-6 py-12">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-12">
         <div
           className="mb-8 rounded-2xl border border-border/60 px-6 py-7"
           style={{ backgroundImage: uniTheme.softGradient }}
@@ -174,7 +174,7 @@ function Dashboard() {
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-4xl">Your classes</h1>
+            <h1 className="text-3xl sm:text-4xl">Your classes</h1>
             <p className="mt-1 text-muted-foreground">
               Only the subjects you've enrolled in show here. Search by subject name or code to add more.
             </p>

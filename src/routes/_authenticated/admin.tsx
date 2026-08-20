@@ -154,7 +154,7 @@ function AdminPanel() {
   });
 
   if (checkingRole) {
-    return <p className="mx-auto max-w-6xl px-6 py-16 text-muted-foreground">Checking access…</p>;
+    return <p className="mx-auto max-w-6xl px-4 sm:px-6 py-16 text-muted-foreground">Checking access…</p>;
   }
 
   if (!isAdmin) {
@@ -176,9 +176,9 @@ function AdminPanel() {
     <div className="min-h-screen">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-6xl px-6 py-12">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-12">
 
-        <h1 className="text-4xl">Admin panel</h1>
+        <h1 className="text-3xl sm:text-4xl">Admin panel</h1>
         <p className="mt-1 text-muted-foreground">
           {data?.scope.universityName
             ? `Scoped to ${data.scope.universityName} — you manage only this university's classes and accounts.`

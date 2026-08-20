@@ -82,11 +82,11 @@ function Landing() {
 
 
       <main>
-        <section className="mx-auto max-w-4xl px-6 pb-16 pt-16 text-center">
+        <section className="mx-auto max-w-4xl px-4 sm:px-6 pb-16 pt-16 text-center">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             Collaborative class notes
           </p>
-          <h1 className="mt-5 text-5xl leading-[1.05] sm:text-6xl">
+          <h1 className="mt-5 text-4xl leading-[1.1] sm:text-6xl">
             The whole lecture,
             <span className="italic"> written by the whole class.</span>
           </h1>
@@ -106,7 +106,7 @@ function Landing() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-6 pb-24">
+        <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-24">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step) => (
               <div key={step.title} className="surface-paper rounded-xl p-6">

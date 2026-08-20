@@ -58,7 +58,7 @@ function FacultyReview() {
   });
 
   if (checkingRole) {
-    return <p className="mx-auto max-w-6xl px-6 py-16 text-muted-foreground">Checking access…</p>;
+    return <p className="mx-auto max-w-6xl px-4 sm:px-6 py-16 text-muted-foreground">Checking access…</p>;
   }
 
   if (!isReviewer) {
@@ -86,9 +86,9 @@ function FacultyReview() {
         }
       />
 
-      <main className="mx-auto max-w-5xl px-6 py-12">
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-12">
 
-        <h1 className="text-4xl">Review class summaries</h1>
+        <h1 className="text-3xl sm:text-4xl">Review class summaries</h1>
         <p className="mt-1 text-muted-foreground">
           Read the AI-refined summary of each class and mark it reviewed so students know it is trusted.
         </p>

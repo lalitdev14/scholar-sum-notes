@@ -261,11 +261,11 @@ function ClassPage() {
     <div className="min-h-screen">
       <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-4xl">{klass?.subject ?? "Class"}</h1>
+            <h1 className="text-3xl sm:text-4xl">{klass?.subject ?? "Class"}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-2">
                 <User className="h-3.5 w-3.5" />
@@ -292,7 +292,7 @@ function ClassPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-5">
           <section className="surface-paper rounded-xl p-6 lg:col-span-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-2xl">Your notes</h2>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
