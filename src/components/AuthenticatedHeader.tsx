@@ -14,6 +14,7 @@ import {
   University,
   MessageSquarePlus,
   Menu,
+  Info,
 } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
@@ -63,7 +64,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
       </Button>
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
         <Link to="/about" onClick={() => setMenuOpen(false)}>
-          About
+          <Info className="mr-2 h-4 w-4" /> About
         </Link>
       </Button>
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
@@ -141,7 +142,10 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[85vw] max-w-xs p-0">
+            <SheetContent
+              side="right"
+              className="w-[85vw] max-w-xs p-0 [&>button]:text-white [&>button]:opacity-80 [&>button]:hover:opacity-100"
+            >
               <div
                 className="px-5 py-5 text-white"
                 style={{ backgroundColor: uniTheme.primary }}
