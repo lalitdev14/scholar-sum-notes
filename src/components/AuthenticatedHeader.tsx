@@ -91,14 +91,14 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
 
   return (
     <header className="border-b border-black/10" style={{ backgroundColor: uniTheme.primary, color: "#fff" }}>
-      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 lg:flex lg:justify-between">
-        <div className="flex min-w-0 items-center gap-4 lg:gap-6">
+      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between">
+        <div className="flex min-w-0 items-center gap-4 md:gap-6">
           <Link to="/dashboard" className="flex min-w-0 items-center gap-2" style={{ color: "#fff" }}>
             <GraduationCap className="h-5 w-5 shrink-0" style={{ color: "#fff" }} />
             <span className="truncate font-display text-lg font-bold sm:text-xl">LectureLoop</span>
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex">{navLinks}</nav>
+          <nav className="hidden items-center gap-1 md:flex">{navLinks}</nav>
         </div>
 
         <div className="flex items-center justify-end gap-1">
@@ -126,7 +126,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
             variant="ghost"
             size="sm"
             onClick={signOut}
-            className="hidden text-white hover:bg-white/10 lg:inline-flex"
+            className="hidden text-white hover:bg-white/10 md:inline-flex"
           >
             <LogOut className="mr-2 h-4 w-4" /> Sign out
           </Button>
@@ -137,7 +137,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
                 variant="ghost"
                 size="icon"
                 aria-label="Open menu"
-                className="text-white hover:bg-white/10 lg:hidden"
+                className="text-white hover:bg-white/10 md:hidden"
               >
                 <Menu className="h-5 w-5" />
               </Button>
