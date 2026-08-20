@@ -151,7 +151,7 @@ function FeedbackPage() {
     <div className="min-h-screen bg-background">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-4xl px-6 py-10">
+      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-10">
         <h1 className="font-display text-3xl font-bold">Share feedback</h1>
         <p className="mt-2 text-muted-foreground">
           Noticed something confusing, missing, or worth improving? Tell us and we will look at it.

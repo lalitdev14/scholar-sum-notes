@@ -55,7 +55,7 @@ function AboutPage() {
     <div className="min-h-screen bg-background">
       {signedIn ? <AuthenticatedHeader /> : <MinimalHeader />}
 
-      <main className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
+      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-16 sm:py-24">
         <article className="surface-paper rounded-2xl p-8 md:p-16">
           <header className="mb-12 md:mb-16">
             <span className="mb-4 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
