@@ -292,7 +292,7 @@ function ClassPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-5">
           <section className="surface-paper rounded-xl p-6 lg:col-span-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-2xl">Your notes</h2>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
