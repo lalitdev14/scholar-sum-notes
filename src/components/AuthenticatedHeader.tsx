@@ -63,7 +63,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
       </Button>
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
         <Link to="/about" onClick={() => setMenuOpen(false)}>
-          About
+          <Info className="mr-2 h-4 w-4" /> About
         </Link>
       </Button>
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
