@@ -252,7 +252,7 @@ export const setUserRole = createServerFn({ method: "POST" })
     z
       .object({
         userId: z.string().uuid(),
-        role: z.enum(["admin", "faculty", "student"]),
+        role: z.enum(["admin", "student"]),
         grant: z.boolean(),
       })
       .parse(input),
@@ -304,84 +304,5 @@ export const setUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const getFacultyRequests = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabaseAdmin, universityId } = await adminScope(context as never);
-
-    let reqQuery = supabaseAdmin
-      .from("faculty_requests")
-      .select("id, user_id, university_id, department, status, admin_note, created_at, reviewed_at")
-      .order("created_at", { ascending: false });
-    if (universityId) reqQuery = reqQuery.eq("university_id", universityId);
-
-    const [reqRes, profilesRes, unisRes, usersRes] = await Promise.all([
-      reqQuery,
-      supabaseAdmin.from("profiles").select("id, full_name"),
-      supabaseAdmin.from("universities").select("id, name, email_domain"),
-      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-    ]);
-    if (reqRes.error) throw new Error(reqRes.error.message);
-
-    const names = new Map((profilesRes.data ?? []).map((p) => [p.id, p.full_name]));
-    const unis = new Map((unisRes.data ?? []).map((u) => [u.id, u]));
-    const emails = new Map((usersRes.data?.users ?? []).map((u) => [u.id, u.email ?? ""]));
-
-    return (reqRes.data ?? []).map((r) => ({
-      ...r,
-      full_name: names.get(r.user_id) ?? "",
-      email: emails.get(r.user_id) ?? "",
-      university: r.university_id ? (unis.get(r.university_id)?.name ?? "") : "",
-    }));
-  });
-
-export const reviewFacultyRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z
-      .object({
-        requestId: z.string().uuid(),
-        approve: z.boolean(),
-        note: z.string().max(500).optional().default(""),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    const { supabaseAdmin, universityId } = await adminScope(context as never);
-
-    const { data: req, error: reqError } = await supabaseAdmin
-      .from("faculty_requests")
-      .select("id, user_id, university_id")
-      .eq("id", data.requestId)
-      .maybeSingle();
-    if (reqError) throw new Error(reqError.message);
-    if (!req) throw new Error("Request not found.");
-    if (universityId && req.university_id !== universityId) {
-      throw new Error("This request belongs to another university.");
-    }
-
-    const { error } = await supabaseAdmin
-      .from("faculty_requests")
-      .update({
-        status: data.approve ? "approved" : "rejected",
-        admin_note: data.note ?? "",
-        reviewed_by: context.userId,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", data.requestId);
-    if (error) throw new Error(error.message);
-
-    if (data.approve) {
-      const { error: roleError } = await supabaseAdmin
-        .from("user_roles")
-        .upsert({ user_id: req.user_id, role: "faculty" as never }, { onConflict: "user_id,role" });
-      if (roleError) throw new Error(roleError.message);
-    } else {
-      await supabaseAdmin.from("user_roles").delete().eq("user_id", req.user_id).eq("role", "faculty" as never);
-    }
-
     return { ok: true };
   });
