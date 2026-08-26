@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, Save, Sparkles, Trash2, User, Users } from "lucide-react";
+import { Save, Sparkles, Trash2, User, Users } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -421,19 +421,6 @@ function ClassPage() {
                       </li>
                     ))}
                   </ul>
-                )}
-                {summary.reviewed ? (
-                  <div className="mt-5 rounded-lg bg-background/15 p-3 text-xs">
-                    <span className="inline-flex items-center gap-1 font-medium">
-                      <BadgeCheck className="h-3.5 w-3.5" /> Reviewed by faculty
-                      {summary.reviewed_at
-                        ? ` · ${new Date(summary.reviewed_at).toLocaleDateString()}`
-                        : ""}
-                    </span>
-                    {summary.review_note && <p className="mt-1 opacity-80">{summary.review_note}</p>}
-                  </div>
-                ) : (
-                  <p className="mt-5 text-xs opacity-70">Not yet reviewed by faculty.</p>
                 )}
                 <p className="mt-6 text-xs opacity-70">
                   Merged from {summary.notes_count} student{summary.notes_count === 1 ? "" : "s"} ·

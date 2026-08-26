@@ -15,7 +15,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedFacultyRouteImport } from './routes/_authenticated/faculty'
 import { Route as AuthenticatedFeedbackRouteImport } from './routes/_authenticated/feedback'
 import { Route as AuthenticatedClassClassIdRouteImport } from './routes/_authenticated/class.$classId'
 
@@ -48,11 +47,6 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedFacultyRoute = AuthenticatedFacultyRouteImport.update({
-  id: '/faculty',
-  path: '/faculty',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedFeedbackRoute = AuthenticatedFeedbackRouteImport.update({
   id: '/feedback',
   path: '/feedback',
@@ -71,7 +65,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/faculty': typeof AuthenticatedFacultyRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/class/$classId': typeof AuthenticatedClassClassIdRoute
 }
@@ -81,7 +74,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/faculty': typeof AuthenticatedFacultyRoute
   '/feedback': typeof AuthenticatedFeedbackRoute
   '/class/$classId': typeof AuthenticatedClassClassIdRoute
 }
@@ -93,7 +85,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/faculty': typeof AuthenticatedFacultyRoute
   '/_authenticated/feedback': typeof AuthenticatedFeedbackRoute
   '/_authenticated/class/$classId': typeof AuthenticatedClassClassIdRoute
 }
@@ -105,7 +96,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin'
     | '/dashboard'
-    | '/faculty'
     | '/feedback'
     | '/class/$classId'
   fileRoutesByTo: FileRoutesByTo
@@ -115,7 +105,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin'
     | '/dashboard'
-    | '/faculty'
     | '/feedback'
     | '/class/$classId'
   id:
@@ -126,7 +115,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
-    | '/_authenticated/faculty'
     | '/_authenticated/feedback'
     | '/_authenticated/class/$classId'
   fileRoutesById: FileRoutesById
@@ -182,13 +170,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/faculty': {
-      id: '/_authenticated/faculty'
-      path: '/faculty'
-      fullPath: '/faculty'
-      preLoaderRoute: typeof AuthenticatedFacultyRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/feedback': {
       id: '/_authenticated/feedback'
       path: '/feedback'
@@ -209,7 +190,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedFacultyRoute: typeof AuthenticatedFacultyRoute
   AuthenticatedFeedbackRoute: typeof AuthenticatedFeedbackRoute
   AuthenticatedClassClassIdRoute: typeof AuthenticatedClassClassIdRoute
 }
@@ -217,7 +197,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedFacultyRoute: AuthenticatedFacultyRoute,
   AuthenticatedFeedbackRoute: AuthenticatedFeedbackRoute,
   AuthenticatedClassClassIdRoute: AuthenticatedClassClassIdRoute,
 }

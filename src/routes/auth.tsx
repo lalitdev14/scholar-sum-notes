@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { GraduationCap, ShieldCheck } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -21,17 +21,13 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Role = "student" | "faculty";
-
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [role, setRole] = useState<Role>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [universityId, setUniversityId] = useState("");
-  const [department, setDepartment] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { data: universities } = useQuery({
@@ -73,9 +69,6 @@ function AuthPage() {
             `Use your university email ending in @${selectedUniversity.email_domain}.`,
           );
         }
-        if (role === "faculty" && !department.trim()) {
-          throw new Error("Please enter your department.");
-        }
 
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
@@ -84,16 +77,12 @@ function AuthPage() {
             emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName,
-              requested_role: role,
+              requested_role: "student",
               university_id: selectedUniversity.id,
-              department: department.trim(),
             },
           },
         });
         if (error) throw error;
-        if (role === "faculty") {
-          toast.success("Faculty request submitted — an admin will verify your account.");
-        }
         if (!data.session) {
           toast.success("Check your email to confirm your account.");
           return;
@@ -141,29 +130,6 @@ function AuthPage() {
             {mode === "signup" && (
               <>
                 <div className="space-y-2">
-                  <Label>I am a</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["student", "faculty"] as const).map((r) => (
-                      <Button
-                        key={r}
-                        type="button"
-                        variant={role === r ? "default" : "outline"}
-                        onClick={() => setRole(r)}
-                        className="capitalize"
-                      >
-                        {r}
-                      </Button>
-                    ))}
-                  </div>
-                  {role === "faculty" && (
-                    <p className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      Faculty accounts need admin verification before review powers are enabled.
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="name">Full name</Label>
                   <Input
                     id="name"
@@ -197,18 +163,6 @@ function AuthPage() {
                   )}
                 </div>
 
-                {role === "faculty" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      placeholder="Computer Science"
-                      required
-                    />
-                  </div>
-                )}
               </>
             )}
 
