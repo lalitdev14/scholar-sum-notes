@@ -126,8 +126,7 @@ function AboutPage() {
                 </p>
                 <p className="mb-6">
                   LectureLoop keeps the classroom at the center. Notes are private to each student until the AI
-                  merges them into a single refined summary. Faculty can review the result, so students know the
-                  final version has been seen by someone who was there too.
+                  merges them into a single refined summary the whole class can rely on.
                 </p>
                 <p>
                   Today, it remains a founder-led project. Every feature is designed to make trust, focus, and

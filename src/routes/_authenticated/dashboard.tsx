@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BadgeCheck, Plus, Search, Sparkles, User, Users } from "lucide-react";
+import { Plus, Search, Sparkles, User, Users } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
@@ -331,11 +331,6 @@ function Dashboard() {
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant="secondary">{klass.code}</Badge>
-                    {summary?.reviewed && (
-                      <Badge>
-                        <BadgeCheck className="mr-1 h-3.5 w-3.5" /> Faculty reviewed
-                      </Badge>
-                    )}
                   </div>
                 </div>
 

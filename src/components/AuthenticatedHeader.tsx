@@ -9,7 +9,6 @@ import {
   Home,
   LogOut,
   ShieldCheck,
-  BadgeCheck,
   User,
   University,
   MessageSquarePlus,
@@ -25,7 +24,7 @@ type AuthenticatedHeaderProps = {
 
 export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
   const navigate = useNavigate();
-  const { isAdmin, isFaculty } = useRoles();
+  const { isAdmin } = useRoles();
   const uniTheme = useUniversityTheme();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -76,13 +75,6 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
         <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
           <Link to="/admin" onClick={() => setMenuOpen(false)}>
             <ShieldCheck className="mr-2 h-4 w-4" /> Admin
-          </Link>
-        </Button>
-      )}
-      {(isFaculty || isAdmin) && (
-        <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
-          <Link to="/faculty" onClick={() => setMenuOpen(false)}>
-            <BadgeCheck className="mr-2 h-4 w-4" /> Faculty
           </Link>
         </Button>
       )}
