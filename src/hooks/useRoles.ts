@@ -21,8 +21,6 @@ export function useRoles() {
   return {
     roles,
     isAdmin: roles.includes("admin"),
-    isFaculty: roles.includes("faculty"),
-    isReviewer: roles.includes("faculty") || roles.includes("admin"),
     isPending,
   };
 }
