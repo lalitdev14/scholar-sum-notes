@@ -63,12 +63,7 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         if (!selectedUniversity) throw new Error("Please select your university.");
-        const domain = email.trim().split("@")[1]?.toLowerCase() ?? "";
-        if (domain !== selectedUniversity.email_domain.toLowerCase()) {
-          throw new Error(
-            `Use your university email ending in @${selectedUniversity.email_domain}.`,
-          );
-        }
+
 
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
@@ -158,9 +153,10 @@ function AuthPage() {
                   </select>
                   {selectedUniversity && (
                     <p className="text-xs text-muted-foreground">
-                      Only @{selectedUniversity.email_domain} email addresses are accepted.
+                      You can sign up with any email — personal or university.
                     </p>
                   )}
+
                 </div>
 
               </>
