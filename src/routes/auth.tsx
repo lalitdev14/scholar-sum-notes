@@ -153,9 +153,10 @@ function AuthPage() {
                   </select>
                   {selectedUniversity && (
                     <p className="text-xs text-muted-foreground">
-                      Only @{selectedUniversity.email_domain} email addresses are accepted.
+                      You can sign up with any email — personal or university.
                     </p>
                   )}
+
                 </div>
 
               </>
