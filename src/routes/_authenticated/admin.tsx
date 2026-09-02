@@ -30,6 +30,7 @@ import { KeyRound, ShieldCheck, Trash2, Upload } from "lucide-react";
 
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Admin panel — LectureLoop" },

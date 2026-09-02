@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { GraduationCap } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Sign in — LectureLoop" },

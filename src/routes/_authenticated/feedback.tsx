@@ -20,6 +20,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { MessageSquarePlus, Inbox } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/feedback")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Share feedback — LectureLoop" },
