@@ -15,7 +15,10 @@ export const Route = createFileRoute("/")({
         content:
           "Students take notes in class, AI merges them into one refined summary per course with professor and class details.",
       },
-      { property: "og:title", content: "LectureLoop — Shared AI class notes" },
+      {
+        property: "og:title",
+        content: "LectureLoop — One refined class summary from everyone's notes",
+      },
       {
         property: "og:description",
         content: "Every student's notes, one refined class summary on the dashboard.",
