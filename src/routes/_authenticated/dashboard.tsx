@@ -24,6 +24,7 @@ import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Class dashboard — LectureLoop" },

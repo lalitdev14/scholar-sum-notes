@@ -6,6 +6,7 @@ import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { GraduationCap, NotebookPen, Sparkles, Users } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "LectureLoop — One refined class summary from everyone's notes" },

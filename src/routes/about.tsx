@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import aboutDesk from "@/../public/about-desk.jpg";
 
 export const Route = createFileRoute("/about")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Behind the Initiative — Lalit Dev Jakher | LectureLoop" },

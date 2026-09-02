@@ -26,6 +26,7 @@ import {
 
 
 export const Route = createFileRoute("/_authenticated/class/$classId")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Class notes — LectureLoop" },
