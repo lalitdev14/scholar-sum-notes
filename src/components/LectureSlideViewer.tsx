@@ -11,6 +11,7 @@ type LectureSlideViewerProps = {
 
 export function LectureSlideViewer({ filePath, contentType, fileName }: LectureSlideViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const previewerRef = useRef<{
     currentIndex: number;
     slideCount: number;
@@ -23,6 +24,17 @@ export function LectureSlideViewer({ filePath, contentType, fileName }: LectureS
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const update = () => setScale(Math.min(1, frame.clientWidth / 960));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,8 +100,10 @@ export function LectureSlideViewer({ filePath, contentType, fileName }: LectureS
           </Button>
         </>
       )}
-      <div className="overflow-auto rounded-md border border-border bg-background" hidden={contentType === "application/pdf" || !!error}>
-        <div ref={hostRef} className="min-h-[270px] min-w-[960px] [&_img]:max-w-none" />
+      <div ref={frameRef} className="overflow-hidden rounded-md border border-border bg-background" hidden={contentType === "application/pdf" || !!error}>
+        <div style={{ height: 540 * scale }}>
+          <div ref={hostRef} style={{ width: 960, height: 540, transform: `scale(${scale})`, transformOrigin: "top left" }} className="[&_img]:max-w-none" />
+        </div>
       </div>
       {contentType !== "application/pdf" && total > 0 && (
         <div className="mt-3 flex items-center justify-between gap-2">
