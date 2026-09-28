@@ -264,6 +264,44 @@ export type Database = {
           },
         ]
       }
+      lecture_slides: {
+        Row: {
+          class_id: string
+          content_type: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          content_type: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          content_type?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecture_slides_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           class_id: string
