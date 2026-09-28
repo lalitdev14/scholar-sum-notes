@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { saveNote, refreshClassSummary, transcribeHandwriting } from "@/lib/notes.functions";
@@ -9,9 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
+import { LectureSlideViewer } from "@/components/LectureSlideViewer";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { Save, Sparkles, Trash2, User, Users } from "lucide-react";
+import { FileUp, Save, Sparkles, Trash2, User, Users } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,81 @@ function ClassPage() {
   const [converting, setConverting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [uploadingSlides, setUploadingSlides] = useState(false);
+  const [removingSlideId, setRemovingSlideId] = useState<string | null>(null);
+  const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
+  const slidesInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: lectureSlides } = useQuery({
+    queryKey: ["lecture-slides", classId],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return [];
+      const { data, error } = await supabase.from("lecture_slides")
+        .select("id, file_name, file_path, content_type, created_at")
+        .eq("class_id", classId).eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const activeSlides = lectureSlides?.find((item) => item.id === selectedSlideId) ?? lectureSlides?.[0];
+
+  async function handleSlideUpload(file: File | undefined) {
+    if (!file) return;
+    if (!/\.(pdf|pptx)$/i.test(file.name) || !["application/pdf", "application/vnd.openxmlformats-officedocument.presentationml.presentation"].includes(file.type)) {
+      toast.error("Choose a PDF or PowerPoint (.pptx) file.");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("The file must be smaller than 20 MB.");
+      return;
+    }
+    setUploadingSlides(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("Sign in to upload slides.");
+      const filePath = `${userId}/${classId}/${crypto.randomUUID()}.${file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "pptx"}`;
+      const { error: uploadError } = await supabase.storage.from("lecture-slides").upload(filePath, file, { contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data: row, error: saveError } = await supabase.from("lecture_slides")
+        .insert({ class_id: classId, user_id: userId, file_path: filePath, file_name: file.name.slice(0, 255), content_type: file.type })
+        .select("id").single();
+      if (saveError) {
+        await supabase.storage.from("lecture-slides").remove([filePath]);
+        throw saveError;
+      }
+      setSelectedSlideId(row.id);
+      await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
+      toast.success("Slides uploaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not upload slides");
+    } finally {
+      setUploadingSlides(false);
+      if (slidesInputRef.current) slidesInputRef.current.value = "";
+    }
+  }
+
+  async function handleSlideRemove() {
+    if (!activeSlides) return;
+    setRemovingSlideId(activeSlides.id);
+    try {
+      const { error } = await supabase.storage.from("lecture-slides").remove([activeSlides.file_path]);
+      if (error) throw error;
+      const { error: removeError } = await supabase.from("lecture_slides").delete().eq("id", activeSlides.id);
+      if (removeError) throw removeError;
+      setSelectedSlideId(null);
+      await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
+      toast.success("Slides removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not remove slides");
+    } finally {
+      setRemovingSlideId(null);
+    }
+  }
 
   async function archiveHandwriting(imageDataUrl: string, transcript: string) {
     try {
@@ -348,7 +424,7 @@ function ClassPage() {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Start writing what the professor is covering…"
-                  className="min-h-[460px] resize-none bg-transparent text-base leading-relaxed"
+                   className="min-h-[460px] resize-none bg-transparent text-base leading-relaxed md:text-base"
                 />
               </TabsContent>
               <TabsContent value="write">
@@ -357,7 +433,7 @@ function ClassPage() {
                   <p className="text-xs uppercase tracking-widest text-muted-foreground">
                     Live transcript {converting ? "· converting…" : ""}
                   </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
+                   <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed">
                     {content || "Your handwriting will appear here as typed text."}
                   </p>
                 </div>
@@ -404,7 +480,33 @@ function ClassPage() {
             </p>
           </section>
 
-          <aside className="ink-panel rounded-xl p-6 lg:col-span-2">
+           <section className="min-w-0 lg:col-span-2" aria-label="Lecture slides">
+             <div className="flex flex-wrap items-center justify-between gap-2">
+               <h2 className="text-2xl">Lecture slides</h2>
+               <input ref={slidesInputRef} type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" className="hidden" aria-label="Upload lecture slides" onChange={(event) => void handleSlideUpload(event.target.files?.[0])} />
+               <Button variant="outline" size="sm" disabled={uploadingSlides} onClick={() => slidesInputRef.current?.click()}>
+                 <FileUp /> {uploadingSlides ? "Uploading…" : "Upload"}
+               </Button>
+             </div>
+             {lectureSlides && lectureSlides.length > 1 && (
+               <select aria-label="Select lecture slides" value={activeSlides?.id ?? ""} onChange={(event) => setSelectedSlideId(event.target.value)} className="mt-4 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground">
+                 {lectureSlides.map((item) => <option key={item.id} value={item.id}>{item.file_name}</option>)}
+               </select>
+             )}
+             {activeSlides ? (
+               <>
+                 <div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-sm text-muted-foreground">
+                   <span className="truncate" title={activeSlides.file_name}>{activeSlides.file_name}</span>
+                   <Button variant="ghost" size="icon" aria-label="Remove selected slides" title="Remove selected slides" disabled={removingSlideId === activeSlides.id} onClick={() => void handleSlideRemove()} className="shrink-0 text-destructive hover:text-destructive"><Trash2 /></Button>
+                 </div>
+                 <LectureSlideViewer key={activeSlides.id} filePath={activeSlides.file_path} fileName={activeSlides.file_name} contentType={activeSlides.content_type} />
+               </>
+             ) : (
+               <p className="mt-5 border border-dashed border-border px-4 py-16 text-center text-sm text-muted-foreground">Upload a PDF or PowerPoint (.pptx) to follow along while you write.</p>
+             )}
+           </section>
+
+           <aside className="ink-panel rounded-xl p-6 lg:col-span-5">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
               <Sparkles className="h-3.5 w-3.5" /> AI class summary
             </div>
@@ -412,9 +514,9 @@ function ClassPage() {
 
             {summary?.summary ? (
               <>
-                <p className="prose-notes mt-4 text-sm opacity-90">{summary.summary}</p>
+                 <p className="prose-notes mt-4 text-base opacity-90">{summary.summary}</p>
                 {keyPoints.length > 0 && (
-                  <ul className="mt-5 space-y-2 text-sm opacity-90">
+                   <ul className="mt-5 space-y-2 text-base opacity-90">
                     {keyPoints.map((point, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="opacity-60">—</span>

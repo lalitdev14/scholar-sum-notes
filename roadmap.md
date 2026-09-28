@@ -1,0 +1,3 @@
+- [ ] Adjust the font sizing for comfortable, consistent reading.
+- [ ] Add lecture slide upload and viewing alongside the class notes editor.
+- [ ] Verify the class workspace on desktop and mobile.
