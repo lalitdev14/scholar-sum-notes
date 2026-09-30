@@ -88,6 +88,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   const isPdf = contentType === "application/pdf";
   const [pdfPage, setPdfPage] = useState(1);
   const [pdfJump, setPdfJump] = useState<number | null>(null);
+  const [jumpTick, setJumpTick] = useState(0);
   const [comment, setComment] = useState("");
   const [adding, setAdding] = useState(false);
   const { data: bookmarks } = useQuery({
