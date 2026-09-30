@@ -15,6 +15,7 @@ type LectureSlideViewerProps = {
 
 export function LectureSlideViewer({ slideId, filePath, contentType, fileName }: LectureSlideViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const previewerRef = useRef<{
     currentIndex: number;
@@ -127,7 +128,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   }
 
   function goTo(n: number) {
-    if (isPdf) { setPdfPage(n); setPdfJump(n); setJumpTick((t) => t + 1); frameRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    if (isPdf) { setPdfPage(n); setPdfJump(n); setJumpTick((t) => t + 1); topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     const viewer = previewerRef.current;
     if (!viewer) return;
     const target = Math.min(Math.max(n, 1), viewer.slideCount) - 1;
@@ -146,7 +147,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   }
 
   return (
-    <div className="mt-4 min-w-0">
+    <div ref={topRef} className="mt-4 min-w-0 scroll-mt-24">
       {loading && <p className="py-16 text-center text-sm text-muted-foreground">Opening slides…</p>}
       {error && <p role="alert" className="py-10 text-center text-sm text-destructive">{error}</p>}
       {url && (
