@@ -15,6 +15,7 @@ type LectureSlideViewerProps = {
 
 export function LectureSlideViewer({ slideId, filePath, contentType, fileName }: LectureSlideViewerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const previewerRef = useRef<{
     currentIndex: number;
@@ -88,6 +89,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   const isPdf = contentType === "application/pdf";
   const [pdfPage, setPdfPage] = useState(1);
   const [pdfJump, setPdfJump] = useState<number | null>(null);
+  const [jumpTick, setJumpTick] = useState(0);
   const [comment, setComment] = useState("");
   const [adding, setAdding] = useState(false);
   const { data: bookmarks } = useQuery({
@@ -126,7 +128,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   }
 
   function goTo(n: number) {
-    if (isPdf) { setPdfPage(n); setPdfJump(n); return; }
+    if (isPdf) { setPdfPage(n); setPdfJump(n); setJumpTick((t) => t + 1); topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     const viewer = previewerRef.current;
     if (!viewer) return;
     const target = Math.min(Math.max(n, 1), viewer.slideCount) - 1;
@@ -145,12 +147,12 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   }
 
   return (
-    <div className="mt-4 min-w-0">
+    <div ref={topRef} className="mt-4 min-w-0 scroll-mt-24">
       {loading && <p className="py-16 text-center text-sm text-muted-foreground">Opening slides…</p>}
       {error && <p role="alert" className="py-10 text-center text-sm text-destructive">{error}</p>}
       {url && (
         <>
-          <iframe title={`Lecture slides: ${fileName}`} key={pdfJump ?? 0} src={pdfJump ? `${url}#page=${pdfJump}` : url} className="h-[520px] w-full border border-border sm:h-[620px]" />
+          <iframe title={`Lecture slides: ${fileName}`} key={`${pdfJump ?? 0}-${jumpTick}`} src={pdfJump ? `${url}#page=${pdfJump}` : url} className="h-[520px] w-full border border-border sm:h-[620px]" />
           <Button asChild variant="outline" size="sm" className="mt-3">
             <a href={url} target="_blank" rel="noreferrer"><ExternalLink /> Open full size</a>
           </Button>
