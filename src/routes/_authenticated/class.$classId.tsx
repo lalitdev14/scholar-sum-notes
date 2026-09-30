@@ -499,7 +499,7 @@ function ClassPage() {
                    <span className="truncate" title={activeSlides.file_name}>{activeSlides.file_name}</span>
                    <Button variant="ghost" size="icon" aria-label="Remove selected slides" title="Remove selected slides" disabled={removingSlideId === activeSlides.id} onClick={() => void handleSlideRemove()} className="shrink-0 text-destructive hover:text-destructive"><Trash2 /></Button>
                  </div>
-                 <LectureSlideViewer key={activeSlides.id} filePath={activeSlides.file_path} fileName={activeSlides.file_name} contentType={activeSlides.content_type} />
+                 <LectureSlideViewer key={activeSlides.id} slideId={activeSlides.id} filePath={activeSlides.file_path} fileName={activeSlides.file_name} contentType={activeSlides.content_type} />
                </>
              ) : (
                <p className="mt-5 border border-dashed border-border px-4 py-16 text-center text-sm text-muted-foreground">Upload a PDF or PowerPoint (.pptx) to follow along while you write.</p>
