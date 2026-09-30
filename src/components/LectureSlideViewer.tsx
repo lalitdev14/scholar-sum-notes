@@ -68,6 +68,11 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
           await viewer.preview(await data.arrayBuffer());
           if (cancelled) return;
           setTotal(viewer.slideCount);
+          const saved = Number(localStorage.getItem(`slide-pos:${slideId}`)) || 1;
+          const target = Math.min(Math.max(saved, 1), viewer.slideCount) - 1;
+          let guard = 0;
+          while (viewer.currentIndex < target && guard++ < 10000) viewer.renderNextSlide();
+          setSlide(viewer.currentIndex + 1);
         }
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : "Could not open the slides");
@@ -103,6 +108,17 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     },
   });
   const currentNumber = isPdf ? pdfPage : slide;
+
+  useEffect(() => {
+    if (!isPdf) return;
+    const saved = Number(localStorage.getItem(`slide-pos:${slideId}`)) || 0;
+    if (saved > 1) { setPdfPage(saved); setPdfJump(saved); }
+  }, [isPdf, slideId]);
+
+  useEffect(() => {
+    if (loading || currentNumber < 1) return;
+    localStorage.setItem(`slide-pos:${slideId}`, String(Math.floor(currentNumber)));
+  }, [currentNumber, slideId, loading]);
 
   async function addBookmark() {
     const n = Math.floor(currentNumber);
