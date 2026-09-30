@@ -8,6 +8,13 @@
       "when": 1790630992976,
       "tag": "0000_create_private_lecture_slides",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790803465374,
+      "tag": "0001_create_slide_bookmarks",
+      "breakpoints": true
     }
   ]
 }

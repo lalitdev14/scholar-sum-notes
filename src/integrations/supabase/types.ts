@@ -366,6 +366,41 @@ export type Database = {
           },
         ]
       }
+      slide_bookmarks: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          slide_id: string
+          slide_number: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string
+          created_at?: string
+          id?: string
+          slide_id: string
+          slide_number: number
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          slide_id?: string
+          slide_number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slide_bookmarks_slide_id_fkey"
+            columns: ["slide_id"]
+            isOneToOne: false
+            referencedRelation: "lecture_slides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       universities: {
         Row: {
           accent_color: string
