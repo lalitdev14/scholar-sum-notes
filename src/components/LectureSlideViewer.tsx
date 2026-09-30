@@ -127,7 +127,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   }
 
   function goTo(n: number) {
-    if (isPdf) { setPdfPage(n); setPdfJump(n); return; }
+    if (isPdf) { setPdfPage(n); setPdfJump(n); setJumpTick((t) => t + 1); frameRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     const viewer = previewerRef.current;
     if (!viewer) return;
     const target = Math.min(Math.max(n, 1), viewer.slideCount) - 1;
@@ -151,7 +151,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
       {error && <p role="alert" className="py-10 text-center text-sm text-destructive">{error}</p>}
       {url && (
         <>
-          <iframe title={`Lecture slides: ${fileName}`} key={pdfJump ?? 0} src={pdfJump ? `${url}#page=${pdfJump}` : url} className="h-[520px] w-full border border-border sm:h-[620px]" />
+          <iframe title={`Lecture slides: ${fileName}`} key={`${pdfJump ?? 0}-${jumpTick}`} src={pdfJump ? `${url}#page=${pdfJump}` : url} className="h-[520px] w-full border border-border sm:h-[620px]" />
           <Button asChild variant="outline" size="sm" className="mt-3">
             <a href={url} target="_blank" rel="noreferrer"><ExternalLink /> Open full size</a>
           </Button>
