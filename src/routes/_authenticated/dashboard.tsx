@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { Plus, Search, Sparkles, User, Users } from "lucide-react";
+import { BookOpen, Plus, Search, Sparkles, User, Users } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
@@ -48,7 +49,7 @@ function Dashboard() {
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
   const { data: me } = useQuery({
-    queryKey: ["my-profile"],
+    queryKey: ["dashboard-profile"],
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -158,27 +159,11 @@ function Dashboard() {
       <AuthenticatedHeader />
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-12">
-        <div
-          className="mb-8 rounded-2xl border border-border/60 px-6 py-7"
-          style={{ backgroundImage: uniTheme.softGradient }}
-        >
-          <h1 className="text-3xl">
-            Welcome back{me?.full_name ? `, ${me.full_name}` : ""}
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            {uniTheme.name
-              ? `${uniTheme.name} — here is everything happening in your classes today.`
-              : "Here is everything happening in your classes today."}
-          </p>
-        </div>
-
-
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl">Your classes</h1>
-            <p className="mt-1 text-muted-foreground">
-              Only the subjects you've enrolled in show here. Search by subject name or code to add more.
-            </p>
+        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border pb-8">
+          <div className="max-w-xl">
+            <h1 className="text-3xl sm:text-4xl">Welcome back{me?.full_name ? `, ${me.full_name}` : ""}</h1>
+            <p className="mt-2 font-medium text-foreground">{uniTheme.name || "Your classes"}</p>
+            <p className="mt-1 text-sm text-muted-foreground">Only your enrolled subjects appear here. Search by name or code to add more.</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -298,19 +283,29 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          {isPending && <p className="text-muted-foreground">Loading classes…</p>}
+        <section className="mt-8" aria-label="Your classes">
+          <h2 className="text-2xl">Your classes</h2>
+          <div className="mt-5 grid gap-6 md:grid-cols-2">
+          {isPending && Array.from({ length: 2 }, (_, index) => (
+            <div key={index} className="surface-paper space-y-5 rounded-lg p-6" aria-hidden="true">
+              <Skeleton className="h-7 w-2/3" /><Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-16 w-full" /><Skeleton className="h-3 w-1/3" />
+            </div>
+          ))}
           {!isPending && classes?.length === 0 && (
-            <p className="text-muted-foreground">
-              You haven't enrolled in any subjects yet — use “Enroll in subject” to search by name or code.
-            </p>
+            <div className="surface-paper col-span-full flex flex-col items-center rounded-lg px-6 py-12 text-center">
+              <BookOpen className="h-9 w-9 text-primary" aria-hidden="true" />
+              <h3 className="mt-4 text-2xl">No enrolled subjects yet</h3>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">Find a subject by name or code to see its notes and shared summary here.</p>
+              <Button className="mt-6" onClick={() => setEnrollOpen(true)}><Search className="mr-2 h-4 w-4" />Enroll in subject</Button>
+            </div>
           )}
           {classes?.map((klass) => {
 
             const summary = Array.isArray(klass.class_summaries)
               ? klass.class_summaries[0]
               : klass.class_summaries;
-            const studentCount = (klass as any)?.enrollments?.[0]?.count ?? 0;
+            const studentCount = klass.enrollments?.[0]?.count ?? 0;
             return (
               <Link
                 key={klass.id}
@@ -346,7 +341,8 @@ function Dashboard() {
               </Link>
             );
           })}
-        </div>
+          </div>
+        </section>
       </main>
     </div>
   );

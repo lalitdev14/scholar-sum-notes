@@ -1,3 +1,3 @@
 - [ ] Adjust the font sizing for comfortable, consistent reading.
 - [ ] Add lecture slide upload and viewing alongside the class notes editor.
-- [ ] Verify the class workspace on desktop and mobile.
+- [ ] Verify the class workspace on desktop and mobile.- [ ] Complete the approved front-end polish across dashboard, header, landing, auth, class, and admin screens; validate types, build diagnostics, and responsive interactions.
