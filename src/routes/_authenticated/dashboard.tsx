@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { Plus, Search, Sparkles, User, Users } from "lucide-react";
+import { BookOpen, Plus, Search, Sparkles, User, Users } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
@@ -48,7 +49,7 @@ function Dashboard() {
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
   const { data: me } = useQuery({
-    queryKey: ["my-profile"],
+    queryKey: ["dashboard-profile"],
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -310,7 +311,7 @@ function Dashboard() {
             const summary = Array.isArray(klass.class_summaries)
               ? klass.class_summaries[0]
               : klass.class_summaries;
-            const studentCount = (klass as any)?.enrollments?.[0]?.count ?? 0;
+            const studentCount = klass.enrollments?.[0]?.count ?? 0;
             return (
               <Link
                 key={klass.id}

@@ -23,6 +23,8 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Every student's notes, one refined class summary on the dashboard.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Landing,
@@ -37,7 +39,7 @@ const steps = [
   {
     icon: NotebookPen,
     title: "Write as it happens",
-    body: "Type notes straight into the page. They're private to you and saved as you go.",
+    body: "Type notes straight into the page and save them when you're ready. They're private to you.",
   },
   {
     icon: Sparkles,
@@ -104,9 +106,6 @@ function Landing() {
                 {signedIn ? "Back to your dashboard" : "Start taking notes"}
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link to="/dashboard">View class dashboard</Link>
-            </Button>
           </div>
         </section>
 
@@ -129,7 +128,7 @@ function Landing() {
             LectureLoop — shared notes for every seat in the room.
           </span>
           <Link to="/about" className="text-sm font-medium text-primary hover:underline">
-            About US
+            About
           </Link>
         </div>
       </footer>
