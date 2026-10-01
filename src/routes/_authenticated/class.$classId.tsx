@@ -12,7 +12,8 @@ import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { FileUp, Save, Sparkles, Trash2, User, Users } from "lucide-react";
+import { FileUp, Pencil, Save, Sparkles, Trash2, User, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +60,7 @@ function ClassPage() {
   const [uploadingSlides, setUploadingSlides] = useState(false);
   const [removingSlideId, setRemovingSlideId] = useState<string | null>(null);
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
+  const [newSlideTitle, setNewSlideTitle] = useState("");
   const slidesInputRef = useRef<HTMLInputElement>(null);
 
   const { data: lectureSlides } = useQuery({
@@ -68,7 +70,7 @@ function ClassPage() {
       const userId = userData.user?.id;
       if (!userId) return [];
       const { data, error } = await supabase.from("lecture_slides")
-        .select("id, file_name, file_path, content_type, created_at")
+        .select("id, title, file_name, file_path, content_type, created_at")
         .eq("class_id", classId).eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -97,7 +99,7 @@ function ClassPage() {
       const { error: uploadError } = await supabase.storage.from("lecture-slides").upload(filePath, file, { contentType: file.type });
       if (uploadError) throw uploadError;
       const { data: row, error: saveError } = await supabase.from("lecture_slides")
-        .insert({ class_id: classId, user_id: userId, file_path: filePath, file_name: file.name.slice(0, 255), content_type: file.type })
+        .insert({ class_id: classId, user_id: userId, file_path: filePath, file_name: file.name.slice(0, 255), content_type: file.type, title: (newSlideTitle.trim() || file.name.replace(/\.(pdf|pptx)$/i, "")).slice(0, 120) })
         .select("id").single();
       if (saveError) {
         await supabase.storage.from("lecture-slides").remove([filePath]);
@@ -112,6 +114,16 @@ function ClassPage() {
       setUploadingSlides(false);
       if (slidesInputRef.current) slidesInputRef.current.value = "";
     }
+  }
+
+  async function handleSlideRename() {
+    if (!activeSlides) return;
+    const name = window.prompt("Name these slides", activeSlides.title || activeSlides.file_name)?.trim();
+    if (name === undefined || name === null) return;
+    const { error } = await supabase.from("lecture_slides").update({ title: name.slice(0, 120) }).eq("id", activeSlides.id);
+    if (error) { toast.error(error.message); return; }
+    await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
+    toast.success("Slides renamed");
   }
 
   async function handleSlideRemove() {
@@ -480,24 +492,34 @@ function ClassPage() {
             </p>
           </section>
 
-           <section className="min-w-0 lg:col-span-2" aria-label="Lecture slides">
+           <section className="min-w-0 self-start lg:sticky lg:top-4 lg:col-span-2 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" aria-label="Lecture slides">
              <div className="flex flex-wrap items-center justify-between gap-2">
                <h2 className="text-2xl">Lecture slides</h2>
                <input ref={slidesInputRef} type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" className="hidden" aria-label="Upload lecture slides" onChange={(event) => void handleSlideUpload(event.target.files?.[0])} />
-               <Button variant="outline" size="sm" disabled={uploadingSlides} onClick={() => slidesInputRef.current?.click()}>
-                 <FileUp /> {uploadingSlides ? "Uploading…" : "Upload"}
+             </div>
+             <div className="mt-3 flex gap-2">
+               <Input value={newSlideTitle} maxLength={120} onChange={(e) => setNewSlideTitle(e.target.value)} placeholder="Name, e.g. Chapter 1" aria-label="Name for new slides" className="h-9" />
+               <Button variant="outline" size="sm" className="shrink-0" disabled={uploadingSlides} onClick={() => slidesInputRef.current?.click()}>
+                 <FileUp /> {uploadingSlides ? "Uploading…" : "Add slides"}
                </Button>
              </div>
-             {lectureSlides && lectureSlides.length > 1 && (
-               <select aria-label="Select lecture slides" value={activeSlides?.id ?? ""} onChange={(event) => setSelectedSlideId(event.target.value)} className="mt-4 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground">
-                 {lectureSlides.map((item) => <option key={item.id} value={item.id}>{item.file_name}</option>)}
-               </select>
+             {lectureSlides && lectureSlides.length > 0 && (
+               <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Your slide decks">
+                 {lectureSlides.map((item) => (
+                   <Button key={item.id} role="tab" aria-selected={item.id === activeSlides?.id} size="sm" variant={item.id === activeSlides?.id ? "default" : "outline"} onClick={() => setSelectedSlideId(item.id)} className="max-w-full">
+                     <span className="truncate">{item.title || item.file_name}</span>
+                   </Button>
+                 ))}
+               </div>
              )}
              {activeSlides ? (
                <>
-                 <div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-sm text-muted-foreground">
-                   <span className="truncate" title={activeSlides.file_name}>{activeSlides.file_name}</span>
-                   <Button variant="ghost" size="icon" aria-label="Remove selected slides" title="Remove selected slides" disabled={removingSlideId === activeSlides.id} onClick={() => void handleSlideRemove()} className="shrink-0 text-destructive hover:text-destructive"><Trash2 /></Button>
+                 <div className="mt-3 flex min-w-0 items-center justify-between gap-2 text-sm text-muted-foreground">
+                   <span className="truncate" title={activeSlides.file_name}>{activeSlides.title || activeSlides.file_name}</span>
+                   <div className="flex shrink-0">
+                     <Button variant="ghost" size="icon" aria-label="Rename slides" title="Rename slides" onClick={() => void handleSlideRename()}><Pencil /></Button>
+                     <Button variant="ghost" size="icon" aria-label="Remove selected slides" title="Remove selected slides" disabled={removingSlideId === activeSlides.id} onClick={() => void handleSlideRemove()} className="text-destructive hover:text-destructive"><Trash2 /></Button>
+                   </div>
                  </div>
                  <LectureSlideViewer key={activeSlides.id} slideId={activeSlides.id} filePath={activeSlides.file_path} fileName={activeSlides.file_name} contentType={activeSlides.content_type} />
                </>
