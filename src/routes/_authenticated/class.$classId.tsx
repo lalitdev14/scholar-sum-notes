@@ -106,6 +106,7 @@ function ClassPage() {
         throw saveError;
       }
       setSelectedSlideId(row.id);
+      setNewSlideTitle("");
       await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
       toast.success("Slides uploaded");
     } catch (err) {
