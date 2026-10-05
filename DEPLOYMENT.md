@@ -75,6 +75,19 @@ to Lovable's gateway:
 Override the model anywhere with `AI_TEXT_MODEL`. `LOVABLE_API_KEY` is not available
 outside Lovable, so on Vercel set an OpenAI or Google key instead.
 
+## 3a. Google sign-in outside Lovable
+
+1. In Vercel → Settings → Environment Variables, set `VITE_AUTH_PROVIDER=supabase`
+   (the sign-in page then uses your Supabase project's Google provider instead of
+   Lovable's managed Google sign-in — leave it unset inside Lovable) and
+   `NITRO_PRESET=vercel` (build-time only).
+2. In Supabase → Authentication → Providers, enable **Google** with your own Google
+   OAuth client ID and secret.
+3. In Supabase → Authentication → URL Configuration, add your Vercel domain to
+   **Site URL** and **Redirect URLs**, and enable the Google provider with your own
+   Google OAuth client. For the custom domain, add both
+   `https://lectureloop.org` and `https://www.lectureloop.org` to those Redirect URLs.
+
 ## 3b. Moving to your own Supabase project (optional but recommended)
 
 `SUPABASE_SERVICE_ROLE_KEY` cannot be read out of Lovable Cloud, so full admin/faculty
