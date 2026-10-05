@@ -101,7 +101,7 @@ function AuthPage() {
   async function handleGoogle() {
     // Outside Lovable (e.g. Vercel) the flag selects the project's own Supabase Google
     // provider. Inside Lovable the flag stays unset and managed sign-in is used.
-    if (import.meta.env.VITE_AUTH_PROVIDER === "supabase") {
+    if (import.meta.env["VITE_AUTH_PROVIDER"] === "supabase") {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: window.location.origin + "/dashboard" },
