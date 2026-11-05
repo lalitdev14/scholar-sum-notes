@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Trash2 } from "lucide-react";
+import { Bookmark, ChevronLeft, ChevronRight, ExternalLink, Sparkles, Trash2, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { slideOverview } from "@/lib/notes.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -30,6 +32,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
+  const pdfDocRef = useRef<{ getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }>; numPages: number; destroy: () => void } | null>(null);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -60,6 +63,17 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
         if (contentType === "application/pdf") {
           objectUrl = URL.createObjectURL(data);
           setUrl(objectUrl);
+          void (async () => {
+            try {
+              const pdfjs = await import("pdfjs-dist");
+              const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+              pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+              const doc = await pdfjs.getDocument({ data: new Uint8Array(await data.arrayBuffer()) }).promise;
+              if (cancelled) return;
+              pdfDocRef.current = doc as unknown as typeof pdfDocRef.current;
+              setPdfReady((t) => t + 1);
+            } catch { /* overview just stays unavailable */ }
+          })();
         } else {
           const { init } = await import("pptx-preview");
           if (cancelled || !hostRef.current) return;
@@ -86,6 +100,8 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
       cancelled = true;
       previewerRef.current?.destroy();
       previewerRef.current = null;
+      pdfDocRef.current?.destroy();
+      pdfDocRef.current = null;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [filePath, contentType]);
@@ -108,6 +124,58 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     },
   });
   const currentNumber = isPdf ? pdfPage : slide;
+  const [pdfReady, setPdfReady] = useState(0);
+  const [overviewOpen, setOverviewOpen] = useState(true);
+  const [slideInfo, setSlideInfo] = useState<{ headline: string; text: string } | null>(null);
+  const getOverview = useServerFn(slideOverview);
+
+  useEffect(() => {
+    if (loading || error) return;
+    let cancelled = false;
+    setSlideInfo(null);
+    const timer = window.setTimeout(async () => {
+      try {
+        if (isPdf) {
+          const doc = pdfDocRef.current;
+          const n = Math.floor(pdfPage);
+          if (!doc || n < 1 || n > doc.numPages) return;
+          const content = await (await doc.getPage(n)).getTextContent();
+          const items = (content.items as { str?: string; transform?: number[] }[])
+            .filter((i) => i.str && i.str.trim())
+            .map((i) => ({ str: i.str!.trim(), size: Math.abs(i.transform?.[3] ?? 0) }));
+          if (!items.length) { if (!cancelled) setSlideInfo({ headline: "", text: "" }); return; }
+          const max = Math.max(...items.map((i) => i.size));
+          const headline = items.filter((i) => i.size >= max * 0.85).map((i) => i.str).join(" ");
+          if (!cancelled) setSlideInfo({ headline: headline.slice(0, 300), text: items.map((i) => i.str).join(" ").slice(0, 3000) });
+        } else {
+          const host = hostRef.current;
+          if (!host) return;
+          let best = { text: "", size: 0 };
+          const all: string[] = [];
+          host.querySelectorAll<HTMLElement>("*").forEach((el) => {
+            if (el.offsetParent === null) return;
+            const own = Array.from(el.childNodes).filter((c) => c.nodeType === 3).map((c) => c.textContent ?? "").join(" ").trim();
+            if (!own) return;
+            all.push(own);
+            const size = parseFloat(getComputedStyle(el).fontSize) || 0;
+            if (size > best.size) best = { text: own, size };
+          });
+          if (!cancelled) setSlideInfo({ headline: best.text.slice(0, 300), text: all.join(" ").slice(0, 3000) });
+        }
+      } catch {
+        if (!cancelled) setSlideInfo({ headline: "", text: "" });
+      }
+    }, 600);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [isPdf, pdfPage, slide, loading, error, pdfReady]);
+
+  const overview = useQuery({
+    queryKey: ["slide-overview", slideInfo?.headline],
+    enabled: overviewOpen && !!slideInfo?.headline,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async () => (await getOverview({ data: { headline: slideInfo!.headline, slideText: slideInfo!.text } })).text,
+  });
 
   useEffect(() => {
     if (!isPdf) return;
@@ -179,6 +247,29 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
           <div ref={hostRef} style={{ width: 960, height: 540, transform: `scale(${scale})`, transformOrigin: "top left" }} className="[&_img]:max-w-none" />
         </div>
       </div>
+      {(isPdf ? !!url : total > 0) && (
+        overviewOpen ? (
+          <div role="dialog" aria-label="AI slide overview" className="surface-paper relative mt-3 rounded-lg p-4 pr-10 text-sm">
+            <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8" aria-label="Close AI overview" onClick={() => setOverviewOpen(false)}><X /></Button>
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary"><Sparkles className="h-3.5 w-3.5" /> AI overview · {isPdf ? "Page" : "Slide"} {Math.floor(currentNumber)}</div>
+            {slideInfo === null ? (
+              <p className="mt-2 text-muted-foreground">Reading the slide…</p>
+            ) : !slideInfo.headline ? (
+              <p className="mt-2 text-muted-foreground">No headline found on this {isPdf ? "page" : "slide"}.</p>
+            ) : (
+              <>
+                <p className="mt-1 font-semibold">{slideInfo.headline}</p>
+                {overview.isFetching ? <p className="mt-2 text-muted-foreground">Writing an overview…</p>
+                  : overview.error ? <p className="mt-2 text-destructive">Couldn't create an overview right now.</p>
+                  : <p className="prose-notes mt-2 text-foreground">{overview.data}</p>}
+                <p className="mt-2 text-xs text-muted-foreground">AI-generated from the headline. It may go beyond your lecture, so check it against your notes.</p>
+              </>
+            )}
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => setOverviewOpen(true)}><Sparkles /> AI overview</Button>
+        )
+      )}
       {contentType !== "application/pdf" && total > 0 && (
         <div className="mt-3 flex items-center justify-between gap-2">
           <Button aria-label="Previous slide" title="Previous slide" size="icon" variant="outline" disabled={slide <= 1} onClick={() => move(-1)}><ChevronLeft /></Button>

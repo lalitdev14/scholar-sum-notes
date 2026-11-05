@@ -145,3 +145,25 @@ export const transcribeHandwriting = createServerFn({ method: "POST" })
 
     return { text: (result.text ?? "").trim() };
   });
+
+const SlideOverviewInput = z.object({
+  headline: z.string().trim().min(1).max(300),
+  slideText: z.string().max(3000).optional().default(""),
+});
+
+export const slideOverview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => SlideOverviewInput.parse(input))
+  .handler(async ({ data }) => {
+    const { resolveTextModel } = await import("./ai-gateway.server");
+    const { generateText } = await import("ai");
+    const result = await generateText({
+      model: resolveTextModel(),
+      system:
+        "You help a university student follow a lecture. Given a slide headline (and optionally the slide's text), " +
+        "write a short, plain-language overview of the topic: 2-3 sentences, then up to 3 short bullet points with key ideas. " +
+        "Under 110 words. Plain text only, bullets start with '• '. No headings, no markdown symbols.",
+      prompt: `Slide headline: ${data.headline}\n\nSlide text:\n${data.slideText || "(none)"}`,
+    });
+    return { text: (result.text ?? "").trim() };
+  });
