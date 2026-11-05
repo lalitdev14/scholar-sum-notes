@@ -381,6 +381,7 @@ function ClassPage() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-6 lg:col-span-2 lg:grid-cols-2">
           <section className="surface-paper rounded-xl p-6 lg:col-span-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-2xl">Your notes</h2>
@@ -528,6 +529,7 @@ function ClassPage() {
                <p className="mt-5 border border-dashed border-border px-4 py-16 text-center text-sm text-muted-foreground">Upload a PDF or PowerPoint (.pptx) to follow along while you write.</p>
              )}
            </section>
+          </div>
 
            <aside className="ink-panel rounded-xl p-6 lg:col-span-2">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
