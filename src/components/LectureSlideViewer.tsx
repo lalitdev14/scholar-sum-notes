@@ -69,7 +69,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
               const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
               pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
               const doc = await pdfjs.getDocument({ data: new Uint8Array(await data.arrayBuffer()) }).promise;
-              if (cancelled) { void doc.destroy(); return; }
+              if (cancelled) return;
               pdfDocRef.current = doc as unknown as typeof pdfDocRef.current;
               setPdfReady((t) => t + 1);
             } catch { /* overview just stays unavailable */ }
