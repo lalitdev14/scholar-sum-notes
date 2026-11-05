@@ -351,7 +351,7 @@ function ClassPage() {
     <div className="min-h-screen">
       <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-10">
+      <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-10">
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -380,8 +380,8 @@ function ClassPage() {
           </Button>
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-5">
-          <section className="surface-paper rounded-xl p-6 lg:col-span-3">
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <section className="surface-paper rounded-xl p-6 lg:col-span-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-2xl">Your notes</h2>
               <div className="flex items-center gap-2">
@@ -493,7 +493,7 @@ function ClassPage() {
             </p>
           </section>
 
-           <section className="min-w-0 self-start lg:sticky lg:top-4 lg:col-span-2 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" aria-label="Lecture slides">
+           <section className="min-w-0 self-start lg:sticky lg:top-4 lg:col-span-1 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" aria-label="Lecture slides">
              <div className="flex flex-wrap items-center justify-between gap-2">
                <h2 className="text-2xl">Lecture slides</h2>
                <input ref={slidesInputRef} type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" className="hidden" aria-label="Upload lecture slides" onChange={(event) => void handleSlideUpload(event.target.files?.[0])} />
@@ -529,7 +529,7 @@ function ClassPage() {
              )}
            </section>
 
-           <aside className="ink-panel rounded-xl p-6 lg:col-span-5">
+           <aside className="ink-panel rounded-xl p-6 lg:col-span-2">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
               <Sparkles className="h-3.5 w-3.5" /> AI class summary
             </div>
@@ -561,7 +561,7 @@ function ClassPage() {
             )}
           </aside>
 
-          <section className="surface-paper rounded-xl p-6 lg:col-span-5">
+          <section className="surface-paper rounded-xl p-6 lg:col-span-2">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <h2 className="text-2xl">Students in this class</h2>
