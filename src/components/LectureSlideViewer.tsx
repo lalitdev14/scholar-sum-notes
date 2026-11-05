@@ -32,7 +32,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
-  const pdfDocRef = useRef<{ getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }>; numPages: number; destroy: () => void } | null>(null);
+  const pdfDocRef = useRef<{ getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }>; numPages: number } | null>(null);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -47,6 +47,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
+    let loadingTask: { destroy: () => Promise<void> } | null = null;
     setLoading(true);
     setError(null);
     setSlide(1);
@@ -68,7 +69,10 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
               const pdfjs = await import("pdfjs-dist");
               const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
               pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-              const doc = await pdfjs.getDocument({ data: new Uint8Array(await data.arrayBuffer()) }).promise;
+              const task = pdfjs.getDocument({ data: new Uint8Array(await data.arrayBuffer()) });
+              loadingTask = task;
+              if (cancelled) { void task.destroy(); return; }
+              const doc = await task.promise;
               if (cancelled) return;
               pdfDocRef.current = doc as unknown as typeof pdfDocRef.current;
               setPdfReady((t) => t + 1);
@@ -100,8 +104,8 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
       cancelled = true;
       previewerRef.current?.destroy();
       previewerRef.current = null;
-      pdfDocRef.current?.destroy();
       pdfDocRef.current = null;
+      loadingTask?.destroy().catch(() => {});
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [filePath, contentType]);
