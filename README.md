@@ -1,25 +1,29 @@
+# LectureLoop
 
+Collaborative class notes: students take their own notes during class, and AI merges
+everyone's notes into one refined summary per course.
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requires Node.js 22+ and [bun](https://bun.sh) (or npm).
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+git clone https://github.com/lalitdev14/scholar-sum-notes.git
+cd scholar-sum-notes
+bun install
+cp .env.example .env   # fill in Supabase + AI keys
+bun run dev            # http://localhost:8080
 ```
 
-## Deploying to GitHub + Vercel
+Other scripts: `bun run build`, `bun run preview`, `bun run typecheck`, `bun run lint`.
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full walkthrough, including the
-environment variables Vercel needs.
+## Deploying
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for Vercel (or any nitro-supported host) and the
+environment variables it needs.
 
 ## Built with
 
 - TanStack Start (React UI + server functions in one codebase)
-- TypeScript
-- React
-- Tailwind CSS
+- TypeScript, React, Tailwind CSS, shadcn/ui
 - Supabase (database, auth, storage)
