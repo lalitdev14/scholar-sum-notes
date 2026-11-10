@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveNote, refreshClassSummary, transcribeHandwriting } from "@/lib/notes.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { NoteEditor } from "@/components/NoteEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
@@ -437,11 +437,10 @@ function ClassPage() {
                 <TabsTrigger value="write">Handwrite</TabsTrigger>
               </TabsList>
               <TabsContent value="type">
-                <Textarea
+                <NoteEditor
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={setContent}
                   placeholder="Start writing what the professor is covering…"
-                   className="min-h-[460px] resize-none bg-transparent text-base leading-relaxed md:text-base"
                 />
               </TabsContent>
               <TabsContent value="write">

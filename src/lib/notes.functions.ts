@@ -61,7 +61,7 @@ export const refreshClassSummary = createServerFn({ method: "POST" })
     if (notesError) throw new Error(notesError.message);
 
     const corpus = (notes ?? [])
-      .map((n, i) => `--- Student note ${i + 1} ---\n${n.content}`)
+      .map((n, i) => `--- Student note ${i + 1} ---\n${n.content.replace(/\[color=[a-z]+\]|\[\/color\]/g, "")}`)
       .join("\n\n")
       .slice(0, 60000);
 
