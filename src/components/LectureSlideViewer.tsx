@@ -238,13 +238,13 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     <div ref={topRef} className="mt-4 min-w-0 scroll-mt-24">
       {loading && <p className="py-16 text-center text-sm text-muted-foreground">Opening slides…</p>}
       {error && <p role="alert" className="py-10 text-center text-sm text-destructive">{error}</p>}
+      <div className="relative">
       {url && (
-        <>
-          <iframe title={`Lecture slides: ${fileName}`} key={`${pdfJump ?? 0}-${jumpTick}`} src={pdfJump ? `${url}#page=${pdfJump}` : url} className="h-[520px] w-full border border-border sm:h-[620px]" />
-          <Button asChild variant="outline" size="sm" className="mt-3">
-            <a href={url} target="_blank" rel="noreferrer"><ExternalLink /> Open full size</a>
-          </Button>
-        </>
+        <div aria-label={`Lecture slides: ${fileName}`} ref={pdfScrollRef} className="h-[520px] w-full overflow-y-auto rounded-md border border-border bg-muted sm:h-[620px]">
+          {pdfReady > 0 && pdfDocRef.current && Array.from({ length: pdfDocRef.current.numPages }, (_, i) => (
+            <PdfPage key={`${pdfReady}-${i}`} doc={pdfDocRef.current!} n={i + 1} />
+          ))}
+        </div>
       )}
       <div ref={frameRef} className="overflow-hidden rounded-md border border-border bg-background" hidden={contentType === "application/pdf" || !!error}>
         <div style={{ height: 540 * scale }}>
@@ -253,7 +253,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
       </div>
       {(isPdf ? !!url : total > 0) && (
         overviewOpen ? (
-          <div role="dialog" aria-label="AI slide overview" className="surface-paper relative mt-3 rounded-lg p-4 pr-10 text-sm">
+          <div role="dialog" aria-label="AI slide overview" className="absolute right-3 top-3 z-10 max-h-[70%] w-[min(20rem,calc(100%-1.5rem))] overflow-y-auto rounded-lg border border-border bg-background/95 p-3 pr-9 text-xs shadow-lg backdrop-blur-md">
             <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8" aria-label="Close AI overview" onClick={() => setOverviewOpen(false)}><X /></Button>
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary"><Sparkles className="h-3.5 w-3.5" /> AI overview · {isPdf ? "Page" : "Slide"} {Math.floor(currentNumber)}</div>
             {slideInfo === null ? (
@@ -271,8 +271,14 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
             )}
           </div>
         ) : (
-          <Button variant="outline" size="sm" className="mt-3" onClick={() => setOverviewOpen(true)}><Sparkles /> AI overview</Button>
+          <Button variant="secondary" size="sm" className="absolute right-3 top-3 z-10 shadow-md" onClick={() => setOverviewOpen(true)}><Sparkles /> AI overview</Button>
         )
+      )}
+      </div>
+      {url && (
+        <Button asChild variant="outline" size="sm" className="mt-3">
+          <a href={url} target="_blank" rel="noreferrer"><ExternalLink /> Open full size</a>
+        </Button>
       )}
       {contentType !== "application/pdf" && total > 0 && (
         <div className="mt-3 flex items-center justify-between gap-2">
