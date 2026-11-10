@@ -222,7 +222,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     if (!isPdf || !root || !pdfReady) return;
     const ratios = new Map<number, number>();
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((e) => ratios.set(Number((e.target as HTMLElement).dataset.page), e.intersectionRatio));
+      entries.forEach((e) => ratios.set(Number((e.target as HTMLElement).dataset["page"]), e.intersectionRatio));
       let best = 0, bestRatio = 0;
       ratios.forEach((r, p) => { if (r > bestRatio) { bestRatio = r; best = p; } });
       if (best) setPdfPage(best);
