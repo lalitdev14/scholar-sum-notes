@@ -1,4 +1,4 @@
 - [ ] Adjust the font sizing for comfortable, consistent reading.
-- [ ] Make notes and slides adjustable on desktop, remember the chosen split on this device, and verify the signed-in desktop/mobile flow.
+- [x] Make notes and slides adjustable on desktop, remember the chosen split on this device, and verify the signed-in desktop/mobile flow.
 - [ ] Add lecture slide upload and viewing alongside the class notes editor.
 - [ ] Verify the class workspace on desktop and mobile.- [ ] Complete the approved front-end polish across dashboard, header, landing, auth, class, and admin screens; validate types, build diagnostics, and responsive interactions.
