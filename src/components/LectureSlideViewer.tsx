@@ -131,6 +131,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   const [pdfReady, setPdfReady] = useState(0);
   const [overviewOpen, setOverviewOpen] = useState(true);
   const [slideInfo, setSlideInfo] = useState<{ headline: string; text: string } | null>(null);
+  const pdfScrollRef = useRef<HTMLDivElement>(null);
   const getOverview = useServerFn(slideOverview);
 
   useEffect(() => {
@@ -215,6 +216,28 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     await queryClient.invalidateQueries({ queryKey: ["slide-bookmarks", slideId] });
   }
 
+  // Track which PDF page is mostly visible while scrolling.
+  useEffect(() => {
+    const root = pdfScrollRef.current;
+    if (!isPdf || !root || !pdfReady) return;
+    const ratios = new Map<number, number>();
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => ratios.set(Number((e.target as HTMLElement).dataset["page"]), e.intersectionRatio));
+      let best = 0, bestRatio = 0;
+      ratios.forEach((r, p) => { if (r > bestRatio) { bestRatio = r; best = p; } });
+      if (best) setPdfPage(best);
+    }, { root, threshold: [0, 0.25, 0.5, 0.75, 1] });
+    root.querySelectorAll("[data-page]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [isPdf, pdfReady]);
+
+  // Scroll to a requested PDF page (bookmark or restored position).
+  useEffect(() => {
+    if (!pdfJump || !pdfReady) return;
+    const el = pdfScrollRef.current?.querySelector<HTMLElement>(`[data-page="${pdfJump}"]`);
+    if (el && pdfScrollRef.current) pdfScrollRef.current.scrollTop = el.offsetTop;
+  }, [pdfJump, jumpTick, pdfReady]);
+
   function goTo(n: number) {
     if (isPdf) { setPdfPage(n); setPdfJump(n); setJumpTick((t) => t + 1); topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     const viewer = previewerRef.current;
@@ -238,13 +261,13 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     <div ref={topRef} className="mt-4 min-w-0 scroll-mt-24">
       {loading && <p className="py-16 text-center text-sm text-muted-foreground">Opening slides…</p>}
       {error && <p role="alert" className="py-10 text-center text-sm text-destructive">{error}</p>}
+      <div className="relative">
       {url && (
-        <>
-          <iframe title={`Lecture slides: ${fileName}`} key={`${pdfJump ?? 0}-${jumpTick}`} src={pdfJump ? `${url}#page=${pdfJump}` : url} className="h-[520px] w-full border border-border sm:h-[620px]" />
-          <Button asChild variant="outline" size="sm" className="mt-3">
-            <a href={url} target="_blank" rel="noreferrer"><ExternalLink /> Open full size</a>
-          </Button>
-        </>
+        <div aria-label={`Lecture slides: ${fileName}`} ref={pdfScrollRef} className="h-[520px] w-full overflow-y-auto rounded-md border border-border bg-muted sm:h-[620px]">
+          {pdfReady > 0 && pdfDocRef.current && Array.from({ length: pdfDocRef.current.numPages }, (_, i) => (
+            <PdfPage key={`${pdfReady}-${i}`} doc={pdfDocRef.current!} n={i + 1} />
+          ))}
+        </div>
       )}
       <div ref={frameRef} className="overflow-hidden rounded-md border border-border bg-background" hidden={contentType === "application/pdf" || !!error}>
         <div style={{ height: 540 * scale }}>
@@ -253,7 +276,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
       </div>
       {(isPdf ? !!url : total > 0) && (
         overviewOpen ? (
-          <div role="dialog" aria-label="AI slide overview" className="surface-paper relative mt-3 rounded-lg p-4 pr-10 text-sm">
+          <div role="dialog" aria-label="AI slide overview" className="absolute right-3 top-3 z-10 max-h-[70%] w-[min(20rem,calc(100%-1.5rem))] overflow-y-auto rounded-lg border border-border bg-background/95 p-3 pr-9 text-xs shadow-lg backdrop-blur-md">
             <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8" aria-label="Close AI overview" onClick={() => setOverviewOpen(false)}><X /></Button>
             <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary"><Sparkles className="h-3.5 w-3.5" /> AI overview · {isPdf ? "Page" : "Slide"} {Math.floor(currentNumber)}</div>
             {slideInfo === null ? (
@@ -271,8 +294,14 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
             )}
           </div>
         ) : (
-          <Button variant="outline" size="sm" className="mt-3" onClick={() => setOverviewOpen(true)}><Sparkles /> AI overview</Button>
+          <Button variant="secondary" size="sm" className="absolute right-3 top-3 z-10 shadow-md" onClick={() => setOverviewOpen(true)}><Sparkles /> AI overview</Button>
         )
+      )}
+      </div>
+      {url && (
+        <Button asChild variant="outline" size="sm" className="mt-3">
+          <a href={url} target="_blank" rel="noreferrer"><ExternalLink /> Open full size</a>
+        </Button>
       )}
       {contentType !== "application/pdf" && total > 0 && (
         <div className="mt-3 flex items-center justify-between gap-2">
@@ -312,6 +341,52 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
           )}
         </div>
       )}
+    </div>
+  );
+}
+type PdfDocLike = { getPage: (n: number) => Promise<unknown> };
+
+function PdfPage({ doc, n }: { doc: PdfDocLike; n: number }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [visible, setVisible] = useState(n <= 2);
+  const [aspect, setAspect] = useState(9 / 16);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || visible) return;
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) setVisible(true); }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    let task: { cancel: () => void; promise: Promise<void> } | null = null;
+    void (async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const page = (await doc.getPage(n)) as any;
+        const canvas = canvasRef.current;
+        const wrap = wrapRef.current;
+        if (cancelled || !canvas || !wrap) return;
+        const base = page.getViewport({ scale: 1 });
+        setAspect(base.height / base.width);
+        const scale = ((wrap.clientWidth || 800) / base.width) * (window.devicePixelRatio || 1);
+        const viewport = page.getViewport({ scale });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        task = page.render({ canvas, canvasContext: canvas.getContext("2d"), viewport });
+        await task!.promise;
+      } catch { /* render cancelled */ }
+    })();
+    return () => { cancelled = true; task?.cancel(); };
+  }, [visible, doc, n]);
+
+  return (
+    <div ref={wrapRef} data-page={n} className="mb-2 bg-background shadow-sm" style={{ aspectRatio: `${1 / aspect}` }}>
+      <canvas ref={canvasRef} className="block h-full w-full" aria-label={`Page ${n}`} />
     </div>
   );
 }
