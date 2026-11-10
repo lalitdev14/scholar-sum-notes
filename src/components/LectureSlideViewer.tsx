@@ -344,3 +344,49 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     </div>
   );
 }
+type PdfDocLike = { getPage: (n: number) => Promise<unknown> };
+
+function PdfPage({ doc, n }: { doc: PdfDocLike; n: number }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [visible, setVisible] = useState(n <= 2);
+  const [aspect, setAspect] = useState(9 / 16);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || visible) return;
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) setVisible(true); }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    let task: { cancel: () => void; promise: Promise<void> } | null = null;
+    void (async () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const page = (await doc.getPage(n)) as any;
+        const canvas = canvasRef.current;
+        const wrap = wrapRef.current;
+        if (cancelled || !canvas || !wrap) return;
+        const base = page.getViewport({ scale: 1 });
+        setAspect(base.height / base.width);
+        const scale = ((wrap.clientWidth || 800) / base.width) * (window.devicePixelRatio || 1);
+        const viewport = page.getViewport({ scale });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        task = page.render({ canvas, canvasContext: canvas.getContext("2d"), viewport });
+        await task!.promise;
+      } catch { /* render cancelled */ }
+    })();
+    return () => { cancelled = true; task?.cancel(); };
+  }, [visible, doc, n]);
+
+  return (
+    <div ref={wrapRef} data-page={n} className="mb-2 bg-background shadow-sm" style={{ aspectRatio: `${1 / aspect}` }}>
+      <canvas ref={canvasRef} className="block h-full w-full" aria-label={`Page ${n}`} />
+    </div>
+  );
+}
