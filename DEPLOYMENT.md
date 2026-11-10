@@ -75,15 +75,19 @@ The current database is hosted by Lovable Cloud, and its `SUPABASE_SERVICE_ROLE_
 cannot be read out, so full admin/faculty functionality means owning the database:
 
 1. Create a project at supabase.com.
-2. Run every file in `supabase/migrations/` **in filename order** in the SQL editor.
-   They create the tables, roles, RLS policies and helper functions.
-3. Storage → create a **private** bucket named `handwriting` (the handwritten-page
-   archive uploads there).
+2. Run every file in `supabase/migrations/` **in filename order** in the SQL editor,
+   then every file in `drizzle/migrations/` in filename order (these add the
+   `lecture_slides` and `slide_bookmarks` tables). Together they create the tables,
+   roles, RLS policies and helper functions.
+   To carry over existing users and data, run the backup's `restore.sql` next
+   (see the backup's README; user ids and passwords are preserved).
+3. Storage → make sure two **private** buckets exist: `handwriting` (handwritten-page
+   archive) and `lecture-slides` (20 MB limit). `restore.sql` creates both.
 4. Authentication → Providers → enable **Google** if you want Google sign-in.
 5. Copy the project URL, publishable key and service role key from
    Project Settings → API into your Vercel environment variables.
-6. Re-create the admin/faculty/student accounts (sign up, then set roles in the
-   `user_roles` table for the first admin).
+6. If you did not restore a backup, sign up and set roles in the `user_roles` table
+   for the first admin.
 
 
 ## 4. Post-deploy checklist
