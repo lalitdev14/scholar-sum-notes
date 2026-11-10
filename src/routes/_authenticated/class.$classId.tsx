@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
+import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { FileUp, Pencil, Save, Sparkles, Trash2, User, Users } from "lucide-react";
@@ -38,6 +39,8 @@ export const Route = createFileRoute("/_authenticated/class/$classId")({
       },
       { property: "og:title", content: "Class notes — LectureLoop" },
       { property: "og:description", content: "Live note-taking with a shared AI class summary." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ClassPage,
@@ -381,8 +384,8 @@ function ClassPage() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="grid min-w-0 gap-6 lg:col-span-2 lg:grid-cols-2">
-          <section className="surface-paper rounded-xl p-6 lg:col-span-1">
+          <AdjustableClassWorkspace>
+          <section className="surface-paper min-w-0 rounded-xl p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-2xl">Your notes</h2>
               <div className="flex items-center gap-2">
@@ -494,7 +497,7 @@ function ClassPage() {
             </p>
           </section>
 
-           <section className="min-w-0 self-start lg:sticky lg:top-4 lg:col-span-1 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" aria-label="Lecture slides">
+           <section className="min-w-0" aria-label="Lecture slides">
              <div className="flex flex-wrap items-center justify-between gap-2">
                <h2 className="text-2xl">Lecture slides</h2>
                <input ref={slidesInputRef} type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" className="hidden" aria-label="Upload lecture slides" onChange={(event) => void handleSlideUpload(event.target.files?.[0])} />
@@ -529,7 +532,7 @@ function ClassPage() {
                <p className="mt-5 border border-dashed border-border px-4 py-16 text-center text-sm text-muted-foreground">Upload a PDF or PowerPoint (.pptx) to follow along while you write.</p>
              )}
            </section>
-          </div>
+          </AdjustableClassWorkspace>
 
            <aside className="ink-panel rounded-xl p-6 lg:col-span-2">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
