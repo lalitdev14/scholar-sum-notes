@@ -131,6 +131,7 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
   const [pdfReady, setPdfReady] = useState(0);
   const [overviewOpen, setOverviewOpen] = useState(true);
   const [slideInfo, setSlideInfo] = useState<{ headline: string; text: string } | null>(null);
+  const pdfScrollRef = useRef<HTMLDivElement>(null);
   const getOverview = useServerFn(slideOverview);
 
   useEffect(() => {
@@ -214,6 +215,28 @@ export function LectureSlideViewer({ slideId, filePath, contentType, fileName }:
     if (error) { toast.error(error.message); return; }
     await queryClient.invalidateQueries({ queryKey: ["slide-bookmarks", slideId] });
   }
+
+  // Track which PDF page is mostly visible while scrolling.
+  useEffect(() => {
+    const root = pdfScrollRef.current;
+    if (!isPdf || !root || !pdfReady) return;
+    const ratios = new Map<number, number>();
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => ratios.set(Number((e.target as HTMLElement).dataset.page), e.intersectionRatio));
+      let best = 0, bestRatio = 0;
+      ratios.forEach((r, p) => { if (r > bestRatio) { bestRatio = r; best = p; } });
+      if (best) setPdfPage(best);
+    }, { root, threshold: [0, 0.25, 0.5, 0.75, 1] });
+    root.querySelectorAll("[data-page]").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [isPdf, pdfReady]);
+
+  // Scroll to a requested PDF page (bookmark or restored position).
+  useEffect(() => {
+    if (!pdfJump || !pdfReady) return;
+    const el = pdfScrollRef.current?.querySelector<HTMLElement>(`[data-page="${pdfJump}"]`);
+    if (el && pdfScrollRef.current) pdfScrollRef.current.scrollTop = el.offsetTop;
+  }, [pdfJump, jumpTick, pdfReady]);
 
   function goTo(n: number) {
     if (isPdf) { setPdfPage(n); setPdfJump(n); setJumpTick((t) => t + 1); topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
