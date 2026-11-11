@@ -134,7 +134,7 @@ export const transcribeHandwriting = createServerFn({ method: "POST" })
           role: "user",
           content: [
             { type: "text", text: "Transcribe this handwriting." },
-            { type: "image", image: new URL(data.imageDataUrl) },
+            { type: "file", data: new URL(data.imageDataUrl), mediaType: data.imageDataUrl.slice(5, data.imageDataUrl.indexOf(";")) },
           ],
         },
       ],

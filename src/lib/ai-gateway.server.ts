@@ -11,6 +11,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
  * Optional overrides:
  *   AI_BASE_URL   - any other OpenAI-compatible endpoint
  *   AI_API_KEY    - key for AI_BASE_URL
+ *   AI_REASONING_EFFORT - low | medium | high | off (default: low for Google, off otherwise)
  *   AI_TEXT_MODEL - model id for note summaries, handwriting transcription and slide overviews
  */
 
@@ -61,10 +62,17 @@ function resolveProviderConfig(): ProviderConfig {
 /** Returns a ready-to-use text model for whichever provider is configured. */
 export function resolveTextModel() {
   const config = resolveProviderConfig();
+  // Thinking effort for reasoning models (Gemini 3.x, o-series). "low" keeps note summaries
+  // and transcriptions fast; set AI_REASONING_EFFORT=off to send nothing.
+  const effort = process.env["AI_REASONING_EFFORT"] ?? (config.name === "google" ? "low" : "off");
   const provider = createOpenAICompatible({
     name: config.name,
     baseURL: config.baseURL,
     headers: config.headers,
+    // Use the provider's native JSON-schema mode for structured output (faster, reliable).
+    supportsStructuredOutputs: true,
+    transformRequestBody: (body) =>
+      effort === "off" || body["reasoning_effort"] ? body : { ...body, reasoning_effort: effort },
   });
   return provider(config.defaultModel);
 }
