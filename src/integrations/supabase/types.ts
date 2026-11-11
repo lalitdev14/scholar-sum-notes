@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      allowed_email_domains: {
+        Row: { created_at: string; domain: string; university_id: string | null }
+        Insert: { created_at?: string; domain: string; university_id?: string | null }
+        Update: { created_at?: string; domain?: string; university_id?: string | null }
+        Relationships: []
+      }
+      registration_allowlist: {
+        Row: { created_at: string; email: string; note: string }
+        Insert: { created_at?: string; email: string; note?: string }
+        Update: { created_at?: string; email?: string; note?: string }
+        Relationships: []
+      }
       announcement_reads: {
         Row: {
           announcement_id: string
@@ -519,6 +531,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_register: { Args: { _email: string }; Returns: boolean }
       current_university_id: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -532,7 +545,7 @@ export type Database = {
       shares_class_with: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "student" | "faculty"
+      app_role: "admin" | "student" | "faculty" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -660,7 +673,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "student", "faculty"],
+      app_role: ["admin", "student", "faculty", "super_admin"],
     },
   },
 } as const

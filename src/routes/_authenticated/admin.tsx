@@ -7,10 +7,12 @@ import {
   deleteClasses,
   deleteUserAccount,
   getAdminOverview,
+  getRegistrationSettings,
   getUserDirectory,
   setUserPassword,
   setUserRole,
   updateClass,
+  updateRegistrationSettings,
   uploadSubjects,
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useRoles } from "@/hooks/useRoles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -64,6 +67,9 @@ Linear Algebra, MA-104, Prof. Iyer, Fall 2026`;
 
 function AdminPanel() {
   const { isAdmin, isPending: checkingRole } = useIsAdmin();
+  const { isSuperAdmin } = useRoles();
+  const [newAllowedEmail, setNewAllowedEmail] = useState("");
+  const [newDomain, setNewDomain] = useState("");
   const queryClient = useQueryClient();
   const [raw, setRaw] = useState("");
   const [search, setSearch] = useState("");
@@ -98,6 +104,29 @@ function AdminPanel() {
   const changePassword = useServerFn(setUserPassword);
   const saveClass = useServerFn(updateClass);
   const removeUser = useServerFn(deleteUserAccount);
+  const fetchRegistration = useServerFn(getRegistrationSettings);
+  const changeRegistration = useServerFn(updateRegistrationSettings);
+
+  const { data: registration } = useQuery({
+    queryKey: ["admin-registration"],
+    queryFn: () => fetchRegistration({ data: undefined as never }),
+    enabled: isAdmin,
+  });
+
+  const registrationMutation = useMutation({
+    mutationFn: (
+      vars:
+        | { kind: "domain"; action: "add" | "remove"; value: string }
+        | { kind: "email"; action: "add" | "remove"; value: string; note?: string },
+    ) => changeRegistration({ data: vars }),
+    onSuccess: (_r, vars) => {
+      toast.success(vars.action === "add" ? "Added" : "Removed");
+      if (vars.kind === "email") setNewAllowedEmail("");
+      else setNewDomain("");
+      queryClient.invalidateQueries({ queryKey: ["admin-registration"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const { data: myUserId } = useQuery({
     queryKey: ["my-user-id"],
@@ -253,6 +282,137 @@ function AdminPanel() {
         </section>
 
         <AnnouncementsAdmin />
+
+        <section className="surface-paper mt-10 rounded-xl p-6" aria-labelledby="signup-heading">
+          <h2 id="signup-heading" className="text-2xl">
+            Who can sign up
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            LectureLoop is NYU-only. New accounts must use one of these email domains, or be on the
+            allowlist (for example admins with a non-NYU address). Existing accounts are not
+            affected.
+            {!isSuperAdmin && " Only the super admin can change these settings."}
+          </p>
+          <div className="mt-5 grid gap-6 md:grid-cols-2">
+            <div>
+              <h3 className="text-lg">Allowed email domains</h3>
+              <ul className="mt-2 space-y-1.5">
+                {registration?.domains.map((d) => (
+                  <li
+                    key={d.domain}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-1.5 text-sm"
+                  >
+                    <span>@{d.domain}</span>
+                    {isSuperAdmin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-destructive hover:text-destructive"
+                        aria-label={`Remove @${d.domain}`}
+                        onClick={() =>
+                          registrationMutation.mutate({
+                            kind: "domain",
+                            action: "remove",
+                            value: d.domain,
+                          })
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {isSuperAdmin && (
+                <form
+                  className="mt-3 flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (newDomain.trim())
+                      registrationMutation.mutate({
+                        kind: "domain",
+                        action: "add",
+                        value: newDomain.trim().replace(/^@/, ""),
+                      });
+                  }}
+                >
+                  <Input
+                    value={newDomain}
+                    onChange={(e) => setNewDomain(e.target.value)}
+                    placeholder="e.g. law.nyu.edu"
+                    aria-label="New allowed domain"
+                    className="h-9"
+                  />
+                  <Button type="submit" size="sm" disabled={registrationMutation.isPending}>
+                    Add
+                  </Button>
+                </form>
+              )}
+            </div>
+            <div>
+              <h3 className="text-lg">Allowed individual emails</h3>
+              <ul className="mt-2 space-y-1.5">
+                {registration?.emails.length === 0 && (
+                  <li className="text-sm text-muted-foreground">None.</li>
+                )}
+                {registration?.emails.map((a) => (
+                  <li
+                    key={a.email}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 text-sm"
+                  >
+                    <span className="min-w-0 truncate">
+                      {a.email}
+                      {a.note && <span className="text-muted-foreground"> · {a.note}</span>}
+                    </span>
+                    {isSuperAdmin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-destructive hover:text-destructive"
+                        aria-label={`Remove ${a.email}`}
+                        onClick={() =>
+                          registrationMutation.mutate({
+                            kind: "email",
+                            action: "remove",
+                            value: a.email,
+                          })
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {isSuperAdmin && (
+                <form
+                  className="mt-3 flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (newAllowedEmail.trim())
+                      registrationMutation.mutate({
+                        kind: "email",
+                        action: "add",
+                        value: newAllowedEmail.trim(),
+                      });
+                  }}
+                >
+                  <Input
+                    type="email"
+                    value={newAllowedEmail}
+                    onChange={(e) => setNewAllowedEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    aria-label="New allowed email"
+                    className="h-9"
+                  />
+                  <Button type="submit" size="sm" disabled={registrationMutation.isPending}>
+                    Add
+                  </Button>
+                </form>
+              )}
+            </div>
+          </div>
+        </section>
 
         <section className="surface-paper mt-10 rounded-xl p-6">
           <h2 className="text-2xl">Upload subject list</h2>
@@ -523,28 +683,49 @@ function AdminPanel() {
                       </td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-1">
-                          {(["admin", "student"] as const).map((role) => {
-                            const has = u.roles.includes(role);
-                            return (
-                              <Button
-                                key={role}
-                                size="sm"
-                                variant={has ? "default" : "outline"}
-                                disabled={roleMutation.isPending}
-                                onClick={() =>
-                                  roleMutation.mutate({ userId: u.id, role, grant: !has })
-                                }
-                              >
-                                {role}
-                              </Button>
-                            );
-                          })}
+                          {u.roles.includes("super_admin") ? (
+                            <Badge>super admin</Badge>
+                          ) : isSuperAdmin ? (
+                            (["admin", "student"] as const).map((role) => {
+                              const has = u.roles.includes(role);
+                              return (
+                                <Button
+                                  key={role}
+                                  size="sm"
+                                  variant={has ? "default" : "outline"}
+                                  disabled={roleMutation.isPending}
+                                  onClick={() =>
+                                    roleMutation.mutate({ userId: u.id, role, grant: !has })
+                                  }
+                                >
+                                  {role}
+                                </Button>
+                              );
+                            })
+                          ) : (
+                            u.roles
+                              .filter((r) => r === "admin" || r === "student")
+                              .map((r) => (
+                                <Badge key={r} variant={r === "admin" ? "default" : "outline"}>
+                                  {r}
+                                </Badge>
+                              ))
+                          )}
                         </div>
                       </td>
                       <td className="p-3">
                         <Button
                           size="sm"
                           variant="outline"
+                          disabled={
+                            u.roles.includes("super_admin") ||
+                            (u.roles.includes("admin") && !isSuperAdmin && u.id !== myUserId)
+                          }
+                          title={
+                            u.roles.includes("admin") || u.roles.includes("super_admin")
+                              ? "Only the super admin can manage admin accounts"
+                              : "Set a new password"
+                          }
                           onClick={() => {
                             setPasswordTarget({ id: u.id, label: u.full_name || u.email });
                             setNewPassword("");
@@ -559,11 +740,17 @@ function AdminPanel() {
                           size="sm"
                           variant="outline"
                           className="text-destructive hover:text-destructive"
-                          disabled={u.id === myUserId}
+                          disabled={
+                            u.id === myUserId ||
+                            u.roles.includes("super_admin") ||
+                            (u.roles.includes("admin") && !isSuperAdmin)
+                          }
                           title={
                             u.id === myUserId
                               ? "You cannot delete your own account"
-                              : "Delete this account"
+                              : u.roles.includes("admin") || u.roles.includes("super_admin")
+                                ? "Only the super admin can delete admin accounts"
+                                : "Delete this account"
                           }
                           onClick={() => {
                             setUserToDelete({

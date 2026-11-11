@@ -86,19 +86,18 @@ function Landing() {
         </header>
       )}
 
-
       <main>
         <section className="mx-auto max-w-4xl px-4 sm:px-6 pb-16 pt-16 text-center">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-            Your personal class notebook
+            For NYU students · Your personal class notebook
           </p>
           <h1 className="mt-5 text-4xl leading-[1.1] sm:text-6xl">
             Your notes,
             <span className="italic"> summarized for you.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-            Take your own notes during class — typed or handwritten, right next to the lecture slides.
-            Then get a comprehensive AI summary of everything you wrote, ready for revision.
+            Take your own notes during class — typed or handwritten, right next to the lecture
+            slides. Then get a comprehensive AI summary of everything you wrote, ready for revision.
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg">
