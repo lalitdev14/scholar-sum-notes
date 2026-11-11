@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { noteToPlainText } from "@/lib/note-format";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -93,8 +94,8 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       class_id: n.class_id,
       author: names.get(n.user_id) ?? "Unknown student",
       updated_at: n.updated_at,
-      excerpt: n.content.slice(0, 160),
-      length: n.content.length,
+      excerpt: noteToPlainText(n.content).slice(0, 160),
+      length: noteToPlainText(n.content).length,
     }));
 
     return {

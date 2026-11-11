@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveNote, summarizeMyNotes, transcribeHandwriting } from "@/lib/notes.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { NoteEditor, renderNote } from "@/components/NoteEditor";
+import { NoteEditor } from "@/components/NoteEditor";
+import { renderNote } from "@/components/SummaryMarkdown";
+import { noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
@@ -178,7 +180,7 @@ function ClassPage() {
         toast.error("Nothing legible found on the canvas.");
         return false;
       }
-      setContent((prev) => (prev.trim() ? `${prev.trim()}\n${res.text}` : res.text));
+      setContent((prev) => (noteToPlainText(prev) ? toEditorHtml(prev) : "") + plainTextToHtml(res.text));
       void archiveHandwriting(imageDataUrl, res.text);
       return true;
     } catch (err) {
@@ -254,7 +256,7 @@ function ClassPage() {
   }, [myNote]);
 
   async function handleSave() {
-    if (!content.trim()) {
+    if (!noteToPlainText(content)) {
       toast.error("Write something first.");
       return;
     }
@@ -296,7 +298,7 @@ function ClassPage() {
   }
 
   async function handleSummarize() {
-    if (!content.trim()) {
+    if (!noteToPlainText(content)) {
       toast.error("Write some notes first.");
       return;
     }
@@ -360,7 +362,7 @@ function ClassPage() {
                   size="sm"
                   className="text-destructive hover:text-destructive"
                   onClick={() => setConfirmDelete(true)}
-                  disabled={deleting || (!noteId && !content.trim())}
+                  disabled={deleting || (!noteId && !noteToPlainText(content))}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   {deleting ? "Deleting…" : "Delete"}
@@ -412,7 +414,7 @@ function ClassPage() {
                     Live transcript {converting ? "· converting…" : ""}
                   </p>
                    <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed">
-                    {content || "Your handwriting will appear here as typed text."}
+                    {noteToPlainText(content) || "Your handwriting will appear here as typed text."}
                   </p>
                 </div>
 
