@@ -1,3 +1,8 @@
+-- Lecture slide decks (moved from drizzle/migrations/0000).
+INSERT INTO storage.buckets (id, name, public, file_size_limit)
+VALUES ('lecture-slides', 'lecture-slides', false, 20971520)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TABLE public.lecture_slides (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id uuid NOT NULL REFERENCES public.classes(id) ON DELETE CASCADE,

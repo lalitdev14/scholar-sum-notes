@@ -71,18 +71,16 @@ Google sign-in uses the Supabase project's own Google provider.
 
 ## 3b. Moving to your own Supabase project (recommended)
 
-The current database is hosted by Lovable Cloud, and its `SUPABASE_SERVICE_ROLE_KEY`
-cannot be read out, so full admin/faculty functionality means owning the database:
+The app now runs on its own Supabase project (`ytxsplbzohecawbdskgz`, us-east-1).
+These are the steps used to set it up, for reference or for a new environment:
 
 1. Create a project at supabase.com.
-2. Run every file in `supabase/migrations/` **in filename order** in the SQL editor,
-   then every file in `drizzle/migrations/` in filename order (these add the
-   `lecture_slides` and `slide_bookmarks` tables). Together they create the tables,
-   roles, RLS policies and helper functions.
+2. Run every file in `supabase/migrations/` **in filename order** (SQL editor or
+   `supabase db push`). They create all tables, roles, RLS policies, helper functions
+   and the two private storage buckets (`handwriting`, `lecture-slides` with a 20 MB limit).
    To carry over existing users and data, run the backup's `restore.sql` next
    (see the backup's README; user ids and passwords are preserved).
-3. Storage → make sure two **private** buckets exist: `handwriting` (handwritten-page
-   archive) and `lecture-slides` (20 MB limit). `restore.sql` creates both.
+3. Upload any stored files (handwriting images, lecture slides) to the same bucket and path.
 4. Authentication → Providers → enable **Google** if you want Google sign-in.
 5. Copy the project URL, publishable key and service role key from
    Project Settings → API into your Vercel environment variables.

@@ -1,3 +1,4 @@
+-- Slide bookmarks (moved from drizzle/migrations/0001).
 CREATE TABLE public.slide_bookmarks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   slide_id uuid NOT NULL REFERENCES public.lecture_slides(id) ON DELETE CASCADE,
