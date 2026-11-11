@@ -13,19 +13,24 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 }
 
 /**
- * Admins are scoped to their own university. An admin whose profile has no
- * university is treated as a global (super) admin.
+ * Admins are scoped to their own university. The super admin (and an admin
+ * whose profile has no university) sees everything.
  */
 async function adminScope(context: { supabase: any; userId: string }) {
   await assertAdmin(context);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("profiles")
-    .select("university_id")
-    .eq("id", context.userId)
-    .maybeSingle();
+  const [{ data, error }, { data: superRow }] = await Promise.all([
+    supabaseAdmin.from("profiles").select("university_id").eq("id", context.userId).maybeSingle(),
+    supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "super_admin")
+      .maybeSingle(),
+  ]);
   if (error) throw new Error(error.message);
-  const universityId = data?.university_id ?? null;
+  const isSuper = Boolean(superRow);
+  const universityId = isSuper ? null : (data?.university_id ?? null);
 
   const memberIds = async () => {
     if (!universityId) return null; // null = every user
@@ -37,7 +42,30 @@ async function adminScope(context: { supabase: any; userId: string }) {
     return new Set((rows ?? []).map((r) => r.id));
   };
 
-  return { supabaseAdmin, universityId, memberIds };
+  /** Roles of another account, to stop admins from managing admins. */
+  const rolesOf = async (userId: string) => {
+    const { data: rows, error: err } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (err) throw new Error(err.message);
+    return new Set((rows ?? []).map((r) => r.role as string));
+  };
+
+  /** Only the super admin may act on admin or super admin accounts. */
+  const assertCanManageAccount = async (userId: string) => {
+    const roles = await rolesOf(userId);
+    if (roles.has("super_admin"))
+      throw new Error("The super admin account can't be changed from the admin panel.");
+    if (roles.has("admin") && !isSuper)
+      throw new Error("Only the super admin can manage other admin accounts.");
+  };
+
+  return { supabaseAdmin, universityId, memberIds, isSuper, assertCanManageAccount };
+}
+
+function assertSuper(scope: { isSuper: boolean }) {
+  if (!scope.isSuper) throw new Error("Only the super admin can do this.");
 }
 
 export const getAdminOverview = createServerFn({ method: "POST" })
@@ -327,10 +355,13 @@ export const setUserRole = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, memberIds } = await adminScope(context as never);
+    const scope = await adminScope(context as never);
+    const { supabaseAdmin, memberIds } = scope;
     if (data.userId === context.userId && data.role === "admin" && !data.grant) {
       throw new Error("You cannot remove your own admin role.");
     }
+    if (data.role === "admin") assertSuper(scope);
+    if (data.userId !== context.userId) await scope.assertCanManageAccount(data.userId);
     const members = await memberIds();
     if (members && !members.has(data.userId)) {
       throw new Error("This account belongs to another university.");
@@ -363,11 +394,13 @@ export const setUserPassword = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, memberIds } = await adminScope(context as never);
+    const scope = await adminScope(context as never);
+    const { supabaseAdmin, memberIds } = scope;
     const members = await memberIds();
     if (members && !members.has(data.userId)) {
       throw new Error("This account belongs to another university.");
     }
+    if (data.userId !== context.userId) await scope.assertCanManageAccount(data.userId);
 
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.password,
@@ -454,8 +487,10 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ userId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, memberIds } = await adminScope(context as never);
+    const scope = await adminScope(context as never);
+    const { supabaseAdmin, memberIds } = scope;
     if (data.userId === context.userId) throw new Error("You cannot delete your own account.");
+    await scope.assertCanManageAccount(data.userId);
     const members = await memberIds();
     if (members && !members.has(data.userId)) {
       throw new Error("This account belongs to another university.");
@@ -498,4 +533,80 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true, files };
+  });
+
+/** Who may register: allowed NYU email domains and individually allowed emails (super admin only). */
+export const getRegistrationSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const scope = await adminScope(context as never);
+    const [domains, emails] = await Promise.all([
+      scope.supabaseAdmin
+        .from("allowed_email_domains")
+        .select("domain, created_at")
+        .order("domain"),
+      scope.supabaseAdmin
+        .from("registration_allowlist")
+        .select("email, note, created_at")
+        .order("email"),
+    ]);
+    if (domains.error) throw new Error(domains.error.message);
+    if (emails.error) throw new Error(emails.error.message);
+    return { isSuper: scope.isSuper, domains: domains.data ?? [], emails: emails.data ?? [] };
+  });
+
+const RegistrationChange = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("domain"),
+    action: z.enum(["add", "remove"]),
+    value: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, "Enter a domain like nyu.edu"),
+  }),
+  z.object({
+    kind: z.literal("email"),
+    action: z.enum(["add", "remove"]),
+    value: z.string().trim().toLowerCase().email(),
+    note: z.string().trim().max(200).optional(),
+  }),
+]);
+
+export const updateRegistrationSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RegistrationChange.parse(input))
+  .handler(async ({ data, context }) => {
+    const scope = await adminScope(context as never);
+    assertSuper(scope);
+    const db = scope.supabaseAdmin;
+    if (data.kind === "domain") {
+      if (data.action === "add") {
+        const { data: nyu } = await db
+          .from("universities")
+          .select("id")
+          .eq("email_domain", "nyu.edu")
+          .maybeSingle();
+        const { error } = await db
+          .from("allowed_email_domains")
+          .upsert({ domain: data.value, university_id: nyu?.id ?? null });
+        if (error) throw new Error(error.message);
+      } else {
+        const { count } = await db
+          .from("allowed_email_domains")
+          .select("domain", { count: "exact", head: true });
+        if ((count ?? 0) <= 1) throw new Error("Keep at least one allowed domain.");
+        const { error } = await db.from("allowed_email_domains").delete().eq("domain", data.value);
+        if (error) throw new Error(error.message);
+      }
+    } else if (data.action === "add") {
+      const { error } = await db
+        .from("registration_allowlist")
+        .upsert({ email: data.value, note: data.note ?? "" });
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await db.from("registration_allowlist").delete().eq("email", data.value);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
   });

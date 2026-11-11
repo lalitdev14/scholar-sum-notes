@@ -20,7 +20,8 @@ export function useRoles() {
   const roles = data ?? [];
   return {
     roles,
-    isAdmin: roles.includes("admin"),
+    isAdmin: roles.includes("admin") || roles.includes("super_admin"),
+    isSuperAdmin: roles.includes("super_admin"),
     isPending,
   };
 }
