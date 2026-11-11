@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { noteToPlainText } from "@/lib/note-format";
 
 const SaveNoteInput = z.object({
   classId: z.string().uuid(),
   noteId: z.string().uuid().nullable().optional(),
-  content: z.string().min(1).max(20000),
+  content: z.string().min(1).max(500_000),
 });
 
 export const saveNote = createServerFn({ method: "POST" })
@@ -64,7 +65,7 @@ export const summarizeMyNotes = createServerFn({ method: "POST" })
       .maybeSingle();
     if (noteError) throw new Error(noteError.message);
 
-    const text = (note?.content ?? "").replace(/\[color=[a-z]+\]|\[\/color\]/g, "").trim();
+    const text = noteToPlainText(note?.content ?? "");
     if (!note || !text) throw new Error("Write and save some notes first.");
 
     const { resolveTextModel } = await import("./ai-gateway.server");

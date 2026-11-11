@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { BookOpen, Plus, Search, Sparkles, User } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
+import { noteToPlainText } from "@/lib/note-format";
 
 
 
@@ -316,8 +317,8 @@ function Dashboard() {
           {classes?.map((klass) => {
 
             const note = klass.myNote;
-            const preview = (note?.summary || note?.content || "")
-              .replace(/\[color=[a-z]+\]|\[\/color\]|\*\*|^## /gm, "")
+            const preview = (note?.summary || noteToPlainText(note?.content ?? ""))
+              .replace(/\[color=[a-z]+\]|\[\/color\]|\*\*|^## |^- /gm, "")
               .trim();
             return (
               <Link
