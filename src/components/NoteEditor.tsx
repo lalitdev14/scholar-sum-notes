@@ -400,12 +400,10 @@ function Swatches({
       </PopoverTrigger>
       <PopoverContent
         className="w-auto p-2"
+        // Keep keyboard focus in the document the whole time: opening, picking and
+        // closing the palette never move the caret, so no keystrokes are lost.
         onOpenAutoFocus={(e) => e.preventDefault()}
-        onCloseAutoFocus={(e) => {
-          // Return the caret to the document, not the toolbar button.
-          e.preventDefault();
-          editor.commands.focus();
-        }}
+        onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <div className="grid grid-cols-6 gap-1.5">
           {colors.map((c) => (
@@ -414,6 +412,7 @@ function Swatches({
               type="button"
               aria-label={`${label} ${c}`}
               title={c}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 onPick(c);
                 setOpen(false);
@@ -425,6 +424,7 @@ function Swatches({
         </div>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
             onClear();
             setOpen(false);
