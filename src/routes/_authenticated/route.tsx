@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { UpdatesPopup } from "@/components/UpdatesPopup";
 
 export const Route = createFileRoute("/_authenticated")({
   staticData: { sitemap: "exclude-subtree" },
@@ -9,5 +10,10 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) throw redirect({ to: "/auth" });
     return { user: data.user };
   },
-  component: () => <Outlet />,
+  component: () => (
+    <>
+      <Outlet />
+      <UpdatesPopup />
+    </>
+  ),
 });

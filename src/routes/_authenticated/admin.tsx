@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { AnnouncementsAdmin } from "@/components/AnnouncementsAdmin";
 import {
   Dialog,
   DialogContent,
@@ -177,6 +178,8 @@ function AdminPanel() {
             </div>
           ))}
         </section>
+
+        <AnnouncementsAdmin />
 
         <section className="surface-paper mt-10 rounded-xl p-6">
           <h2 className="text-2xl">Upload subject list</h2>
