@@ -127,9 +127,14 @@ function Landing() {
           <span className="text-sm text-muted-foreground">
             LectureLoop — shared notes for every seat in the room.
           </span>
-          <Link to="/about" className="text-sm font-medium text-primary hover:underline">
-            About
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy" className="text-sm font-medium text-primary hover:underline">
+              Privacy
+            </Link>
+            <Link to="/about" className="text-sm font-medium text-primary hover:underline">
+              About
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
