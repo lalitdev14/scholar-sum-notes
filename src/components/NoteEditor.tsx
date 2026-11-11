@@ -61,14 +61,14 @@ export function NoteEditor({ value, onChange, placeholder }: Props) {
     }
     if (index.current === 0) return;
     index.current -= 1;
-    onChange(history.current[index.current]);
+    onChange(history.current[index.current] ?? "");
     force((n) => n + 1);
   }, [value, onChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const redo = useCallback(() => {
     if (index.current >= history.current.length - 1) return;
     index.current += 1;
-    onChange(history.current[index.current]);
+    onChange(history.current[index.current] ?? "");
     force((n) => n + 1);
   }, [onChange]);
 
@@ -134,7 +134,7 @@ export function NoteEditor({ value, onChange, placeholder }: Props) {
       const m = line.match(/^(- |(\d+)\. )(.*)$/);
       if (!m) return;
       ev.preventDefault();
-      if (!m[3].trim()) {
+      if (!(m[3] ?? "").trim()) {
         change(value.slice(0, lineStart) + value.slice(s), true);
         restore(lineStart, lineStart);
         return;
@@ -234,9 +234,9 @@ function inline(text: string, key: string): ReactNode[] {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const k = `${key}-${i++}`;
-    if (m[1]) out.push(<span key={k} style={{ color: colorCss(m[1]) }}>{inline(m[2], k)}</span>);
-    else if (m[3]) out.push(<strong key={k}>{inline(m[3], k)}</strong>);
-    else out.push(<em key={k}>{inline(m[4], k)}</em>);
+    if (m[1]) out.push(<span key={k} style={{ color: colorCss(m[1]) }}>{inline(m[2] ?? "", k)}</span>);
+    else if (m[3]) out.push(<strong key={k}>{inline(m[3] ?? "", k)}</strong>);
+    else out.push(<em key={k}>{inline(m[4] ?? "", k)}</em>);
     last = re.lastIndex;
   }
   if (last < text.length) out.push(text.slice(last));
@@ -263,12 +263,12 @@ export function renderNote(text: string): ReactNode {
         flush();
         list = { ordered, items: [] };
       }
-      list.items.push((b ?? n)![1]);
+      list.items.push((b ?? n)?.[1] ?? "");
       return;
     }
     flush();
     const h = line.match(/^## (.*)$/);
-    if (h) blocks.push(<h3 key={i} className="mt-3 text-xl font-bold">{inline(h[1], `h${i}`)}</h3>);
+    if (h) blocks.push(<h3 key={i} className="mt-3 text-xl font-bold">{inline(h[1] ?? "", `h${i}`)}</h3>);
     else if (!line.trim()) blocks.push(<div key={i} className="h-3" />);
     else blocks.push(<p key={i}>{inline(line, `p${i}`)}</p>);
   });
