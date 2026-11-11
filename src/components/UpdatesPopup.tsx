@@ -32,7 +32,7 @@ export function UpdatesPopup() {
       const [{ data: items, error }, { data: reads, error: readsError }] = await Promise.all([
         supabase
           .from("announcements")
-          .select("id, title, body, created_at")
+          .select("id, title, body, created_at, created_by")
           .eq("active", true)
           .order("created_at", { ascending: true })
           .limit(20),
@@ -41,7 +41,8 @@ export function UpdatesPopup() {
       if (error) throw error;
       if (readsError) throw readsError;
       const seen = new Set((reads ?? []).map((r) => r.announcement_id));
-      return (items ?? []).filter((a) => !seen.has(a.id));
+      // Skip updates already dismissed, and ones this user wrote themselves.
+      return (items ?? []).filter((a) => !seen.has(a.id) && a.created_by !== userId);
     },
   });
 
@@ -75,7 +76,7 @@ export function UpdatesPopup() {
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+          <div className="flex items-center gap-2 pr-8 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             <Megaphone className="h-4 w-4 text-primary" aria-hidden="true" />
             Update
             {total > 1 && (

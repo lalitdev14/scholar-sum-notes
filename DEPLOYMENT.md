@@ -71,8 +71,8 @@ Google sign-in uses the Supabase project's own Google provider.
 
 ## 3b. Moving to your own Supabase project (recommended)
 
-The current database is hosted by Lovable Cloud, and its `SUPABASE_SERVICE_ROLE_KEY`
-cannot be read out, so full admin/faculty functionality means owning the database:
+The app now runs on its own Supabase project (`ytxsplbzohecawbdskgz`, us-east-1).
+These are the steps used to set it up, for reference or for a new environment:
 
 1. Create a project at supabase.com.
 2. Run every file in `supabase/migrations/` **in filename order** (SQL editor or
