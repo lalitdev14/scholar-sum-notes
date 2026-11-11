@@ -3,9 +3,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 /**
  * Pluggable AI provider.
  *
- * Inside Lovable, LOVABLE_API_KEY is injected automatically and the Lovable AI
- * Gateway is used. When self-hosting (e.g. Vercel) you can instead supply your
- * own provider key:
+ * Supply ONE provider key (checked in this order):
  *
  *   OPENAI_API_KEY=sk-...                 -> api.openai.com
  *   GOOGLE_GENERATIVE_AI_API_KEY=...      -> Google AI (OpenAI-compatible endpoint)
@@ -35,19 +33,6 @@ function resolveProviderConfig(): ProviderConfig {
     };
   }
 
-  const lovableKey = process.env["LOVABLE_API_KEY"];
-  if (lovableKey) {
-    return {
-      name: "lovable",
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      headers: {
-        "Lovable-API-Key": lovableKey,
-        "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-      },
-      defaultModel: process.env["AI_TEXT_MODEL"] ?? "google/gemini-3.5-flash",
-    };
-  }
-
   const openaiKey = process.env["OPENAI_API_KEY"];
   if (openaiKey) {
     return {
@@ -69,7 +54,7 @@ function resolveProviderConfig(): ProviderConfig {
   }
 
   throw new Error(
-    "AI is not configured. Set LOVABLE_API_KEY, OPENAI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or AI_BASE_URL + AI_API_KEY.",
+    "AI is not configured. Set OPENAI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or AI_BASE_URL + AI_API_KEY.",
   );
 }
 
@@ -82,13 +67,4 @@ export function resolveTextModel() {
     headers: config.headers,
   });
   return provider(config.defaultModel);
-}
-
-/** Kept for backwards compatibility with the Lovable-hosted setup. */
-export function createLovableAiGatewayProvider(apiKey: string) {
-  return createOpenAICompatible({
-    name: "lovable",
-    baseURL: "https://ai.gateway.lovable.dev/v1",
-    headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-  });
 }

@@ -1,12 +1,3 @@
-<!-- LOVABLE:BEGIN -->
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
+# Agent notes
 
 - Keep desktop notes/slide resizing in AdjustableClassWorkspace using the existing resizable UI components; persist only the split locally and stack panels below the desktop breakpoint to preserve mobile usability without changing class data.
