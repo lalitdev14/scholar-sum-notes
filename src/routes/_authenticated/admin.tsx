@@ -5,12 +5,25 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   deleteClass,
+  deleteUserAccount,
   getAdminOverview,
   getUserDirectory,
   setUserPassword,
   setUserRole,
+  updateClass,
   uploadSubjects,
 } from "@/lib/admin.functions";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +39,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { KeyRound, ShieldCheck, Trash2, Upload } from "lucide-react";
-
-
+import { KeyRound, Pencil, ShieldCheck, Trash2, Upload, UserX } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   staticData: { sitemap: false },
@@ -37,7 +48,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
       { title: "Admin panel — LectureLoop" },
       {
         name: "description",
-        content: "Monitor class activity, student note contributions and upload the official subject list.",
+        content:
+          "Monitor class activity, student note contributions and upload the official subject list.",
       },
       { property: "og:title", content: "Admin panel — LectureLoop" },
       { property: "og:description", content: "Monitor activity and manage the subject catalogue." },
@@ -56,6 +68,25 @@ function AdminPanel() {
   const [search, setSearch] = useState("");
   const [passwordTarget, setPasswordTarget] = useState<{ id: string; label: string } | null>(null);
   const [newPassword, setNewPassword] = useState("");
+  type ClassForm = {
+    classId: string;
+    subject: string;
+    code: string;
+    professor: string;
+    term: string;
+  };
+  const [editTarget, setEditTarget] = useState<ClassForm | null>(null);
+  const [classToDelete, setClassToDelete] = useState<{
+    id: string;
+    label: string;
+    notes: number;
+  } | null>(null);
+  const [userToDelete, setUserToDelete] = useState<{
+    id: string;
+    label: string;
+    notes: number;
+  } | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   const fetchOverview = useServerFn(getAdminOverview);
   const upload = useServerFn(uploadSubjects);
@@ -63,6 +94,13 @@ function AdminPanel() {
   const fetchDirectory = useServerFn(getUserDirectory);
   const changeRole = useServerFn(setUserRole);
   const changePassword = useServerFn(setUserPassword);
+  const saveClass = useServerFn(updateClass);
+  const removeUser = useServerFn(deleteUserAccount);
+
+  const { data: myUserId } = useQuery({
+    queryKey: ["my-user-id"],
+    queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null,
+  });
 
   const { data, isPending } = useQuery({
     queryKey: ["admin-overview"],
@@ -76,8 +114,6 @@ function AdminPanel() {
     enabled: isAdmin,
   });
 
-
-
   const roleMutation = useMutation({
     mutationFn: (vars: { userId: string; role: "admin" | "student"; grant: boolean }) =>
       changeRole({ data: vars }),
@@ -88,7 +124,6 @@ function AdminPanel() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
 
   const passwordMutation = useMutation({
     mutationFn: (vars: { userId: string; password: string }) => changePassword({ data: vars }),
@@ -114,7 +149,9 @@ function AdminPanel() {
       return upload({ data: { rows } });
     },
     onSuccess: (res) => {
-      toast.success(`${res.inserted} subjects added${res.skipped ? `, ${res.skipped} already existed` : ""}`);
+      toast.success(
+        `${res.inserted} subjects added${res.skipped ? `, ${res.skipped} already existed` : ""}`,
+      );
       setRaw("");
       queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
@@ -122,9 +159,32 @@ function AdminPanel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const editMutation = useMutation({
+    mutationFn: (vars: ClassForm) => saveClass({ data: vars }),
+    onSuccess: () => {
+      toast.success("Class details updated");
+      setEditTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => removeUser({ data: { userId } }),
+    onSuccess: () => {
+      toast.success("Account and all of its data deleted");
+      setUserToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-directory"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (classId: string) => removeClass({ data: { classId } }),
     onSuccess: () => {
+      setClassToDelete(null);
       toast.success("Class removed");
       queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
@@ -133,7 +193,9 @@ function AdminPanel() {
   });
 
   if (checkingRole) {
-    return <p className="mx-auto max-w-6xl px-4 sm:px-6 py-16 text-muted-foreground">Checking access…</p>;
+    return (
+      <p className="mx-auto max-w-6xl px-4 sm:px-6 py-16 text-muted-foreground">Checking access…</p>
+    );
   }
 
   if (!isAdmin) {
@@ -156,7 +218,6 @@ function AdminPanel() {
       <AuthenticatedHeader />
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6 py-12">
-
         <h1 className="text-3xl sm:text-4xl">Admin panel</h1>
         <p className="mt-1 text-muted-foreground">
           {data?.scope.universityName
@@ -230,14 +291,42 @@ function AdminPanel() {
                     : "No notes yet"}
                 </div>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteMutation.mutate(c.id)}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Edit ${c.subject}`}
+                    title="Edit class details"
+                    onClick={() =>
+                      setEditTarget({
+                        classId: c.id,
+                        subject: c.subject,
+                        code: c.code,
+                        professor: c.professor,
+                        term: c.term ?? "",
+                      })
+                    }
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Delete ${c.subject}`}
+                    title="Delete class"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() =>
+                      setClassToDelete({
+                        id: c.id,
+                        label: `${c.subject} (${c.code})`,
+                        notes: c.notes_count,
+                      })
+                    }
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
             {!isPending && !data?.classes.length && (
@@ -267,7 +356,6 @@ function AdminPanel() {
         </section>
 
         <section className="mt-10">
-
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl">Student & account directory</h2>
@@ -295,6 +383,7 @@ function AdminPanel() {
                   <th className="p-3">Last sign-in</th>
                   <th className="p-3">Roles</th>
                   <th className="p-3">Password</th>
+                  <th className="p-3">Account</th>
                 </tr>
               </thead>
               <tbody>
@@ -317,7 +406,9 @@ function AdminPanel() {
                       <td className="p-3 text-muted-foreground">{u.notes_count}</td>
 
                       <td className="p-3 text-muted-foreground">
-                        {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString() : "never"}
+                        {u.last_sign_in_at
+                          ? new Date(u.last_sign_in_at).toLocaleDateString()
+                          : "never"}
                       </td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-1">
@@ -352,11 +443,35 @@ function AdminPanel() {
                           Reset
                         </Button>
                       </td>
+                      <td className="p-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          disabled={u.id === myUserId}
+                          title={
+                            u.id === myUserId
+                              ? "You cannot delete your own account"
+                              : "Delete this account"
+                          }
+                          onClick={() => {
+                            setUserToDelete({
+                              id: u.id,
+                              label: u.full_name ? `${u.full_name} (${u.email})` : u.email,
+                              notes: u.notes_count,
+                            });
+                            setConfirmText("");
+                          }}
+                        >
+                          <UserX className="mr-1.5 h-3.5 w-3.5" />
+                          Delete
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 {!directoryPending && !directory?.length && (
                   <tr>
-                    <td className="p-3 text-muted-foreground" colSpan={7}>
+                    <td className="p-3 text-muted-foreground" colSpan={8}>
                       No accounts yet.
                     </td>
                   </tr>
@@ -368,12 +483,16 @@ function AdminPanel() {
         </section>
       </main>
 
-      <Dialog open={Boolean(passwordTarget)} onOpenChange={(open) => !open && setPasswordTarget(null)}>
+      <Dialog
+        open={Boolean(passwordTarget)}
+        onOpenChange={(open) => !open && setPasswordTarget(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Set a new password</DialogTitle>
             <DialogDescription>
-              This immediately replaces the password for {passwordTarget?.label}. Share it with them securely.
+              This immediately replaces the password for {passwordTarget?.label}. Share it with them
+              securely.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -398,6 +517,125 @@ function AdminPanel() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit class details</DialogTitle>
+            <DialogDescription>
+              Changes are visible to every student enrolled in this class.
+            </DialogDescription>
+          </DialogHeader>
+          {editTarget && (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                editMutation.mutate(editTarget);
+              }}
+            >
+              {(
+                [
+                  ["subject", "Subject", "e.g. Data Structures"],
+                  ["code", "Class code", "e.g. CS-221"],
+                  ["professor", "Professor", "e.g. Prof. Menon"],
+                  ["term", "Term", "e.g. Fall 2026 (optional)"],
+                ] as const
+              ).map(([field, label, placeholder]) => (
+                <div key={field} className="space-y-2">
+                  <Label htmlFor={`edit-${field}`}>{label}</Label>
+                  <Input
+                    id={`edit-${field}`}
+                    value={editTarget[field]}
+                    placeholder={placeholder}
+                    required={field !== "term"}
+                    maxLength={field === "code" ? 50 : field === "term" ? 100 : 200}
+                    onChange={(e) => setEditTarget({ ...editTarget, [field]: e.target.value })}
+                  />
+                </div>
+              ))}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={editMutation.isPending}>
+                  {editMutation.isPending ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={Boolean(classToDelete)}
+        onOpenChange={(open) => !open && setClassToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {classToDelete?.label}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the class for everyone, including{" "}
+              <strong>{classToDelete?.notes ?? 0} student note(s)</strong>, enrollments and slides
+              in it. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (classToDelete) deleteMutation.mutate(classToDelete.id);
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete class"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(userToDelete)}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this account permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{userToDelete?.label}</strong> will be removed along with all of their data:{" "}
+              {userToDelete?.notes ?? 0} note(s) and AI summaries, uploaded slides and handwriting,
+              bookmarks, enrollments, feedback and roles. They will no longer be able to sign in.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-delete">
+              Type <strong>DELETE</strong> to confirm
+            </Label>
+            <Input
+              id="confirm-delete"
+              value={confirmText}
+              autoComplete="off"
+              onChange={(e) => setConfirmText(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteUserMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={confirmText !== "DELETE" || deleteUserMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (userToDelete) deleteUserMutation.mutate(userToDelete.id);
+              }}
+            >
+              {deleteUserMutation.isPending ? "Deleting…" : "Delete account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

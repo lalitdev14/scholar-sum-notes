@@ -303,3 +303,104 @@ export const setUserPassword = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+const ClassEdit = z.object({
+  classId: z.string().uuid(),
+  subject: z.string().trim().min(1).max(200),
+  code: z.string().trim().min(1).max(50),
+  professor: z.string().trim().min(1).max(200),
+  term: z.string().trim().max(100).default(""),
+});
+
+export const updateClass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ClassEdit.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin, universityId } = await adminScope(context as never);
+
+    const { data: target, error: targetError } = await supabaseAdmin
+      .from("classes")
+      .select("id, university_id")
+      .eq("id", data.classId)
+      .maybeSingle();
+    if (targetError) throw new Error(targetError.message);
+    if (!target) throw new Error("Class not found.");
+    if (universityId && target.university_id !== universityId) {
+      throw new Error("This class belongs to another university.");
+    }
+
+    // Class codes must stay unique (case-insensitive) within the same university.
+    let dupQuery = supabaseAdmin.from("classes").select("id").ilike("code", data.code).neq("id", data.classId);
+    dupQuery = target.university_id ? dupQuery.eq("university_id", target.university_id) : dupQuery.is("university_id", null);
+    const { data: dup, error: dupError } = await dupQuery.limit(1);
+    if (dupError) throw new Error(dupError.message);
+    if (dup && dup.length) throw new Error(`Another class already uses the code "${data.code}".`);
+
+    const { error } = await supabaseAdmin
+      .from("classes")
+      .update({ subject: data.subject, code: data.code, professor: data.professor, term: data.term })
+      .eq("id", data.classId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Removes every file under `<userId>/` in a storage bucket (files live at <userId>/<classId>/<file>). */
+async function removeUserFiles(supabaseAdmin: any, bucket: string, userId: string) {
+  const paths: string[] = [];
+  const walk = async (prefix: string, depth: number) => {
+    const { data: items, error } = await supabaseAdmin.storage.from(bucket).list(prefix, { limit: 1000 });
+    if (error) throw new Error(`${bucket}: ${error.message}`);
+    for (const item of items ?? []) {
+      const path = `${prefix}/${item.name}`;
+      if (item.id) paths.push(path); // a file
+      else if (depth < 3) await walk(path, depth + 1); // a folder
+    }
+  };
+  await walk(userId, 0);
+  for (let i = 0; i < paths.length; i += 100) {
+    const { error } = await supabaseAdmin.storage.from(bucket).remove(paths.slice(i, i + 100));
+    if (error) throw new Error(`${bucket}: ${error.message}`);
+  }
+  return paths.length;
+}
+
+export const deleteUserAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ userId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin, memberIds } = await adminScope(context as never);
+    if (data.userId === context.userId) throw new Error("You cannot delete your own account.");
+    const members = await memberIds();
+    if (members && !members.has(data.userId)) {
+      throw new Error("This account belongs to another university.");
+    }
+
+    const { data: roles, error: rolesError } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    if (rolesError) throw new Error(rolesError.message);
+    const adminIds = new Set((roles ?? []).map((r) => r.user_id));
+    if (adminIds.has(data.userId) && adminIds.size <= 1) {
+      throw new Error("This is the last admin account and cannot be deleted.");
+    }
+
+    // Uploaded files first (storage is not covered by database cascades).
+    const files =
+      (await removeUserFiles(supabaseAdmin, "lecture-slides", data.userId)) +
+      (await removeUserFiles(supabaseAdmin, "handwriting", data.userId));
+
+    // notes.user_id has no foreign key to auth.users, so delete notes explicitly.
+    const { error: notesError } = await supabaseAdmin.from("notes").delete().eq("user_id", data.userId);
+    if (notesError) throw new Error(notesError.message);
+
+    // Clear reviewer references that would otherwise point at a deleted account.
+    await supabaseAdmin.from("faculty_requests").update({ reviewed_by: null }).eq("reviewed_by", data.userId);
+    await supabaseAdmin.from("class_summaries").update({ reviewed_by: null }).eq("reviewed_by", data.userId);
+
+    // Deleting the auth user cascades to profile, roles, enrollments, slides, bookmarks,
+    // handwriting pages, feedback, faculty requests and update reads.
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, files };
+  });
