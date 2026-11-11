@@ -35,82 +35,79 @@ export const saveNote = createServerFn({ method: "POST" })
     return { id: row.id };
   });
 
-const ClassInput = z.object({ classId: z.string().uuid() });
+const SummarizeInput = z.object({ classId: z.string().uuid() });
 
-export const refreshClassSummary = createServerFn({ method: "POST" })
+/**
+ * Summarizes the signed-in student's OWN notes for a class. Runs with the
+ * student's session (RLS), so it only ever reads and writes their own note.
+ */
+export const summarizeMyNotes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => ClassInput.parse(input))
+  .inputValidator((input: unknown) => SummarizeInput.parse(input))
   .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
 
-
-    const { data: klass, error: classError } = await context.supabase
+    const { data: klass, error: classError } = await supabase
       .from("classes")
-      .select("id, subject, professor, code, term")
+      .select("subject, professor, code, term")
       .eq("id", data.classId)
       .single();
     if (classError || !klass) throw new Error("Class not found");
 
-    // Every student's notes for this class feed the shared summary.
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: notes, error: notesError } = await supabaseAdmin
+    const { data: note, error: noteError } = await supabase
       .from("notes")
-      .select("content, created_at")
+      .select("id, content")
       .eq("class_id", data.classId)
-      .order("created_at", { ascending: true })
-      .limit(200);
-    if (notesError) throw new Error(notesError.message);
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (noteError) throw new Error(noteError.message);
 
-    const corpus = (notes ?? [])
-      .map((n, i) => `--- Student note ${i + 1} ---\n${n.content.replace(/\[color=[a-z]+\]|\[\/color\]/g, "")}`)
-      .join("\n\n")
-      .slice(0, 60000);
-
-    if (!corpus.trim()) throw new Error("No notes to summarize yet.");
+    const text = (note?.content ?? "").replace(/\[color=[a-z]+\]|\[\/color\]/g, "").trim();
+    if (!note || !text) throw new Error("Write and save some notes first.");
 
     const { resolveTextModel } = await import("./ai-gateway.server");
-    const { streamText, Output } = await import("ai");
-    const model = resolveTextModel();
+    const { generateText, Output } = await import("ai");
 
     const schema = z.object({
       summary: z.string(),
       key_points: z.array(z.string()),
     });
 
-    const result = streamText({
-      model,
-
-      output: Output.object({ schema }),
-      system:
-        "You merge multiple students' raw class notes into ONE refined class summary. " +
-        "STRICT RULE: never add facts, explanations, examples, definitions or context that are not " +
-        "already present in the students' notes. Do not use outside knowledge. Only clean up, " +
-        "reorganise, deduplicate and clarify what the students actually wrote. Resolve contradictions " +
-        "by consensus among the notes; if something is unclear or missing, leave it out rather than " +
-        "inventing it. Keep the students' own definitions, formulas and examples verbatim where possible. " +
-        "Write clean markdown paragraphs for `summary` (no headings) and 4-8 crisp bullet strings for " +
-        "`key_points`, each drawn directly from the notes.",
-      prompt:
-        `Class: ${klass.subject} (${klass.code}) — ${klass.professor}, ${klass.term}\n\n` +
-        `Refine and merge ONLY the content below into a shared class summary. Add nothing new.\n\n${corpus}`,
-    });
-
     let output: z.infer<typeof schema>;
     try {
-      output = (await result.output) as z.infer<typeof schema>;
-    } catch {
-      throw new Error("The AI could not summarize these notes. Please try again.");
+      const result = await generateText({
+        model: resolveTextModel(),
+        output: Output.object({ schema }),
+        system:
+          "You turn one student's raw class notes into a comprehensive, well-organised study summary. " +
+          "Cover EVERY topic, definition, formula, example and detail the student wrote; do not drop content. " +
+          "Group related points under short section headings, explain each point clearly in full sentences, " +
+          "fix typos and shorthand, and keep the student's own formulas and examples. " +
+          "Do not add facts that are not in the notes. " +
+          "Format `summary` using only this markup: lines starting with '## ' for section headings, " +
+          "lines starting with '- ' for bullets, '**bold**' for key terms, and blank lines between paragraphs. " +
+          "`key_points` is 4-10 short takeaways a student should remember for an exam.",
+        prompt:
+          `Class: ${klass.subject} (${klass.code}) — ${klass.professor}${klass.term ? ", " + klass.term : ""}\n\n` +
+          `Student notes:\n${text.slice(0, 60000)}`,
+      });
+      output = result.output as z.infer<typeof schema>;
+    } catch (err) {
+      console.error("[summarizeMyNotes]", err);
+      throw new Error("The AI could not summarize your notes. Please try again.");
     }
 
-    const { error: upsertError } = await supabaseAdmin.from("class_summaries").upsert({
-      class_id: data.classId,
-      summary: output.summary,
-      key_points: output.key_points,
-      notes_count: notes?.length ?? 0,
-      updated_at: new Date().toISOString(),
-    });
-    if (upsertError) throw new Error(upsertError.message);
+    const summary_updated_at = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from("notes")
+      .update({ summary: output.summary, key_points: output.key_points, summary_updated_at })
+      .eq("id", note.id)
+      .eq("user_id", userId);
+    if (updateError) throw new Error(updateError.message);
 
-    return { summary: output.summary, key_points: output.key_points, notes_count: notes?.length ?? 0 };
+    return { summary: output.summary, key_points: output.key_points, summary_updated_at };
   });
 
 const TranscribeInput = z.object({

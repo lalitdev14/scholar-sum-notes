@@ -54,7 +54,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     let profileQuery = supabaseAdmin.from("profiles").select("id, full_name, university_id");
     if (universityId) profileQuery = profileQuery.eq("university_id", universityId);
 
-    const [classesRes, notesRes, profilesRes, summariesRes, universityRes, feedbackRes] = await Promise.all([
+    const [classesRes, notesRes, profilesRes, universityRes, feedbackRes] = await Promise.all([
       classQuery,
       supabaseAdmin
         .from("notes")
@@ -62,7 +62,6 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         .order("updated_at", { ascending: false })
         .limit(500),
       profileQuery,
-      supabaseAdmin.from("class_summaries").select("class_id, notes_count, updated_at"),
       universityId
         ? supabaseAdmin.from("universities").select("id, name").eq("id", universityId).maybeSingle()
         : Promise.resolve({ data: null, error: null } as never),
@@ -75,7 +74,6 @@ export const getAdminOverview = createServerFn({ method: "POST" })
 
     const classIds = new Set((classesRes.data ?? []).map((c) => c.id));
     const names = new Map((profilesRes.data ?? []).map((p) => [p.id, p.full_name]));
-    const summaries = new Map((summariesRes.data ?? []).map((s) => [s.class_id, s]));
     const notes = (notesRes.data ?? []).filter(
       (n) => classIds.has(n.class_id) && (!members || members.has(n.user_id)),
     );
@@ -86,8 +84,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         ...c,
         notes_count: classNotes.length,
         contributors: new Set(classNotes.map((n) => n.user_id)).size,
-        summary_notes_count: summaries.get(c.id)?.notes_count ?? 0,
-        summary_updated_at: summaries.get(c.id)?.updated_at ?? null,
+        last_note_at: classNotes[0]?.updated_at ?? null,
       };
     });
 
@@ -177,7 +174,6 @@ export const deleteClass = createServerFn({ method: "POST" })
       throw new Error("This class belongs to another university.");
     }
 
-    await supabaseAdmin.from("class_summaries").delete().eq("class_id", data.classId);
     await supabaseAdmin.from("notes").delete().eq("class_id", data.classId);
     const { error } = await supabaseAdmin.from("classes").delete().eq("id", data.classId);
     if (error) throw new Error(error.message);

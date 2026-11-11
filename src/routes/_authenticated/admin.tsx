@@ -160,7 +160,7 @@ function AdminPanel() {
         <p className="mt-1 text-muted-foreground">
           {data?.scope.universityName
             ? `Scoped to ${data.scope.universityName} — you manage only this university's classes and accounts.`
-            : "Monitor every class, note contribution and summary refresh across the campus."}
+            : "Monitor every class and student note activity across the campus."}
         </p>
 
         <section className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -222,9 +222,9 @@ function AdminPanel() {
                   {c.notes_count} notes · {c.contributors} contributors
                 </div>
                 <div className="col-span-2 text-xs text-muted-foreground md:col-span-1 md:text-right">
-                  {c.summary_updated_at
-                    ? `Summary updated ${new Date(c.summary_updated_at).toLocaleString()}`
-                    : "No summary yet"}
+                  {c.last_note_at
+                    ? `Last note ${new Date(c.last_note_at).toLocaleString()}`
+                    : "No notes yet"}
                 </div>
 
                 <Button

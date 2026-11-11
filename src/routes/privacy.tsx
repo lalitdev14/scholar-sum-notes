@@ -33,8 +33,8 @@ const sections: { title: string; body: string[] }[] = [
     title: "How we use it",
     body: [
       "To run LectureLoop: sign you in, show your notes and classes, and let you upload and view lecture slides.",
-      "To create shared class summaries: notes written for a class are combined by an AI model into one summary that classmates in that class can read. Handwritten pages are sent to an AI model to be transcribed into text.",
-      "To review quality: faculty and admin reviewers can read notes and summaries for their classes in order to review and correct summaries.",
+      "To create your personal summaries: when you ask for a summary, your notes for that class are sent to an AI model, and the summary is saved with your notes for only you to see. Handwritten pages are sent to an AI model to be transcribed into text, and slide headlines are sent to create slide overviews.",
+      "To run the service: admins can see class lists and note activity in order to manage accounts and classes.",
     ],
   },
   {
@@ -42,7 +42,7 @@ const sections: { title: string; body: string[] }[] = [
     body: [
       "We do not sell your information or use it for advertising.",
       "We use service providers to operate the app: Supabase (database, sign-in and file storage), Vercel (web hosting) and an AI provider (Google Gemini or OpenAI) that processes note text and handwriting images to produce summaries and transcriptions. They process data only to provide these services.",
-      "Other users see only what the app is designed to show them: classmates see shared class summaries and basic profile details such as your name; reviewers see notes for classes they review.",
+      "Your notes, handwriting and summaries are private to you: other students and faculty cannot see them. Platform admins can see class lists and note activity in order to run and moderate the service.",
     ],
   },
   {

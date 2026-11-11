@@ -1,7 +1,7 @@
 # LectureLoop
 
-Collaborative class notes: students take their own notes during class, and AI merges
-everyone's notes into one refined summary per course.
+Personal class notes: students take their own notes for each class (typed or handwritten,
+alongside the lecture slides), and AI turns them into a comprehensive personal study summary.
 
 ## Development
 

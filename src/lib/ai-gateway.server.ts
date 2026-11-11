@@ -11,7 +11,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
  * Optional overrides:
  *   AI_BASE_URL   - any other OpenAI-compatible endpoint
  *   AI_API_KEY    - key for AI_BASE_URL
- *   AI_TEXT_MODEL - model id for summaries + handwriting transcription
+ *   AI_TEXT_MODEL - model id for note summaries, handwriting transcription and slide overviews
  */
 
 type ProviderConfig = {
@@ -49,7 +49,7 @@ function resolveProviderConfig(): ProviderConfig {
       name: "google",
       baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
       headers: { Authorization: `Bearer ${googleKey}` },
-      defaultModel: process.env["AI_TEXT_MODEL"] ?? "gemini-2.5-flash",
+      defaultModel: process.env["AI_TEXT_MODEL"] ?? "gemini-3.8-flash",
     };
   }
 

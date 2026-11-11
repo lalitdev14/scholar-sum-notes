@@ -3,17 +3,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { saveNote, refreshClassSummary, transcribeHandwriting } from "@/lib/notes.functions";
+import { saveNote, summarizeMyNotes, transcribeHandwriting } from "@/lib/notes.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { NoteEditor } from "@/components/NoteEditor";
+import { NoteEditor, renderNote } from "@/components/NoteEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
 import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { FileUp, Pencil, Save, Sparkles, Trash2, User, Users } from "lucide-react";
+import { FileUp, Pencil, Save, Sparkles, Trash2, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -35,10 +35,10 @@ export const Route = createFileRoute("/_authenticated/class/$classId")({
       { title: "Class notes — LectureLoop" },
       {
         name: "description",
-        content: "Write your class notes and read the AI-refined summary from all students.",
+        content: "Write your class notes next to the lecture slides and get an AI summary of your own notes.",
       },
       { property: "og:title", content: "Class notes — LectureLoop" },
-      { property: "og:description", content: "Live note-taking with a shared AI class summary." },
+      { property: "og:description", content: "Personal note-taking with an AI summary of your notes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -50,7 +50,7 @@ function ClassPage() {
   const { classId } = Route.useParams();
   const queryClient = useQueryClient();
   const save = useServerFn(saveNote);
-  const refresh = useServerFn(refreshClassSummary);
+  const summarize = useServerFn(summarizeMyNotes);
   const transcribe = useServerFn(transcribeHandwriting);
 
   const [content, setContent] = useState("");
@@ -220,36 +220,11 @@ function ClassPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("classes")
-        .select("id, subject, professor, code, term, enrollments(count)")
+        .select("id, subject, professor, code, term")
         .eq("id", classId)
         .single();
       if (error) throw error;
       return data;
-    },
-  });
-
-  const studentCount = (klass as any)?.enrollments?.[0]?.count ?? 0;
-
-  const { data: classmates } = useQuery({
-    queryKey: ["classmates", classId],
-    queryFn: async () => {
-      const { data: rows, error } = await supabase
-        .from("enrollments")
-        .select("user_id, created_at")
-        .eq("class_id", classId)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      const ids = (rows ?? []).map((r) => r.user_id);
-      if (ids.length === 0) return [] as { id: string; full_name: string }[];
-      const { data: people, error: pErr } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", ids);
-      if (pErr) throw pErr;
-      return ids.map((id) => ({
-        id,
-        full_name: people?.find((p) => p.id === id)?.full_name || "Student",
-      }));
     },
   });
 
@@ -260,24 +235,11 @@ function ClassPage() {
       const { data: userData } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("notes")
-        .select("id, content")
+        .select("id, content, summary, key_points, summary_updated_at")
         .eq("class_id", classId)
         .eq("user_id", userData.user!.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: summary } = useQuery({
-    queryKey: ["summary", classId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("class_summaries")
-        .select("summary, key_points, notes_count, updated_at, reviewed, reviewed_at, review_note")
-        .eq("class_id", classId)
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -334,21 +296,26 @@ function ClassPage() {
   }
 
   async function handleSummarize() {
+    if (!content.trim()) {
+      toast.error("Write some notes first.");
+      return;
+    }
     setSummarizing(true);
     try {
-      if (content.trim()) await handleSave();
-      await refresh({ data: { classId } });
-      toast.success("Class summary refreshed");
-      queryClient.invalidateQueries({ queryKey: ["summary", classId] });
+      await handleSave();
+      await summarize({ data: { classId } });
+      toast.success("Your summary is ready");
+      queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not refresh the summary");
+      toast.error(err instanceof Error ? err.message : "Could not summarize your notes");
     } finally {
       setSummarizing(false);
     }
   }
 
-  const keyPoints = Array.isArray(summary?.key_points) ? (summary.key_points as string[]) : [];
+  const mySummary = myNote?.summary?.trim() ? myNote.summary : "";
+  const keyPoints = Array.isArray(myNote?.key_points) ? (myNote.key_points as string[]) : [];
 
   return (
     <div className="min-h-screen">
@@ -370,16 +337,11 @@ function ClassPage() {
                   {klass.term}
                 </span>
               ) : null}
-              <span className="inline-flex items-center gap-2">
-                <span className="opacity-60">·</span>
-                <Users className="h-3.5 w-3.5" />
-                {studentCount} student{studentCount === 1 ? "" : "s"}
-              </span>
             </p>
           </div>
           <Button onClick={handleSummarize} disabled={summarizing}>
             <Sparkles className="mr-2 h-4 w-4" />
-            {summarizing ? "Refining…" : "Refresh class summary"}
+            {summarizing ? "Summarizing…" : "Summarize my notes"}
           </Button>
         </div>
 
@@ -411,8 +373,8 @@ function ClassPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete your notes for this class?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This permanently removes everything you have written for this class. It cannot
-                    be undone, and future class summaries will no longer include this content.
+                    This permanently removes everything you have written for this class, including
+                    its AI summary. It cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -492,7 +454,7 @@ function ClassPage() {
             </Tabs>
 
             <p className="mt-3 text-xs text-muted-foreground">
-              Only you can see your raw notes. They are merged anonymously into the class summary.
+              Only you can see your notes and your AI summary.
             </p>
           </section>
 
@@ -533,63 +495,44 @@ function ClassPage() {
            </section>
           </AdjustableClassWorkspace>
 
-           <aside className="ink-panel rounded-xl p-6 lg:col-span-2">
+          <aside className="ink-panel rounded-xl p-6 lg:col-span-2" aria-label="Your AI summary">
             <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
-              <Sparkles className="h-3.5 w-3.5" /> AI class summary
+              <Sparkles className="h-3.5 w-3.5" /> Your AI summary
             </div>
-            <h2 className="mt-3 text-2xl text-primary-foreground">Shared understanding</h2>
+            <h2 className="mt-3 text-3xl text-primary-foreground">Summary of your notes</h2>
 
-            {summary?.summary ? (
+            {mySummary ? (
               <>
-                 <p className="prose-notes mt-4 text-base opacity-90">{summary.summary}</p>
+                <div className="prose-notes mt-4 space-y-2 text-base leading-relaxed opacity-95 [&_h3]:mt-5 [&_h3]:text-2xl [&_h3]:text-primary-foreground">
+                  {renderNote(mySummary)}
+                </div>
                 {keyPoints.length > 0 && (
-                   <ul className="mt-5 space-y-2 text-base opacity-90">
-                    {keyPoints.map((point, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="opacity-60">—</span>
-                        <span>{point}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-6 rounded-lg bg-white/10 p-4">
+                    <p className="text-xs uppercase tracking-widest opacity-80">Key takeaways</p>
+                    <ul className="mt-3 space-y-2 text-base opacity-95">
+                      {keyPoints.map((point, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="opacity-60">—</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-                <p className="mt-6 text-xs opacity-70">
-                  Merged from {summary.notes_count} student{summary.notes_count === 1 ? "" : "s"} ·
-                  updated {new Date(summary.updated_at).toLocaleString()}
-                </p>
+                {myNote?.summary_updated_at && (
+                  <p className="mt-6 text-xs opacity-70">
+                    Generated {new Date(myNote.summary_updated_at).toLocaleString()} · run
+                    "Summarize my notes" again after you add more.
+                  </p>
+                )}
               </>
             ) : (
               <p className="mt-4 text-sm opacity-80">
-                No summary yet. Save your notes and refresh the summary to generate one for the whole
-                class.
+                No summary yet. Write your notes, then press "Summarize my notes" for a
+                comprehensive summary of everything you wrote.
               </p>
             )}
           </aside>
-
-          <section className="surface-paper rounded-xl p-6 lg:col-span-2">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <h2 className="text-2xl">Students in this class</h2>
-            </div>
-            {classmates && classmates.length > 0 ? (
-              <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {classmates.map((s) => (
-                  <li
-                    key={s.id}
-                    className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-sm"
-                  >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold">
-                      {s.full_name.slice(0, 1).toUpperCase()}
-                    </span>
-                    {s.full_name}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-muted-foreground">
-                No students have joined this class yet.
-              </p>
-            )}
-          </section>
 
         </div>
       </main>

@@ -14,7 +14,7 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "Lalit Dev Jakher is an NYU GSAS student and the creator of LectureLoop. Read the story behind the shared AI class notes platform.",
+          "Lalit Dev Jakher is an NYU GSAS student and the creator of LectureLoop. Read the story behind the personal AI class notes platform.",
       },
       { property: "og:title", content: "Behind the Initiative — Lalit Dev Jakher | LectureLoop" },
       {
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/about")({
 const philosophy = [
   { number: "01.", label: "Human-first design" },
   { number: "02.", label: "Radical clarity" },
-  { number: "03.", label: "Shared growth" },
+  { number: "03.", label: "Personal growth" },
 ];
 
 function AboutPage() {
@@ -94,9 +94,9 @@ function AboutPage() {
                     they might have missed.
                   </p>
                   <p>
-                    LectureLoop is built on a simple idea: if we take notes together, the whole class learns
-                    better. The AI doesn't add facts from outside the room; it only polishes what the room already
-                    knows.
+                    LectureLoop is built on a simple idea: your own notes are the best study material you have —
+                    they just need organising. The AI doesn't add facts from outside the room; it only turns what
+                    you wrote into a clear, complete summary.
                   </p>
                 </div>
               </div>
@@ -122,16 +122,16 @@ function AboutPage() {
               <div className="leading-relaxed text-foreground">
                 <p className="mb-6">
                   The initiative was born from a need for clarity, not noise. As a student, I wanted one place
-                  where I could see the lecture through my classmates' eyes — without the clutter of forums, the
+                  for my notes, the lecture slides and a reliable summary — without the clutter of forums, the
                   friction of group chats, or the risk of misinformation from outside sources.
                 </p>
                 <p className="mb-6">
-                  LectureLoop keeps the classroom at the center. Notes are private to each student until the AI
-                  merges them into a single refined summary the whole class can rely on.
+                  LectureLoop keeps your notes at the center. They stay private to you, and the AI summarizes
+                  only what you wrote, so the summary is something you can trust.
                 </p>
                 <p>
                   Today, it remains a founder-led project. Every feature is designed to make trust, focus, and
-                  collaboration the default experience in a lecture hall.
+                  understanding the default experience in a lecture hall.
                 </p>
               </div>
 
@@ -162,7 +162,7 @@ function AboutPage() {
       <footer className="border-t border-border/70">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 sm:flex-row">
           <span className="text-sm text-muted-foreground">
-            LectureLoop — shared notes for every seat in the room.
+            LectureLoop — your notes, summarized.
           </span>
           <Link to="/" className="text-sm font-medium text-primary hover:underline">
             Back to home

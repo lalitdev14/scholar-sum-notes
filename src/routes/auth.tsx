@@ -14,9 +14,9 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — LectureLoop" },
-      { name: "description", content: "Sign in to take class notes and read shared AI summaries." },
+      { name: "description", content: "Sign in to take your class notes and get AI summaries of them." },
       { property: "og:title", content: "Sign in — LectureLoop" },
-      { property: "og:description", content: "Student sign in for shared AI class notes." },
+      { property: "og:description", content: "Student sign in for personal AI class notes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

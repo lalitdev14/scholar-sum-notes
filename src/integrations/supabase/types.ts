@@ -311,6 +311,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          key_points: Json
+          summary: string
+          summary_updated_at: string | null
           updated_at: string
           user_id: string
         }
@@ -319,6 +322,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          key_points?: Json
+          summary?: string
+          summary_updated_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -327,6 +333,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          key_points?: Json
+          summary?: string
+          summary_updated_at?: string | null
           updated_at?: string
           user_id?: string
         }
