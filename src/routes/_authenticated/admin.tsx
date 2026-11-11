@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  deleteClass,
+  deleteClasses,
   deleteUserAccount,
   getAdminOverview,
   getUserDirectory,
@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { AnnouncementsAdmin } from "@/components/AnnouncementsAdmin";
 import {
@@ -76,11 +77,12 @@ function AdminPanel() {
     term: string;
   };
   const [editTarget, setEditTarget] = useState<ClassForm | null>(null);
-  const [classToDelete, setClassToDelete] = useState<{
-    id: string;
-    label: string;
-    notes: number;
-  } | null>(null);
+  const [classesToDelete, setClassesToDelete] = useState<
+    { id: string; label: string; notes: number }[] | null
+  >(null);
+  const [selectedClasses, setSelectedClasses] = useState<Set<string>>(new Set());
+  const [classSearch, setClassSearch] = useState("");
+  const [classFilter, setClassFilter] = useState<"all" | "students" | "empty">("all");
   const [userToDelete, setUserToDelete] = useState<{
     id: string;
     label: string;
@@ -90,7 +92,7 @@ function AdminPanel() {
 
   const fetchOverview = useServerFn(getAdminOverview);
   const upload = useServerFn(uploadSubjects);
-  const removeClass = useServerFn(deleteClass);
+  const removeClasses = useServerFn(deleteClasses);
   const fetchDirectory = useServerFn(getUserDirectory);
   const changeRole = useServerFn(setUserRole);
   const changePassword = useServerFn(setUserPassword);
@@ -182,14 +184,24 @@ function AdminPanel() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (classId: string) => removeClass({ data: { classId } }),
-    onSuccess: () => {
-      setClassToDelete(null);
-      toast.success("Class removed");
+    mutationFn: (classIds: string[]) => removeClasses({ data: { classIds } }),
+    onSuccess: (res) => {
+      setClassesToDelete(null);
+      setSelectedClasses(new Set());
+      toast.success(`${res.deleted} class${res.deleted === 1 ? "" : "es"} deleted`);
       queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  const visibleClasses = (data?.classes ?? []).filter((c) => {
+    const q = classSearch.trim().toLowerCase();
+    if (q && !`${c.subject} ${c.code} ${c.professor} ${c.term ?? ""}`.toLowerCase().includes(q))
+      return false;
+    if (classFilter === "students" && c.created_by_admin) return false;
+    if (classFilter === "empty" && c.notes_count > 0) return false;
+    return true;
   });
 
   if (checkingRole) {
@@ -267,31 +279,130 @@ function AdminPanel() {
           </Button>
         </section>
 
-        <section className="mt-10">
-          <h2 className="text-2xl">Classes</h2>
-          <div className="mt-4 grid gap-4">
-            {data?.classes.map((c) => (
+        <section className="mt-10" aria-labelledby="classes-heading">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="classes-heading" className="text-2xl">
+                Classes
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Every class in the catalogue, including ones students added. Edit details or delete
+                classes added by mistake.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                className="w-56"
+                placeholder="Search subject, code, professor"
+                aria-label="Search classes"
+                value={classSearch}
+                onChange={(e) => setClassSearch(e.target.value)}
+              />
+              <select
+                aria-label="Filter classes"
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value as "all" | "students" | "empty")}
+              >
+                <option value="all">All classes</option>
+                <option value="students">Added by students</option>
+                <option value="empty">No notes yet</option>
+              </select>
+            </div>
+          </div>
+
+          {selectedClasses.size > 0 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm">
+              <span>
+                {selectedClasses.size} class{selectedClasses.size === 1 ? "" : "es"} selected
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setSelectedClasses(new Set())}>
+                  Clear
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    const chosen = (data?.classes ?? []).filter((c) => selectedClasses.has(c.id));
+                    setClassesToDelete(
+                      chosen.map((c) => ({
+                        id: c.id,
+                        label: `${c.subject} (${c.code})`,
+                        notes: c.notes_count,
+                      })),
+                    );
+                  }}
+                >
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Delete selected
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 grid gap-3">
+            {visibleClasses.length > 0 && (
+              <label className="flex items-center gap-3 px-1 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={visibleClasses.every((c) => selectedClasses.has(c.id))}
+                  onCheckedChange={(v) => {
+                    const next = new Set(selectedClasses);
+                    for (const c of visibleClasses) {
+                      if (v === true) next.add(c.id);
+                      else next.delete(c.id);
+                    }
+                    setSelectedClasses(next);
+                  }}
+                  aria-label="Select all shown classes"
+                />
+                Select all shown ({visibleClasses.length})
+              </label>
+            )}
+            {visibleClasses.map((c) => (
               <div
                 key={c.id}
-                className="surface-paper grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-xl p-5 md:grid-cols-[minmax(0,1fr)_11rem_15rem_auto]"
+                className="surface-paper grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-xl p-4 md:grid-cols-[auto_minmax(0,1fr)_12rem_auto]"
               >
+                <Checkbox
+                  checked={selectedClasses.has(c.id)}
+                  onCheckedChange={(v) => {
+                    const next = new Set(selectedClasses);
+                    if (v === true) next.add(c.id);
+                    else next.delete(c.id);
+                    setSelectedClasses(next);
+                  }}
+                  aria-label={`Select ${c.subject}`}
+                />
                 <div className="min-w-0">
-                  <p className="truncate text-lg">{c.subject}</p>
+                  <p className="truncate text-lg font-medium">{c.subject}</p>
                   <p className="truncate text-sm text-muted-foreground">
                     {c.code} · {c.professor}
                     {c.term ? ` · ${c.term}` : ""}
                   </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    <Badge
+                      variant={c.created_by_admin ? "secondary" : "outline"}
+                      className="mr-1.5"
+                    >
+                      {c.created_by_admin ? "Admin" : "Student-added"}
+                    </Badge>
+                    {c.created_by_name
+                      ? `Added by ${c.created_by_name}`
+                      : "Added by an admin upload"}
+                    {" · "}
+                    {new Date(c.created_at).toLocaleDateString()}
+                  </p>
                 </div>
-                <div className="col-span-2 text-sm text-muted-foreground md:col-span-1 md:text-right">
-                  {c.notes_count} notes · {c.contributors} contributors
+                <div className="col-span-3 text-sm text-muted-foreground md:col-span-1 md:text-right">
+                  {c.enrolled} enrolled · {c.notes_count} notes
+                  <span className="block text-xs">
+                    {c.last_note_at
+                      ? `Last note ${new Date(c.last_note_at).toLocaleDateString()}`
+                      : "No notes yet"}
+                  </span>
                 </div>
-                <div className="col-span-2 text-xs text-muted-foreground md:col-span-1 md:text-right">
-                  {c.last_note_at
-                    ? `Last note ${new Date(c.last_note_at).toLocaleString()}`
-                    : "No notes yet"}
-                </div>
-
-                <div className="flex items-center gap-1">
+                <div className="col-start-3 row-start-1 flex items-center gap-1 md:col-start-auto md:row-start-auto">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -316,21 +427,21 @@ function AdminPanel() {
                     title="Delete class"
                     className="text-destructive hover:text-destructive"
                     onClick={() =>
-                      setClassToDelete({
-                        id: c.id,
-                        label: `${c.subject} (${c.code})`,
-                        notes: c.notes_count,
-                      })
+                      setClassesToDelete([
+                        { id: c.id, label: `${c.subject} (${c.code})`, notes: c.notes_count },
+                      ])
                     }
-                    disabled={deleteMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             ))}
-            {!isPending && !data?.classes.length && (
+            {!isPending && data?.classes.length === 0 && (
               <p className="text-muted-foreground">No classes yet.</p>
+            )}
+            {!isPending && (data?.classes.length ?? 0) > 0 && visibleClasses.length === 0 && (
+              <p className="text-muted-foreground">No classes match this search.</p>
             )}
           </div>
         </section>
@@ -568,18 +679,36 @@ function AdminPanel() {
       </Dialog>
 
       <AlertDialog
-        open={Boolean(classToDelete)}
-        onOpenChange={(open) => !open && setClassToDelete(null)}
+        open={Boolean(classesToDelete)}
+        onOpenChange={(open) => !open && setClassesToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {classToDelete?.label}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {classesToDelete?.length === 1
+                ? `Delete ${classesToDelete[0]?.label}?`
+                : `Delete ${classesToDelete?.length ?? 0} classes?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes the class for everyone, including{" "}
-              <strong>{classToDelete?.notes ?? 0} student note(s)</strong>, enrollments and slides
-              in it. This cannot be undone.
+              This permanently deletes{" "}
+              {classesToDelete?.length === 1 ? "the class" : "these classes"} for everyone,
+              including{" "}
+              <strong>
+                {(classesToDelete ?? []).reduce((n, c) => n + c.notes, 0)} student note(s)
+              </strong>
+              , enrollments, uploaded slides and handwriting. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {classesToDelete && classesToDelete.length > 1 && (
+            <ul className="max-h-40 list-disc overflow-y-auto pl-5 text-sm text-muted-foreground">
+              {classesToDelete.map((c) => (
+                <li key={c.id}>
+                  {c.label}
+                  {c.notes ? ` — ${c.notes} note(s)` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
@@ -587,10 +716,14 @@ function AdminPanel() {
               disabled={deleteMutation.isPending}
               onClick={(e) => {
                 e.preventDefault();
-                if (classToDelete) deleteMutation.mutate(classToDelete.id);
+                if (classesToDelete) deleteMutation.mutate(classesToDelete.map((c) => c.id));
               }}
             >
-              {deleteMutation.isPending ? "Deleting…" : "Delete class"}
+              {deleteMutation.isPending
+                ? "Deleting…"
+                : classesToDelete?.length === 1
+                  ? "Delete class"
+                  : `Delete ${classesToDelete?.length ?? 0} classes`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

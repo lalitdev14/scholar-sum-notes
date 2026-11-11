@@ -48,14 +48,26 @@ export const getAdminOverview = createServerFn({ method: "POST" })
 
     let classQuery = supabaseAdmin
       .from("classes")
-      .select("id, subject, professor, code, term, created_at, university_id")
+      .select("id, subject, professor, code, term, created_at, university_id, created_by")
       .order("subject");
-    if (universityId) classQuery = classQuery.eq("university_id", universityId);
+    // University admins manage their university's classes plus unassigned ones
+    // (classes students add without a university are visible to everyone).
+    if (universityId)
+      classQuery = classQuery.or(`university_id.eq.${universityId},university_id.is.null`);
 
     let profileQuery = supabaseAdmin.from("profiles").select("id, full_name, university_id");
     if (universityId) profileQuery = profileQuery.eq("university_id", universityId);
 
-    const [classesRes, notesRes, profilesRes, universityRes, feedbackRes] = await Promise.all([
+    const [
+      classesRes,
+      notesRes,
+      profilesRes,
+      universityRes,
+      feedbackRes,
+      enrollRes,
+      allNamesRes,
+      adminRolesRes,
+    ] = await Promise.all([
       classQuery,
       supabaseAdmin
         .from("notes")
@@ -67,6 +79,9 @@ export const getAdminOverview = createServerFn({ method: "POST" })
         ? supabaseAdmin.from("universities").select("id, name").eq("id", universityId).maybeSingle()
         : Promise.resolve({ data: null, error: null } as never),
       supabaseAdmin.from("feedback").select("user_id"),
+      supabaseAdmin.from("enrollments").select("class_id"),
+      supabaseAdmin.from("profiles").select("id, full_name"),
+      supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin"),
     ]);
 
     if (classesRes.error) throw new Error(classesRes.error.message);
@@ -79,10 +94,19 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       (n) => classIds.has(n.class_id) && (!members || members.has(n.user_id)),
     );
 
+    const allNames = new Map((allNamesRes.data ?? []).map((p) => [p.id, p.full_name]));
+    const adminIds = new Set((adminRolesRes.data ?? []).map((r) => r.user_id));
+    const enrolled = new Map<string, number>();
+    for (const e of enrollRes.data ?? [])
+      enrolled.set(e.class_id, (enrolled.get(e.class_id) ?? 0) + 1);
+
     const classes = (classesRes.data ?? []).map((c) => {
       const classNotes = notes.filter((n) => n.class_id === c.id);
       return {
         ...c,
+        created_by_name: c.created_by ? allNames.get(c.created_by) || "Unknown user" : null,
+        created_by_admin: c.created_by ? adminIds.has(c.created_by) : true,
+        enrolled: enrolled.get(c.id) ?? 0,
         notes_count: classNotes.length,
         contributors: new Set(classNotes.map((n) => n.user_id)).size,
         last_note_at: classNotes[0]?.updated_at ?? null,
@@ -124,7 +148,9 @@ const SubjectRow = z.object({
 
 export const uploadSubjects = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ rows: z.array(SubjectRow).min(1).max(500) }).parse(input))
+  .inputValidator((input: unknown) =>
+    z.object({ rows: z.array(SubjectRow).min(1).max(500) }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin, universityId } = await adminScope(context as never);
 
@@ -158,6 +184,54 @@ export const uploadSubjects = createServerFn({ method: "POST" })
     return { inserted: fresh.length, skipped: data.rows.length - fresh.length };
   });
 
+/** University admins may manage their own university's classes and unassigned ones. */
+function canManageClass(adminUniversityId: string | null, classUniversityId: string | null) {
+  return !adminUniversityId || !classUniversityId || classUniversityId === adminUniversityId;
+}
+
+/** Deletes classes with everything in them: files in storage, notes, then the class rows (cascades). */
+export const deleteClasses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ classIds: z.array(z.string().uuid()).min(1).max(200) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin, universityId } = await adminScope(context as never);
+    const ids = [...new Set(data.classIds)];
+
+    const { data: targets, error: targetError } = await supabaseAdmin
+      .from("classes")
+      .select("id, university_id")
+      .in("id", ids);
+    if (targetError) throw new Error(targetError.message);
+    if ((targets ?? []).length !== ids.length)
+      throw new Error("One or more classes no longer exist. Refresh and try again.");
+    if ((targets ?? []).some((t) => !canManageClass(universityId, t.university_id))) {
+      throw new Error("One or more classes belong to another university.");
+    }
+
+    // Uploaded files are not removed by database cascades.
+    const [{ data: slides }, { data: pages }] = await Promise.all([
+      supabaseAdmin.from("lecture_slides").select("file_path").in("class_id", ids),
+      supabaseAdmin.from("handwriting_pages").select("image_path").in("class_id", ids),
+    ]);
+    const slidePaths = (slides ?? []).map((x) => x.file_path);
+    const pagePaths = (pages ?? []).map((x) => x.image_path);
+    for (let i = 0; i < slidePaths.length; i += 100) {
+      await supabaseAdmin.storage.from("lecture-slides").remove(slidePaths.slice(i, i + 100));
+    }
+    for (let i = 0; i < pagePaths.length; i += 100) {
+      await supabaseAdmin.storage.from("handwriting").remove(pagePaths.slice(i, i + 100));
+    }
+
+    const { error: notesError } = await supabaseAdmin.from("notes").delete().in("class_id", ids);
+    if (notesError) throw new Error(notesError.message);
+    // Cascades to enrollments, slides, bookmarks, handwriting pages and old summaries.
+    const { error } = await supabaseAdmin.from("classes").delete().in("id", ids);
+    if (error) throw new Error(error.message);
+    return { deleted: ids.length, files: slidePaths.length + pagePaths.length };
+  });
+
 export const deleteClass = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ classId: z.string().uuid() }).parse(input))
@@ -171,7 +245,7 @@ export const deleteClass = createServerFn({ method: "POST" })
       .maybeSingle();
     if (targetError) throw new Error(targetError.message);
     if (!target) throw new Error("Class not found.");
-    if (universityId && target.university_id !== universityId) {
+    if (!canManageClass(universityId, target.university_id)) {
       throw new Error("This class belongs to another university.");
     }
 
@@ -211,7 +285,6 @@ export const getUserDirectory = createServerFn({ method: "POST" })
     const notes = notesRes.data ?? [];
     const feedback = feedbackRes.data ?? [];
 
-
     return (usersRes.users ?? [])
       .filter((u) => !members || members.has(u.id))
       .map((u) => {
@@ -241,7 +314,6 @@ export const getUserDirectory = createServerFn({ method: "POST" })
         };
       });
   });
-
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -325,20 +397,31 @@ export const updateClass = createServerFn({ method: "POST" })
       .maybeSingle();
     if (targetError) throw new Error(targetError.message);
     if (!target) throw new Error("Class not found.");
-    if (universityId && target.university_id !== universityId) {
+    if (!canManageClass(universityId, target.university_id)) {
       throw new Error("This class belongs to another university.");
     }
 
     // Class codes must stay unique (case-insensitive) within the same university.
-    let dupQuery = supabaseAdmin.from("classes").select("id").ilike("code", data.code).neq("id", data.classId);
-    dupQuery = target.university_id ? dupQuery.eq("university_id", target.university_id) : dupQuery.is("university_id", null);
+    let dupQuery = supabaseAdmin
+      .from("classes")
+      .select("id")
+      .ilike("code", data.code)
+      .neq("id", data.classId);
+    dupQuery = target.university_id
+      ? dupQuery.eq("university_id", target.university_id)
+      : dupQuery.is("university_id", null);
     const { data: dup, error: dupError } = await dupQuery.limit(1);
     if (dupError) throw new Error(dupError.message);
     if (dup && dup.length) throw new Error(`Another class already uses the code "${data.code}".`);
 
     const { error } = await supabaseAdmin
       .from("classes")
-      .update({ subject: data.subject, code: data.code, professor: data.professor, term: data.term })
+      .update({
+        subject: data.subject,
+        code: data.code,
+        professor: data.professor,
+        term: data.term,
+      })
       .eq("id", data.classId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -348,11 +431,14 @@ export const updateClass = createServerFn({ method: "POST" })
 async function removeUserFiles(supabaseAdmin: any, bucket: string, userId: string) {
   const paths: string[] = [];
   const walk = async (prefix: string, depth: number) => {
-    const { data: items, error } = await supabaseAdmin.storage.from(bucket).list(prefix, { limit: 1000 });
+    const { data: items, error } = await supabaseAdmin.storage
+      .from(bucket)
+      .list(prefix, { limit: 1000 });
     if (error) throw new Error(`${bucket}: ${error.message}`);
     for (const item of items ?? []) {
       const path = `${prefix}/${item.name}`;
-      if (item.id) paths.push(path); // a file
+      if (item.id)
+        paths.push(path); // a file
       else if (depth < 3) await walk(path, depth + 1); // a folder
     }
   };
@@ -391,12 +477,21 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
       (await removeUserFiles(supabaseAdmin, "handwriting", data.userId));
 
     // notes.user_id has no foreign key to auth.users, so delete notes explicitly.
-    const { error: notesError } = await supabaseAdmin.from("notes").delete().eq("user_id", data.userId);
+    const { error: notesError } = await supabaseAdmin
+      .from("notes")
+      .delete()
+      .eq("user_id", data.userId);
     if (notesError) throw new Error(notesError.message);
 
     // Clear reviewer references that would otherwise point at a deleted account.
-    await supabaseAdmin.from("faculty_requests").update({ reviewed_by: null }).eq("reviewed_by", data.userId);
-    await supabaseAdmin.from("class_summaries").update({ reviewed_by: null }).eq("reviewed_by", data.userId);
+    await supabaseAdmin
+      .from("faculty_requests")
+      .update({ reviewed_by: null })
+      .eq("reviewed_by", data.userId);
+    await supabaseAdmin
+      .from("class_summaries")
+      .update({ reviewed_by: null })
+      .eq("reviewed_by", data.userId);
 
     // Deleting the auth user cascades to profile, roles, enrollments, slides, bookmarks,
     // handwriting pages, feedback, faculty requests and update reads.

@@ -232,6 +232,12 @@ function Dashboard() {
   async function createClass(e: React.FormEvent) {
     e.preventDefault();
     const { data: userData } = await supabase.auth.getUser();
+    // Tie the class to the student's university so university admins can manage it.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("university_id")
+      .eq("id", userData.user?.id ?? "")
+      .maybeSingle();
     const { data: created, error } = await supabase
       .from("classes")
       .insert({
@@ -240,6 +246,7 @@ function Dashboard() {
         code: form.code,
         term: form.term,
         created_by: userData.user?.id ?? null,
+        university_id: profile?.university_id ?? null,
       })
       .select("id")
       .single();
