@@ -3,6 +3,21 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { noteToPlainText } from "@/lib/note-format";
 
+/** Turns AI provider failures into a message a student can act on. */
+function aiError(err: unknown, fallback: string): Error {
+  const text =
+    err instanceof Error
+      ? `${err.message} ${String((err as { cause?: unknown }).cause ?? "")}`
+      : String(err);
+  const status =
+    (err as { statusCode?: number; lastError?: { statusCode?: number } })?.lastError?.statusCode ??
+    (err as { statusCode?: number })?.statusCode;
+  if (status === 429 || /too many requests|rate limit|quota|resource.?exhausted/i.test(text)) {
+    return new Error("The AI is busy right now (too many requests). Please try again in a minute.");
+  }
+  return new Error(fallback);
+}
+
 const SaveNoteInput = z.object({
   classId: z.string().uuid(),
   noteId: z.string().uuid().nullable().optional(),
@@ -97,7 +112,7 @@ export const summarizeMyNotes = createServerFn({ method: "POST" })
       output = result.output as z.infer<typeof schema>;
     } catch (err) {
       console.error("[summarizeMyNotes]", err);
-      throw new Error("The AI could not summarize your notes. Please try again.");
+      throw aiError(err, "The AI could not summarize your notes. Please try again.");
     }
 
     const summary_updated_at = new Date().toISOString();
@@ -125,6 +140,7 @@ export const transcribeHandwriting = createServerFn({ method: "POST" })
 
     const result = await generateText({
       model,
+      maxRetries: 1,
 
       system:
         "You transcribe handwritten class notes from an image. Return ONLY the transcribed text, " +
@@ -135,10 +151,17 @@ export const transcribeHandwriting = createServerFn({ method: "POST" })
           role: "user",
           content: [
             { type: "text", text: "Transcribe this handwriting." },
-            { type: "file", data: new URL(data.imageDataUrl), mediaType: data.imageDataUrl.slice(5, data.imageDataUrl.indexOf(";")) },
+            {
+              type: "file",
+              data: new URL(data.imageDataUrl),
+              mediaType: data.imageDataUrl.slice(5, data.imageDataUrl.indexOf(";")),
+            },
           ],
         },
       ],
+    }).catch((err: unknown) => {
+      console.error("[transcribeHandwriting]", err);
+      throw aiError(err, "Could not convert the handwriting. Please try again.");
     });
 
     return { text: (result.text ?? "").trim() };
@@ -162,6 +185,9 @@ export const slideOverview = createServerFn({ method: "POST" })
         "write a short, plain-language overview of the topic: 2-3 sentences, then up to 3 short bullet points with key ideas. " +
         "Under 110 words. Plain text only, bullets start with '• '. No headings, no markdown symbols.",
       prompt: `Slide headline: ${data.headline}\n\nSlide text:\n${data.slideText || "(none)"}`,
+    }).catch((err: unknown) => {
+      console.error("[slideOverview]", err);
+      throw aiError(err, "Could not create an overview right now.");
     });
     return { text: (result.text ?? "").trim() };
   });
