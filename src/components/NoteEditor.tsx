@@ -235,7 +235,7 @@ function inline(text: string, key: string): ReactNode[] {
     if (m.index > last) out.push(text.slice(last, m.index));
     const k = `${key}-${i++}`;
     if (m[1]) out.push(<span key={k} style={{ color: colorCss(m[1]) }}>{inline(m[2] ?? "", k)}</span>);
-    else if (m[3]) out.push(<strong key={k}>{inline(m[3], k)}</strong>);
+    else if (m[3]) out.push(<strong key={k}>{inline(m[3] ?? "", k)}</strong>);
     else out.push(<em key={k}>{inline(m[4] ?? "", k)}</em>);
     last = re.lastIndex;
   }
