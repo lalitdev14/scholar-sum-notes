@@ -1,7 +1,8 @@
 # LectureLoop (scholar-sum-notes)
 
-Collaborative class-notes app: students take notes per class, AI merges them into one
-refined summary per course. Originally generated with Lovable; now maintained directly
+Individual class-notes app: each student takes their own notes per class (typed or
+handwritten, next to the lecture slides) and gets an AI summary of their own notes.
+There is no shared/class-wide summary. Originally generated with Lovable; now maintained directly
 in this repo with no Lovable dependency.
 
 ## Stack

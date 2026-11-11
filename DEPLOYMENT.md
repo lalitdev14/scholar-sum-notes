@@ -44,8 +44,8 @@ Copy them from `.env.example`. Set each one for **Production, Preview and Develo
 | `VITE_SUPABASE_PROJECT_ID` | browser client |
 | `SUPABASE_URL` | server functions |
 | `SUPABASE_PUBLISHABLE_KEY` | server functions (auth middleware) |
-| `SUPABASE_SERVICE_ROLE_KEY` | admin panel, faculty review queue, summary writes |
-| one AI key (see below) | AI summaries + handwriting transcription |
+| `SUPABASE_SERVICE_ROLE_KEY` | admin panel (user directory, roles, class management) |
+| one AI key (see below) | AI note summaries, handwriting transcription, slide overviews |
 
 ### AI key (pluggable)
 
@@ -55,7 +55,7 @@ Copy them from `.env.example`. Set each one for **Production, Preview and Develo
 | --- | --- | --- |
 | `AI_BASE_URL` + `AI_API_KEY` | any OpenAI-compatible endpoint | `gpt-4o-mini` |
 | `OPENAI_API_KEY` | OpenAI | `gpt-4o-mini` |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI | `gemini-2.5-flash` |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI | `gemini-3.8-flash` |
 
 Override the model anywhere with `AI_TEXT_MODEL`.
 

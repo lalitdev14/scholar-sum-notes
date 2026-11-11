@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BookOpen, Plus, Search, Sparkles, User, Users } from "lucide-react";
+import { BookOpen, Plus, Search, Sparkles, User } from "lucide-react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 
@@ -31,10 +31,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { title: "Class dashboard — LectureLoop" },
       {
         name: "description",
-        content: "Browse your classes and read the AI-refined summary built from everyone's notes.",
+        content: "Your classes, your notes and the AI summaries of what you wrote.",
       },
       { property: "og:title", content: "Class dashboard — LectureLoop" },
-      { property: "og:description", content: "Refined class summaries from every student's notes." },
+      { property: "og:description", content: "Your personal class notes and AI summaries." },
     ],
   }),
   component: Dashboard,
@@ -88,11 +88,24 @@ function Dashboard() {
       if (enrolledIds.length === 0) return [];
       const { data, error } = await supabase
         .from("classes")
-        .select("id, subject, professor, code, term, class_summaries(summary, notes_count, updated_at, reviewed), enrollments(count)")
+        .select("id, subject, professor, code, term")
         .in("id", enrolledIds)
         .order("subject");
       if (error) throw error;
-      return data;
+
+      // Only this student's own notes (reviewers can read more via RLS, so filter explicitly).
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: myNotes, error: notesError } = await supabase
+        .from("notes")
+        .select("class_id, content, summary, updated_at")
+        .eq("user_id", userData.user!.id)
+        .in("class_id", enrolledIds)
+        .order("updated_at", { ascending: false });
+      if (notesError) throw notesError;
+      const noteByClass = new Map<string, NonNullable<typeof myNotes>[number]>();
+      for (const n of myNotes ?? []) if (!noteByClass.has(n.class_id)) noteByClass.set(n.class_id, n);
+
+      return (data ?? []).map((c) => ({ ...c, myNote: noteByClass.get(c.id) ?? null }));
     },
   });
 
@@ -296,16 +309,16 @@ function Dashboard() {
             <div className="surface-paper col-span-full flex flex-col items-center rounded-lg px-6 py-12 text-center">
               <BookOpen className="h-9 w-9 text-primary" aria-hidden="true" />
               <h3 className="mt-4 text-2xl">No enrolled subjects yet</h3>
-              <p className="mt-2 max-w-md text-sm text-muted-foreground">Find a subject by name or code to see its notes and shared summary here.</p>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">Find a subject by name or code, then take your own notes and get an AI summary of them.</p>
               <Button className="mt-6" onClick={() => setEnrollOpen(true)}><Search className="mr-2 h-4 w-4" />Enroll in subject</Button>
             </div>
           )}
           {classes?.map((klass) => {
 
-            const summary = Array.isArray(klass.class_summaries)
-              ? klass.class_summaries[0]
-              : klass.class_summaries;
-            const studentCount = klass.enrollments?.[0]?.count ?? 0;
+            const note = klass.myNote;
+            const preview = (note?.summary || note?.content || "")
+              .replace(/\[color=[a-z]+\]|\[\/color\]|\*\*|^## /gm, "")
+              .trim();
             return (
               <Link
                 key={klass.id}
@@ -320,10 +333,6 @@ function Dashboard() {
                       <User className="h-3.5 w-3.5" />
                       {klass.professor}
                     </p>
-                    <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="h-3.5 w-3.5" />
-                      {studentCount} student{studentCount === 1 ? "" : "s"}
-                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant="secondary">{klass.code}</Badge>
@@ -331,12 +340,12 @@ function Dashboard() {
                 </div>
 
                 <p className="prose-notes mt-4 line-clamp-4 text-sm text-muted-foreground">
-                  {summary?.summary || "No shared summary yet — be the first to add notes."}
+                  {preview || "No notes yet — open the class to start writing."}
                 </p>
 
                 <div className="mt-5 flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5 text-accent" />
-                  {summary?.notes_count ? `${summary.notes_count} notes merged` : "Awaiting notes"}
+                  {note?.summary ? "AI summary ready" : note?.content ? "Notes saved · not summarized yet" : "No notes yet"}
                 </div>
               </Link>
             );

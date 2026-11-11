@@ -156,11 +156,19 @@
     font-family: var(--font-sans);
   }
 
-  h1, h2, h3 {
+  /* Instrument Serif ships a single regular weight. Asking for bold made the browser
+     fake it ("faux bold"), which smeared and squashed the letters. Use the real weight,
+     never synthesize bold/italic, and give the glyphs a touch of breathing room. */
+  h1, h2, h3, .font-display {
     font-family: var(--font-display);
-    font-weight: 700;
+    font-weight: 400;
+    font-synthesis: none;
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+  }
+
+  h1, h2, h3 {
     color: oklch(0.1 0 0);
-    letter-spacing: -0.01em;
   }
 }
 

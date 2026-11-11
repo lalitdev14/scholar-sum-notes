@@ -77,16 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "LectureLoop — Shared AI class notes" },
+      { title: "LectureLoop — Your class notes, summarized by AI" },
       {
         name: "description",
         content:
-          "Take notes in class and get one AI-refined summary per course, shared with everyone in the room.",
+          "Take your own notes in class and get a comprehensive AI summary of what you wrote.",
       },
-      { property: "og:title", content: "LectureLoop — Shared AI class notes" },
+      { property: "og:title", content: "LectureLoop — Your class notes, summarized by AI" },
       {
         property: "og:description",
-        content: "One refined summary per class, built from every student's notes.",
+        content: "Personal class notes with comprehensive AI summaries.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
