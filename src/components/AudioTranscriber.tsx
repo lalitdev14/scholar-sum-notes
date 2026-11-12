@@ -10,8 +10,9 @@ import { cn, formatDuration } from "@/lib/utils";
  *
  * Engines:
  *  - "browser": the Web Speech API (Chrome, Edge, Safari). Text appears as you speak.
- *  - "ai": records the microphone, and every ~15 s sends a small WAV chunk to the server
- *    for transcription. Works in every browser (e.g. Firefox), with a short delay.
+ *  - "ai": records the microphone and sends ~10-20 s WAV chunks (cut at natural pauses)
+ *    to the server, which uses Whisper when configured (most accurate) or Gemini.
+ *    Works in every browser (e.g. Firefox), with a short delay.
  *
  * The running transcript is kept as a draft in localStorage so a reload or crash
  * doesn't lose a lecture. "Finish & save" hands the text to `onSave`.
@@ -35,6 +36,8 @@ type Props = {
     transcript: string;
     durationSeconds: number;
   }) => Promise<boolean>;
+  /** True when the server has Whisper configured; the AI engine then becomes the default. */
+  whisperAvailable?: boolean;
   /** Called with true while the microphone is live. */
   onRecordingChange?: (recording: boolean) => void;
 };
@@ -55,7 +58,10 @@ const LANGUAGES = [
   ["ar-SA", "Arabic"],
 ] as const;
 
-const CHUNK_SECONDS = 15;
+// Chunks are cut at a natural pause after MIN seconds (so words aren't split), or at MAX.
+const MIN_CHUNK_SECONDS = 10;
+const MAX_CHUNK_SECONDS = 20;
+const PAUSE_RMS = 0.012;
 const TARGET_RATE = 16000;
 
 // Minimal typing for the (still prefixed in some browsers) Web Speech API.
@@ -151,10 +157,12 @@ export function AudioTranscriber({
   transcribeChunk,
   onSave,
   onRecordingChange,
+  whisperAvailable = false,
 }: Props) {
   const draftKey = `lectureloop:transcript-draft:${classId}`;
   const browserSupported = useRef(false);
   const [engine, setEngine] = useState<Engine>("browser");
+  const enginePicked = useRef(false);
   const [language, setLanguage] = useState("en-US");
   const [status, setStatus] = useState<Status>("idle");
   const [text, setText] = useState("");
@@ -211,6 +219,11 @@ export function AudioTranscriber({
       /* storage unavailable */
     }
   }, [draftKey]);
+
+  // With Whisper on the server, default to the more accurate AI engine.
+  useEffect(() => {
+    if (whisperAvailable && !enginePicked.current && statusRef.current === "idle") setEngine("ai");
+  }, [whisperAvailable]);
 
   // Persist the draft while there is something to lose.
   useEffect(() => {
@@ -364,9 +377,18 @@ export function AudioTranscriber({
       bufferRef.current.push(data);
       bufferedSecondsRef.current += data.length / ctx.sampleRate;
       let peak = 0;
-      for (let i = 0; i < data.length; i += 32) peak = Math.max(peak, Math.abs(data[i]!));
+      let sq = 0;
+      for (let i = 0; i < data.length; i += 8) {
+        const v = Math.abs(data[i]!);
+        peak = Math.max(peak, v);
+        sq += v * v;
+      }
       setLevel(peak);
-      if (bufferedSecondsRef.current >= CHUNK_SECONDS) flushChunk();
+      const rms = Math.sqrt(sq / Math.ceil(data.length / 8));
+      const secs = bufferedSecondsRef.current;
+      if (secs >= MAX_CHUNK_SECONDS || (secs >= MIN_CHUNK_SECONDS && rms < PAUSE_RMS)) {
+        flushChunk();
+      }
     };
     source.connect(node);
     node.connect(ctx.destination);
@@ -547,13 +569,20 @@ export function AudioTranscriber({
         </select>
         <select
           value={engine}
-          onChange={(e) => setEngine(e.target.value as Engine)}
+          onChange={(e) => {
+            enginePicked.current = true;
+            setEngine(e.target.value as Engine);
+          }}
           disabled={busy || status === "paused"}
           aria-label="Transcription engine"
           className="h-9 rounded-md border border-input bg-background px-2"
         >
           {browserSupported.current && <option value="browser">Live (instant)</option>}
-          <option value="ai">AI (more accurate, ~15 s delay)</option>
+          <option value="ai">
+            {whisperAvailable
+              ? "Whisper AI (most accurate, ~15 s delay)"
+              : "AI (more accurate, ~15 s delay)"}
+          </option>
         </select>
       </div>
 

@@ -59,6 +59,19 @@ Copy them from `.env.example`. Set each one for **Production, Preview and Develo
 
 Override the model anywhere with `AI_TEXT_MODEL`.
 
+### Lecture transcription (optional)
+
+The Transcribe tab's AI mode uses **Whisper** when one of these is set (`src/lib/whisper.server.ts`),
+otherwise it falls back to the AI key above:
+
+| Set this | Provider used | Default model |
+| --- | --- | --- |
+| `GROQ_API_KEY` | Groq (fast, about $0.11 per audio hour) | `whisper-large-v3` |
+| `WHISPER_API_KEY` (+ optional `WHISPER_BASE_URL`) | OpenAI or any OpenAI-compatible endpoint | `whisper-1` |
+
+Override the model with `WHISPER_MODEL` (e.g. `whisper-large-v3-turbo`, `gpt-4o-transcribe`).
+When Whisper is configured, AI mode becomes the default in the Transcribe tab.
+
 ## 3a. Google sign-in
 
 Google sign-in uses the Supabase project's own Google provider.

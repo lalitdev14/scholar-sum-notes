@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  getTranscriptionSetup,
   saveNote,
   summarizeMyNotes,
   transcribeAudioChunk,
@@ -87,6 +88,12 @@ function ClassPage() {
   const summarize = useServerFn(summarizeMyNotes);
   const transcribe = useServerFn(transcribeHandwriting);
   const transcribeAudio = useServerFn(transcribeAudioChunk);
+  const transcriptionSetupFn = useServerFn(getTranscriptionSetup);
+  const { data: transcriptionSetup } = useQuery({
+    queryKey: ["transcription-setup"],
+    queryFn: () => transcriptionSetupFn(),
+    staleTime: Infinity,
+  });
   const [isRecording, setIsRecording] = useState(false);
 
   const [content, setContent] = useState("");
@@ -734,6 +741,7 @@ function ClassPage() {
                     transcribeChunk={async (args) => (await transcribeAudio({ data: args })).text}
                     onSave={saveRecording}
                     onRecordingChange={setIsRecording}
+                    whisperAvailable={transcriptionSetup?.whisper ?? false}
                   />
                   <div className="mt-6">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">
