@@ -321,17 +321,30 @@ export function AudioTranscriber({
     setPendingChunks((n) => n + 1);
     // Sequential queue keeps the transcript in spoken order.
     queueRef.current = queueRef.current.then(async () => {
+      // Retry with growing waits so a busy/rate-limited AI doesn't leave gaps in the lecture.
+      const waits = [5, 15, 30, 60];
       try {
-        const piece = await transcribeChunk({
-          wavDataUrl,
-          language,
-          previousText: textRef.current.slice(-300),
-        });
-        appendText(piece);
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "A part of the audio could not be transcribed.",
-        );
+        for (let attempt = 0; ; attempt++) {
+          try {
+            const piece = await transcribeChunk({
+              wavDataUrl,
+              language,
+              previousText: textRef.current.slice(-300),
+            });
+            appendText(piece);
+            break;
+          } catch (err) {
+            if (attempt >= waits.length) {
+              toast.error(
+                (err instanceof Error ? err.message : "") +
+                  " A few seconds of audio could not be transcribed.",
+              );
+              break;
+            }
+            if (attempt === 0) toast.info("The AI is busy; retrying that part of the audio…");
+            await new Promise((r) => setTimeout(r, waits[attempt]! * 1000));
+          }
+        }
       } finally {
         setPendingChunks((n) => n - 1);
       }
