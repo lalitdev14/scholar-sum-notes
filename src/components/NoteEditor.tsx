@@ -75,7 +75,7 @@ export function NoteEditor({ value, onChange, placeholder }: Props) {
     content: toEditorHtml(value),
     editorProps: {
       attributes: {
-        class: "note-doc min-h-[420px] px-5 py-4 focus:outline-none",
+        class: "note-doc min-h-full px-5 py-4 focus:outline-none",
         spellcheck: "true",
         "aria-label": "Note editor",
       },
@@ -93,14 +93,33 @@ export function NoteEditor({ value, onChange, placeholder }: Props) {
   }, [editor, value]);
 
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-border bg-background">
-      {editor ? (
-        <Toolbar editor={editor} />
-      ) : (
-        <div className="h-11 border-b border-border bg-muted/40" />
+    // Fixed-height document: the toolbar and word count stay put, only the text scrolls.
+    <div className="mt-3 flex h-[clamp(420px,62vh,760px)] flex-col overflow-hidden rounded-lg border border-border bg-background">
+      <div className="shrink-0">
+        {editor ? (
+          <Toolbar editor={editor} />
+        ) : (
+          <div className="h-11 border-b border-border bg-muted/40" />
+        )}
+      </div>
+      <div
+        className="min-h-0 flex-1 cursor-text overflow-y-auto overscroll-contain"
+        data-testid="note-scroll"
+        onMouseDown={(e) => {
+          // Clicking the empty area below the text puts the caret at the end.
+          if (e.target === e.currentTarget && editor) {
+            e.preventDefault();
+            editor.commands.focus("end");
+          }
+        }}
+      >
+        <EditorContent editor={editor} />
+      </div>
+      {editor && (
+        <div className="shrink-0">
+          <WordCount editor={editor} />
+        </div>
       )}
-      <EditorContent editor={editor} />
-      {editor && <WordCount editor={editor} />}
     </div>
   );
 }
