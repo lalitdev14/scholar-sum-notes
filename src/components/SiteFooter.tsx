@@ -12,9 +12,9 @@ export function SiteFooter() {
           <Link to="/privacy" className="hover:text-foreground">
             Privacy
           </Link>
-          <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-foreground">
+          <Link to="/contact" className="hover:text-foreground">
             Contact
-          </a>
+          </Link>
         </nav>
       </div>
     </footer>
