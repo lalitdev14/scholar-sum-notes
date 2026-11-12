@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,9 +21,11 @@ import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 type AuthenticatedHeaderProps = {
   trailing?: ReactNode;
+  /** Match a full-width page (e.g. the class workspace) so the logo lines up with its content. */
+  wide?: boolean;
 };
 
-export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
+export function AuthenticatedHeader({ trailing, wide = false }: AuthenticatedHeaderProps) {
   const navigate = useNavigate();
   const { isAdmin } = useRoles();
   const uniTheme = useUniversityTheme();
@@ -52,7 +55,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
   const universityName =
     me && Array.isArray(me.universities) && me.universities.length > 0
       ? me.universities[0].name
-      : (me?.universities as { name?: string } | null)?.name ?? "";
+      : ((me?.universities as { name?: string } | null)?.name ?? "");
 
   const navLinks = (
     <>
@@ -82,10 +85,22 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
   );
 
   return (
-    <header className="border-b border-black/10" style={{ backgroundColor: uniTheme.primary, color: "#fff" }}>
-      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between">
+    <header
+      className="border-b border-black/10"
+      style={{ backgroundColor: uniTheme.primary, color: "#fff" }}
+    >
+      <div
+        className={cn(
+          "mx-auto grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between",
+          wide ? "max-w-[1600px]" : "max-w-6xl",
+        )}
+      >
         <div className="flex min-w-0 items-center gap-4 md:gap-6">
-          <Link to="/dashboard" className="flex min-w-0 items-center gap-2" style={{ color: "#fff" }}>
+          <Link
+            to="/dashboard"
+            className="flex min-w-0 items-center gap-2"
+            style={{ color: "#fff" }}
+          >
             <GraduationCap className="h-5 w-5 shrink-0" style={{ color: "#fff" }} />
             <span className="truncate font-display text-lg font-bold sm:text-xl">LectureLoop</span>
           </Link>
@@ -138,12 +153,11 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
               side="right"
               className="w-[85vw] max-w-xs p-0 [&>button]:text-white [&>button]:opacity-80 [&>button]:hover:opacity-100"
             >
-              <div
-                className="px-5 py-5 text-white"
-                style={{ backgroundColor: uniTheme.primary }}
-              >
+              <div className="px-5 py-5 text-white" style={{ backgroundColor: uniTheme.primary }}>
                 <p className="font-display text-lg font-bold">LectureLoop</p>
-                {me?.full_name && <p className="mt-1 truncate text-sm text-white/90">{me.full_name}</p>}
+                {me?.full_name && (
+                  <p className="mt-1 truncate text-sm text-white/90">{me.full_name}</p>
+                )}
                 {universityName && (
                   <p className="mt-0.5 truncate text-xs text-white/75">{universityName}</p>
                 )}
