@@ -179,9 +179,34 @@ export const transcribeAudioChunk = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AudioChunkInput.parse(input))
   .handler(async ({ data }) => {
+    const base64 = data.wavDataUrl.slice("data:audio/wav;base64,".length);
+
+    // Prefer Whisper (purpose-built speech-to-text) when a key is configured.
+    const { resolveWhisperConfig, whisperTranscribe, WhisperError } =
+      await import("./whisper.server");
+    const whisper = resolveWhisperConfig();
+    if (whisper) {
+      try {
+        const text = await whisperTranscribe(
+          whisper,
+          new Uint8Array(Buffer.from(base64, "base64")),
+          data.language,
+          data.previousText,
+        );
+        return { text, engine: "whisper" as const };
+      } catch (err) {
+        console.error("[transcribeAudioChunk:whisper]", err);
+        if (err instanceof WhisperError && err.status === 429) {
+          throw new Error(
+            "The AI is busy right now (too many requests). Please try again in a minute.",
+          );
+        }
+        throw new Error("Could not transcribe the audio. Please try again.");
+      }
+    }
+
     const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText } = await import("ai");
-    const base64 = data.wavDataUrl.slice("data:audio/wav;base64,".length);
 
     const result = await generateText({
       model: resolveTextModel(),
@@ -210,7 +235,15 @@ export const transcribeAudioChunk = createServerFn({ method: "POST" })
       throw aiError(err, "Could not transcribe the audio. Please try again.");
     });
 
-    return { text: (result.text ?? "").trim() };
+    return { text: (result.text ?? "").trim(), engine: "gemini" as const };
+  });
+
+/** Tells the client which speech-to-text engine the server has (no secrets returned). */
+export const getTranscriptionSetup = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const { resolveWhisperConfig } = await import("./whisper.server");
+    return { whisper: resolveWhisperConfig() !== null };
   });
 
 const SlideOverviewInput = z.object({
