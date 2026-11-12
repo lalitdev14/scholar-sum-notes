@@ -430,8 +430,8 @@ function ClassPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <AdjustableClassWorkspace>
-            <section className="surface-paper min-w-0 rounded-xl p-4 sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <section className="surface-paper flex min-w-0 flex-col rounded-xl p-4 sm:p-6 lg:h-full">
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <h2 className="text-2xl">Your notes</h2>
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
@@ -525,19 +525,20 @@ function ClassPage() {
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Tabs defaultValue="type" className="mt-4">
-                <TabsList>
+              <Tabs defaultValue="type" className="mt-4 flex min-h-0 flex-1 flex-col">
+                <TabsList className="shrink-0">
                   <TabsTrigger value="type">Type</TabsTrigger>
                   <TabsTrigger value="write">Handwrite</TabsTrigger>
                 </TabsList>
-                <TabsContent value="type">
+                <TabsContent value="type" className="flex min-h-0 flex-1 flex-col">
                   <NoteEditor
                     value={content}
                     onChange={setContent}
+                    fill
                     placeholder="Start writing what the professor is covering…"
                   />
                 </TabsContent>
-                <TabsContent value="write">
+                <TabsContent value="write" className="min-h-0 flex-1 lg:overflow-y-auto lg:pr-1">
                   <HandwritingCanvas onConvert={handleConvert} converting={converting} />
                   <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-4">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -586,7 +587,7 @@ function ClassPage() {
                 </TabsContent>
               </Tabs>
 
-              <p className="mt-3 text-xs text-muted-foreground">
+              <p className="mt-3 shrink-0 text-xs text-muted-foreground">
                 Only you can see your notes and your AI summary.
               </p>
             </section>
