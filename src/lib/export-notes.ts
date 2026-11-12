@@ -6,11 +6,11 @@
  * The docx and pdfmake libraries are loaded on demand to keep the page light.
  */
 import { generateJSON, type JSONContent, type Extensions } from "@tiptap/core";
-import { legacyToHtml, toEditorHtml } from "@/lib/note-format";
+import { legacyToHtml, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import type * as Docx from "docx";
 
 export type ExportFormat = "docx" | "pdf";
-export type ExportPart = "notes" | "summary" | "both";
+export type ExportPart = "notes" | "summary" | "both" | "transcript";
 
 export type ExportInput = {
   extensions: Extensions;
@@ -21,12 +21,39 @@ export type ExportInput = {
   notesHtml: string;
   summary: string;
   keyPoints: string[];
+  /** Used when part is "transcript" (a saved lecture recording). */
+  transcript?: { title: string; text: string } | undefined;
 };
 
 type Section = { title: string; doc: JSONContent };
 
 function buildSections(input: ExportInput, part: ExportPart): Section[] {
   const sections: Section[] = [];
+  if (part === "transcript") {
+    const t = input.transcript;
+    // Split long runs of speech into readable paragraphs of a few sentences.
+    const paragraphs = (t?.text ?? "")
+      .split(/\n+/)
+      .flatMap((block) => {
+        const sentences = block.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) ?? [block];
+        const out: string[] = [];
+        for (let i = 0; i < sentences.length; i += 5)
+          out.push(
+            sentences
+              .slice(i, i + 5)
+              .join("")
+              .trim(),
+          );
+        return out;
+      })
+      .filter(Boolean)
+      .join("\n");
+    sections.push({
+      title: t?.title || "Lecture transcript",
+      doc: generateJSON(plainTextToHtml(paragraphs) || "<p></p>", input.extensions),
+    });
+    return sections;
+  }
   if (part !== "summary") {
     sections.push({
       title: "My notes",
@@ -113,11 +140,19 @@ function readMarks(node: JSONContent): Marks {
 }
 
 function safeName(input: ExportInput, part: ExportPart, ext: string) {
-  const what = part === "notes" ? "notes" : part === "summary" ? "summary" : "notes-and-summary";
-  const base = `${input.code || "class"}-${input.subject || ""}-${what}`
-    .replace(/[^\w.-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+  const what =
+    part === "notes"
+      ? "notes"
+      : part === "summary"
+        ? "summary"
+        : part === "transcript"
+          ? `transcript-${input.transcript?.title ?? ""}`
+          : "notes-and-summary";
+  const base =
+    `${input.code || "class"}-${part === "transcript" ? "" : input.subject || ""}-${what}`
+      .replace(/[^\w.-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
   return `${base || "lectureloop-notes"}.${ext}`;
 }
 
@@ -323,7 +358,7 @@ async function exportDocx(input: ExportInput, part: ExportPart) {
     ),
   ];
   for (const s of sections) {
-    if (sections.length > 1)
+    if (sections.length > 1 || part === "transcript")
       children.push(
         new d.Paragraph(
           clean({ text: s.title, heading: HeadingLevel.HEADING_1, spacing: { before: 240 } }),
@@ -334,7 +369,7 @@ async function exportDocx(input: ExportInput, part: ExportPart) {
 
   const doc = new d.Document({
     creator: "LectureLoop",
-    title: `${input.subject} — ${part === "summary" ? "AI summary" : "notes"}`,
+    title: `${input.subject} — ${part === "summary" ? "AI summary" : part === "transcript" ? "transcript" : "notes"}`,
     styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
     numbering: {
       config: [
@@ -474,14 +509,14 @@ async function exportPdf(input: ExportInput, part: ExportPart) {
     { text: metaLine(input), color: "#666666", fontSize: 9, margin: [0, 2, 0, 14] },
   ];
   sections.forEach((s, i) => {
-    if (sections.length > 1)
+    if (sections.length > 1 || part === "transcript")
       content.push({ text: s.title, style: "section", pageBreak: i > 0 ? "before" : undefined });
     content.push(...blocks(s.doc.content));
   });
 
   const docDefinition = {
     info: {
-      title: `${input.subject} — ${part === "summary" ? "AI summary" : "notes"}`,
+      title: `${input.subject} — ${part === "summary" ? "AI summary" : part === "transcript" ? "transcript" : "notes"}`,
       creator: "LectureLoop",
     },
     pageMargins: [48, 48, 48, 56],
