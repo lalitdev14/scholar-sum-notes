@@ -14,7 +14,7 @@ const links = [
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-border/70 bg-background/60">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-10 xl:px-16">
         <div className="min-w-0">
           <Link to="/" className="inline-flex items-center gap-2 text-foreground">
             <GraduationCap className="h-5 w-5" />
@@ -45,7 +45,7 @@ export function SiteFooter() {
           </a>
         </nav>
       </div>
-      <div className="mx-auto max-w-[1600px] px-4 pb-6 text-xs text-muted-foreground sm:px-6">
+      <div className="mx-auto max-w-[1600px] px-4 pb-6 text-xs text-muted-foreground sm:px-6 lg:px-10 xl:px-16">
         © {new Date().getFullYear()} LectureLoop. Not an official New York University service.
       </div>
     </footer>

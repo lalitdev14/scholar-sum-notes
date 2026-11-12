@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { BookOpen, Plus, Search, Sparkles, Trash2, User } from "lucide-react";
+import { ArrowRight, BookOpen, Plus, Search, Sparkles, Trash2, User } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -33,6 +33,7 @@ import {
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 import { noteToPlainText } from "@/lib/note-format";
 import { SiteFooter } from "@/components/SiteFooter";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   staticData: { sitemap: false },
@@ -277,14 +278,15 @@ function Dashboard() {
     <div className="flex min-h-screen flex-col">
       <AuthenticatedHeader />
 
-      <main className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-12">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border pb-8">
-          <div className="max-w-xl">
+      <main className="mx-auto w-full max-w-[1600px] px-4 pb-14 pt-10 sm:px-6 lg:px-10 xl:px-16">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div className="max-w-3xl">
             <h1 className="text-3xl sm:text-4xl">
               Welcome back{me?.full_name ? `, ${me.full_name}` : ""}
             </h1>
-            <p className="mt-2 font-medium text-foreground">{uniTheme.name || "Your classes"}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{uniTheme.name || "Your classes"}</span>
+              <span className="mx-2 opacity-50">·</span>
               Only your enrolled subjects appear here. Search by name or code to add more.
             </p>
           </div>
@@ -409,9 +411,16 @@ function Dashboard() {
           </div>
         </div>
 
-        <section className="mt-8" aria-label="Your classes">
-          <h2 className="text-2xl">Your classes</h2>
-          <div className="mt-5 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <section className="mt-10" aria-label="Your classes">
+          <h2 className="flex items-center gap-2 text-xl">
+            Your classes
+            {classes && classes.length > 0 && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {classes.length}
+              </span>
+            )}
+          </h2>
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {isPending &&
               Array.from({ length: 2 }, (_, index) => (
                 <div
@@ -449,18 +458,24 @@ function Dashboard() {
                   key={klass.id}
                   to="/class/$classId"
                   params={{ classId: klass.id }}
-                  className="surface-paper group rounded-xl p-6 transition-transform hover:-translate-y-0.5"
+                  className="surface-paper group flex min-w-0 flex-col rounded-xl p-5 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h2 className="text-2xl">{klass.subject}</h2>
+                    <div className="min-w-0">
+                      <h2 className="truncate text-xl">{klass.subject}</h2>
                       <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                         <User className="h-3.5 w-3.5" />
                         {klass.professor}
                       </p>
                     </div>
                     <div className="flex items-start gap-1">
-                      <Badge variant="secondary">{klass.code}</Badge>
+                      <Badge
+                        variant="secondary"
+                        className="max-w-[9rem] truncate"
+                        title={klass.code}
+                      >
+                        {klass.code}
+                      </Badge>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -483,17 +498,30 @@ function Dashboard() {
                     </div>
                   </div>
 
-                  <p className="prose-notes mt-4 line-clamp-4 text-sm text-muted-foreground">
+                  <p className="prose-notes mt-3 line-clamp-3 text-sm text-muted-foreground">
                     {preview || "No notes yet — open the class to start writing."}
                   </p>
 
-                  <div className="mt-5 flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-                    <Sparkles className="h-3.5 w-3.5 text-accent" />
-                    {note?.summary
-                      ? "AI summary ready"
-                      : note?.content
-                        ? "Notes saved · not summarized yet"
-                        : "No notes yet"}
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-xs">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium",
+                        note?.summary
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {note?.summary
+                        ? "AI summary ready"
+                        : note?.content
+                          ? "Notes saved · not summarized"
+                          : "No notes yet"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+                      Open{" "}
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
                   </div>
                 </Link>
               );

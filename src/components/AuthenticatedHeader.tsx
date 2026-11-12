@@ -87,7 +87,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
       style={{ backgroundColor: uniTheme.primary, color: "#fff" }}
     >
       {/* Same container as every page (max-w-[1600px] px-4 sm:px-6) so the logo lines up with page content. */}
-      <div className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between lg:px-10 xl:px-16">
         <div className="flex min-w-0 items-center gap-4 md:gap-6">
           <Link
             to="/dashboard"

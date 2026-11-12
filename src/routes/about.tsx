@@ -168,7 +168,7 @@ function AboutPage() {
 
 function MinimalHeader() {
   return (
-    <header className="mx-auto w-full flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
+    <header className="mx-auto w-full flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6 lg:px-10 xl:px-16">
       <Link to="/" className="flex items-center gap-2">
         <GraduationCap className="h-5 w-5" />
         <span className="font-display text-xl">LectureLoop</span>
