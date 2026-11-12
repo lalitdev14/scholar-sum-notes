@@ -48,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,7 +108,6 @@ function ClassPage() {
   const [uploadingSlides, setUploadingSlides] = useState(false);
   const [removingSlideId, setRemovingSlideId] = useState<string | null>(null);
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
-  const [newSlideTitle, setNewSlideTitle] = useState("");
   const slidesInputRef = useRef<HTMLInputElement>(null);
 
   const { data: lectureSlides } = useQuery({
@@ -164,7 +164,7 @@ function ClassPage() {
           file_path: filePath,
           file_name: file.name.slice(0, 255),
           content_type: file.type,
-          title: (newSlideTitle.trim() || file.name.replace(/\.(pdf|pptx)$/i, "")).slice(0, 120),
+          title: file.name.replace(/\.(pdf|pptx)$/i, "").slice(0, 120),
         })
         .select("id")
         .single();
@@ -173,7 +173,6 @@ function ClassPage() {
         throw saveError;
       }
       setSelectedSlideId(row.id);
-      setNewSlideTitle("");
       await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
       toast.success("Slides uploaded");
     } catch (err) {
@@ -648,7 +647,7 @@ function ClassPage() {
               </AlertDialog>
 
               <Tabs defaultValue="type" className="mt-4 flex min-h-0 flex-1 flex-col">
-                <TabsList className="shrink-0">
+                <TabsList className="w-full shrink-0 justify-start">
                   <TabsTrigger value="type">Type</TabsTrigger>
                   <TabsTrigger value="write">Handwrite</TabsTrigger>
                   <TabsTrigger value="record" className="gap-1.5">
@@ -762,8 +761,11 @@ function ClassPage() {
               </p>
             </section>
 
-            <section className="min-w-0" aria-label="Lecture slides">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <section
+              className="surface-paper flex min-w-0 flex-col rounded-xl p-4 sm:p-6 lg:h-full"
+              aria-label="Lecture slides"
+            >
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <h2 className="text-2xl">Lecture slides</h2>
                 <input
                   ref={slidesInputRef}
@@ -773,57 +775,52 @@ function ClassPage() {
                   aria-label="Upload lecture slides"
                   onChange={(event) => void handleSlideUpload(event.target.files?.[0])}
                 />
-              </div>
-              <div className="mt-3 flex gap-2">
-                <Input
-                  value={newSlideTitle}
-                  maxLength={120}
-                  onChange={(e) => setNewSlideTitle(e.target.value)}
-                  placeholder="Name, e.g. Chapter 1"
-                  aria-label="Name for new slides"
-                  className="h-9"
-                />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="shrink-0"
                   disabled={uploadingSlides}
                   onClick={() => slidesInputRef.current?.click()}
                 >
-                  <FileUp /> {uploadingSlides ? "Uploading…" : "Add slides"}
+                  <FileUp className="mr-2 h-4 w-4" />
+                  {uploadingSlides ? "Uploading…" : "Add slides"}
                 </Button>
               </div>
+
               {lectureSlides && lectureSlides.length > 0 && (
-                <div
-                  className="mt-3 flex flex-wrap gap-2"
-                  role="tablist"
-                  aria-label="Your slide decks"
-                >
-                  {lectureSlides.map((item) => (
-                    <Button
-                      key={item.id}
-                      role="tab"
-                      aria-selected={item.id === activeSlides?.id}
-                      size="sm"
-                      variant={item.id === activeSlides?.id ? "default" : "outline"}
-                      onClick={() => setSelectedSlideId(item.id)}
-                      className="max-w-full"
-                    >
-                      <span className="truncate">{item.title || item.file_name}</span>
-                    </Button>
-                  ))}
-                </div>
-              )}
-              {activeSlides ? (
-                <>
-                  <div className="mt-3 flex min-w-0 items-center justify-between gap-2 text-sm text-muted-foreground">
-                    <span className="truncate" title={activeSlides.file_name}>
-                      {activeSlides.title || activeSlides.file_name}
-                    </span>
-                    <div className="flex shrink-0">
+                <div className="mt-4 flex h-9 shrink-0 items-center gap-1 rounded-lg bg-muted p-1">
+                  <div
+                    className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none]"
+                    role="tablist"
+                    aria-label="Your slide decks"
+                  >
+                    {lectureSlides.map((item) => {
+                      const active = item.id === activeSlides?.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          title={item.file_name}
+                          onClick={() => setSelectedSlideId(item.id)}
+                          className={cn(
+                            "max-w-[14rem] shrink-0 truncate rounded-md px-3 py-1 text-sm font-medium transition-colors",
+                            active
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {item.title || item.file_name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {activeSlides && (
+                    <div className="flex shrink-0 items-center border-l border-border/70 pl-1">
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-7 w-7"
                         aria-label="Rename slides"
                         title="Rename slides"
                         onClick={() => void handleSlideRename()}
@@ -837,12 +834,17 @@ function ClassPage() {
                         title="Remove selected slides"
                         disabled={removingSlideId === activeSlides.id}
                         onClick={() => void handleSlideRemove()}
-                        className="text-destructive hover:text-destructive"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
                       >
                         <Trash2 />
                       </Button>
                     </div>
-                  </div>
+                  )}
+                </div>
+              )}
+
+              {activeSlides ? (
+                <div className="mt-3 flex min-h-0 flex-1 flex-col">
                   <LectureSlideViewer
                     key={activeSlides.id}
                     slideId={activeSlides.id}
@@ -850,11 +852,22 @@ function ClassPage() {
                     fileName={activeSlides.file_name}
                     contentType={activeSlides.content_type}
                   />
-                </>
+                </div>
               ) : (
-                <p className="mt-5 border border-dashed border-border px-4 py-16 text-center text-sm text-muted-foreground">
-                  Upload a PDF or PowerPoint (.pptx) to follow along while you write.
-                </p>
+                <button
+                  type="button"
+                  onClick={() => slidesInputRef.current?.click()}
+                  disabled={uploadingSlides}
+                  className="mt-4 flex min-h-[320px] flex-1 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-background/40 px-6 text-center transition-colors hover:border-primary/40 hover:bg-background/70"
+                >
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+                    <FileUp className="h-5 w-5" />
+                  </span>
+                  <span className="text-base font-medium">Add your lecture slides</span>
+                  <span className="max-w-xs text-sm text-muted-foreground">
+                    Upload a PDF or PowerPoint (.pptx) to follow along next to your notes.
+                  </span>
+                </button>
               )}
             </section>
           </AdjustableClassWorkspace>
