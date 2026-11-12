@@ -96,6 +96,9 @@ function ClassPage() {
     staleTime: Infinity,
   });
   const [isRecording, setIsRecording] = useState(false);
+  // Right-hand card shows either the lecture slides or the student's AI summary.
+  const [rightView, setRightView] = useState<"slides" | "summary">("slides");
+  const rightViewChosen = useRef(false);
 
   const [content, setContent] = useState("");
   const [noteId, setNoteId] = useState<string | null>(null);
@@ -412,7 +415,7 @@ function ClassPage() {
       const { data: userData } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("notes")
-        .select("id, content, summary, key_points, summary_updated_at")
+        .select("id, content, summary, key_points, summary_updated_at, updated_at")
         .eq("class_id", classId)
         .eq("user_id", userData.user!.id)
         .order("created_at", { ascending: false })
@@ -482,6 +485,8 @@ function ClassPage() {
       await handleSave();
       await summarize({ data: { classId } });
       toast.success("Your summary is ready");
+      rightViewChosen.current = true;
+      setRightView("summary");
       queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (err) {
@@ -494,6 +499,20 @@ function ClassPage() {
   const mySummary = myNote?.summary?.trim() ? myNote.summary : "";
   const keyPoints = Array.isArray(myNote?.key_points) ? (myNote.key_points as string[]) : [];
   const hasNotes = Boolean(noteToPlainText(content));
+  // The summary is out of date when the notes were saved (or edited) after it was generated.
+  const summaryStale = Boolean(
+    mySummary &&
+    myNote?.summary_updated_at &&
+    myNote.updated_at &&
+    new Date(myNote.updated_at).getTime() - new Date(myNote.summary_updated_at).getTime() > 10_000,
+  );
+
+  // First visit: open the summary when there are no slides yet but a summary exists.
+  useEffect(() => {
+    if (rightViewChosen.current || lectureSlides === undefined || myNote === undefined) return;
+    rightViewChosen.current = true;
+    if (lectureSlides.length === 0 && mySummary) setRightView("summary");
+  }, [lectureSlides, myNote, mySummary]);
 
   async function handleExport(format: ExportFormat, part: ExportPart) {
     setExporting(true);
@@ -526,7 +545,7 @@ function ClassPage() {
     <div className="min-h-screen">
       <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
-      <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-10">
+      <main className="mx-auto max-w-[1600px] px-4 pt-10 pb-10 sm:px-6 lg:pb-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl">{klass?.subject ?? "Class"}</h1>
@@ -763,10 +782,50 @@ function ClassPage() {
 
             <section
               className="surface-paper flex min-w-0 flex-col rounded-xl p-4 sm:p-6 lg:h-full"
-              aria-label="Lecture slides"
+              aria-label="Lecture slides and AI summary"
             >
               <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-                <h2 className="text-2xl">Lecture slides</h2>
+                <h2
+                  className="flex items-baseline gap-5 text-2xl"
+                  role="tablist"
+                  aria-label="Show slides or AI summary"
+                >
+                  {(
+                    [
+                      ["slides", "Slides"],
+                      ["summary", "Summary"],
+                    ] as const
+                  ).map(([view, label]) => {
+                    const active = rightView === view;
+                    return (
+                      <button
+                        key={view}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => {
+                          rightViewChosen.current = true;
+                          setRightView(view);
+                        }}
+                        className={cn(
+                          "relative inline-flex items-center gap-1.5 pb-1 transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:rounded-full after:transition-colors",
+                          active
+                            ? "text-foreground after:bg-primary"
+                            : "text-muted-foreground/70 after:bg-transparent hover:text-foreground",
+                        )}
+                      >
+                        {view === "summary" && <Sparkles className="h-5 w-5 text-primary" />}
+                        {label}
+                        {view === "summary" && summaryStale && (
+                          <span
+                            className="absolute -right-2.5 top-0.5 h-2 w-2 rounded-full bg-amber-500"
+                            aria-label="Summary is out of date"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </h2>
                 <input
                   ref={slidesInputRef}
                   type="file"
@@ -775,141 +834,192 @@ function ClassPage() {
                   aria-label="Upload lecture slides"
                   onChange={(event) => void handleSlideUpload(event.target.files?.[0])}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={uploadingSlides}
-                  onClick={() => slidesInputRef.current?.click()}
-                >
-                  <FileUp className="mr-2 h-4 w-4" />
-                  {uploadingSlides ? "Uploading…" : "Add slides"}
-                </Button>
+                {rightView === "slides" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingSlides}
+                    onClick={() => slidesInputRef.current?.click()}
+                  >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    {uploadingSlides ? "Uploading…" : "Add slides"}
+                  </Button>
+                ) : (
+                  mySummary && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={summarizing || !hasNotes}
+                      onClick={handleSummarize}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {summarizing ? "Summarizing…" : "Regenerate"}
+                    </Button>
+                  )
+                )}
               </div>
 
-              {lectureSlides && lectureSlides.length > 0 && (
-                <div className="mt-4 flex h-9 shrink-0 items-center gap-1 rounded-lg bg-muted p-1">
-                  <div
-                    className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none]"
-                    role="tablist"
-                    aria-label="Your slide decks"
-                  >
-                    {lectureSlides.map((item) => {
-                      const active = item.id === activeSlides?.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          role="tab"
-                          aria-selected={active}
-                          title={item.file_name}
-                          onClick={() => setSelectedSlideId(item.id)}
-                          className={cn(
-                            "max-w-[14rem] shrink-0 truncate rounded-md px-3 py-1 text-sm font-medium transition-colors",
-                            active
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          {item.title || item.file_name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {activeSlides && (
-                    <div className="flex shrink-0 items-center border-l border-border/70 pl-1">
+              {rightView === "summary" && (
+                <div
+                  className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1 lg:overscroll-contain"
+                  aria-label="Your AI summary"
+                >
+                  {mySummary ? (
+                    <>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" /> Summary of your notes
+                        </span>
+                        {myNote?.summary_updated_at && (
+                          <span>
+                            Generated {new Date(myNote.summary_updated_at).toLocaleString()}
+                          </span>
+                        )}
+                        {summaryStale && (
+                          <button
+                            type="button"
+                            onClick={handleSummarize}
+                            disabled={summarizing}
+                            className="ml-auto rounded-full bg-amber-100 px-2.5 py-0.5 font-medium text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200"
+                          >
+                            Notes changed · update summary
+                          </button>
+                        )}
+                      </div>
+                      {keyPoints.length > 0 && (
+                        <div className="mt-4 rounded-lg border border-primary/15 bg-primary/5 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+                            Key takeaways
+                          </p>
+                          <ul className="mt-2 space-y-1.5 text-[15px] leading-relaxed">
+                            {keyPoints.map((point, i) => (
+                              <li key={i} className="flex gap-2">
+                                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                                <span>{point}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="prose-notes mt-4 space-y-2 text-base leading-relaxed [&_h3]:mt-5 [&_h3]:text-xl">
+                        {renderNote(mySummary)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-background/40 px-6 text-center">
+                      <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+                        <Sparkles className="h-5 w-5" />
+                      </span>
+                      <span className="text-base font-medium">
+                        Turn your notes into a study summary
+                      </span>
+                      <span className="max-w-xs text-sm text-muted-foreground">
+                        Write your notes, then get a comprehensive summary and key takeaways of
+                        everything you wrote, right here next to your notes.
+                      </span>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        aria-label="Rename slides"
-                        title="Rename slides"
-                        onClick={() => void handleSlideRename()}
+                        onClick={handleSummarize}
+                        disabled={summarizing || !hasNotes}
+                        className="mt-1"
                       >
-                        <Pencil />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remove selected slides"
-                        title="Remove selected slides"
-                        disabled={removingSlideId === activeSlides.id}
-                        onClick={() => void handleSlideRemove()}
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 />
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {summarizing ? "Summarizing…" : "Summarize my notes"}
                       </Button>
                     </div>
                   )}
                 </div>
               )}
 
-              {activeSlides ? (
-                <div className="mt-3 flex min-h-0 flex-1 flex-col">
-                  <LectureSlideViewer
-                    key={activeSlides.id}
-                    slideId={activeSlides.id}
-                    filePath={activeSlides.file_path}
-                    fileName={activeSlides.file_name}
-                    contentType={activeSlides.content_type}
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => slidesInputRef.current?.click()}
-                  disabled={uploadingSlides}
-                  className="mt-4 flex min-h-[320px] flex-1 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-background/40 px-6 text-center transition-colors hover:border-primary/40 hover:bg-background/70"
-                >
-                  <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
-                    <FileUp className="h-5 w-5" />
-                  </span>
-                  <span className="text-base font-medium">Add your lecture slides</span>
-                  <span className="max-w-xs text-sm text-muted-foreground">
-                    Upload a PDF or PowerPoint (.pptx) to follow along next to your notes.
-                  </span>
-                </button>
-              )}
-            </section>
-          </AdjustableClassWorkspace>
-
-          <aside className="ink-panel rounded-xl p-6 lg:col-span-2" aria-label="Your AI summary">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest opacity-80">
-              <Sparkles className="h-3.5 w-3.5" /> Your AI summary
-            </div>
-            <h2 className="mt-3 text-3xl text-primary-foreground">Summary of your notes</h2>
-
-            {mySummary ? (
-              <>
-                <div className="prose-notes mt-4 space-y-2 text-base leading-relaxed opacity-95 [&_h3]:mt-5 [&_h3]:text-2xl [&_h3]:text-primary-foreground">
-                  {renderNote(mySummary)}
-                </div>
-                {keyPoints.length > 0 && (
-                  <div className="mt-6 rounded-lg bg-white/10 p-4">
-                    <p className="text-xs uppercase tracking-widest opacity-80">Key takeaways</p>
-                    <ul className="mt-3 space-y-2 text-base opacity-95">
-                      {keyPoints.map((point, i) => (
-                        <li key={i} className="flex gap-2">
-                          <span className="opacity-60">—</span>
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
+              {/* Slides stay mounted while the summary is shown, so switching back is instant. */}
+              <div
+                className={cn("flex min-h-0 flex-1 flex-col", rightView !== "slides" && "hidden")}
+              >
+                {lectureSlides && lectureSlides.length > 0 && (
+                  <div className="mt-4 flex h-9 shrink-0 items-center gap-1 rounded-lg bg-muted p-1">
+                    <div
+                      className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none]"
+                      role="tablist"
+                      aria-label="Your slide decks"
+                    >
+                      {lectureSlides.map((item) => {
+                        const active = item.id === activeSlides?.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={active}
+                            title={item.file_name}
+                            onClick={() => setSelectedSlideId(item.id)}
+                            className={cn(
+                              "max-w-[14rem] shrink-0 truncate rounded-md px-3 py-1 text-sm font-medium transition-colors",
+                              active
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {item.title || item.file_name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {activeSlides && (
+                      <div className="flex shrink-0 items-center border-l border-border/70 pl-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label="Rename slides"
+                          title="Rename slides"
+                          onClick={() => void handleSlideRename()}
+                        >
+                          <Pencil />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remove selected slides"
+                          title="Remove selected slides"
+                          disabled={removingSlideId === activeSlides.id}
+                          onClick={() => void handleSlideRemove()}
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
-                {myNote?.summary_updated_at && (
-                  <p className="mt-6 text-xs opacity-70">
-                    Generated {new Date(myNote.summary_updated_at).toLocaleString()} · run
-                    "Summarize my notes" again after you add more.
-                  </p>
+
+                {activeSlides ? (
+                  <div className="mt-3 flex min-h-0 flex-1 flex-col">
+                    <LectureSlideViewer
+                      key={activeSlides.id}
+                      slideId={activeSlides.id}
+                      filePath={activeSlides.file_path}
+                      fileName={activeSlides.file_name}
+                      contentType={activeSlides.content_type}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => slidesInputRef.current?.click()}
+                    disabled={uploadingSlides}
+                    className="mt-4 flex min-h-[320px] flex-1 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-background/40 px-6 text-center transition-colors hover:border-primary/40 hover:bg-background/70"
+                  >
+                    <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+                      <FileUp className="h-5 w-5" />
+                    </span>
+                    <span className="text-base font-medium">Add your lecture slides</span>
+                    <span className="max-w-xs text-sm text-muted-foreground">
+                      Upload a PDF or PowerPoint (.pptx) to follow along next to your notes.
+                    </span>
+                  </button>
                 )}
-              </>
-            ) : (
-              <p className="mt-4 text-sm opacity-80">
-                No summary yet. Write your notes, then press "Summarize my notes" for a
-                comprehensive summary of everything you wrote.
-              </p>
-            )}
-          </aside>
+              </div>
+            </section>
+          </AdjustableClassWorkspace>
         </div>
       </main>
     </div>
