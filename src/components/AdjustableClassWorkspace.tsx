@@ -31,8 +31,9 @@ function DesktopWorkspace({ children }: { children: [ReactNode, ReactNode] }) {
 
   // The panel library sets an inline `height: 100%` on the group, so the viewport-based
   // height must live on this wrapper (otherwise the panels grow to fit their content).
+  // 9.5rem = site header + the compact class header + bottom padding.
   return (
-    <div className="h-[calc(100dvh-15rem)] min-h-[480px] max-h-[1000px]">
+    <div className="h-[calc(100dvh-9.5rem)] min-h-[480px] max-h-[1600px]">
       <ResizablePanelGroup
         orientation="horizontal"
         defaultLayout={defaultLayout}

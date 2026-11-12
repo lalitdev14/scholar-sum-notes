@@ -33,6 +33,7 @@ import {
   FileText,
   FileType,
   FileUp,
+  Lock,
   Pencil,
   Save,
   Sparkles,
@@ -545,15 +546,18 @@ function ClassPage() {
     <div className="min-h-screen">
       <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
-      <main className="mx-auto max-w-[1600px] px-4 pt-10 pb-10 sm:px-6 lg:pb-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl sm:text-4xl">{klass?.subject ?? "Class"}</h1>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span className="inline-flex items-center gap-2">
-                <User className="h-3.5 w-3.5" />
-                {klass?.professor}
-              </span>
+      <main className="mx-auto max-w-[1600px] px-4 pt-4 pb-6 sm:px-6 lg:pb-4">
+        {/* Compact one-line class header so the editor and slides get the height. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <h1 className="truncate text-xl sm:text-2xl">{klass?.subject ?? "Class"}</h1>
+            <p className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+              {klass?.professor && (
+                <span className="inline-flex items-center gap-1.5 truncate">
+                  <User className="h-3.5 w-3.5 shrink-0" />
+                  {klass.professor}
+                </span>
+              )}
               {klass?.term ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="opacity-60">·</span>
@@ -562,17 +566,27 @@ function ClassPage() {
               ) : null}
             </p>
           </div>
-          <Button onClick={handleSummarize} disabled={summarizing}>
+          <Button size="sm" onClick={handleSummarize} disabled={summarizing}>
             <Sparkles className="mr-2 h-4 w-4" />
             {summarizing ? "Summarizing…" : "Summarize my notes"}
           </Button>
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <div className="mt-3 grid gap-6 lg:grid-cols-2">
           <AdjustableClassWorkspace>
-            <section className="surface-paper flex min-w-0 flex-col rounded-xl p-4 sm:p-6 lg:h-full">
+            <section className="surface-paper flex min-w-0 flex-col rounded-xl p-4 sm:p-5 lg:h-full">
               <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-                <h2 className="text-2xl">Your notes</h2>
+                <h2 className="flex items-center gap-2 text-2xl">
+                  Your notes
+                  <span
+                    role="img"
+                    title="Private: only you can see your notes and your AI summary"
+                    aria-label="Private: only you can see your notes and your AI summary"
+                    className="text-muted-foreground"
+                  >
+                    <Lock className="h-4 w-4" />
+                  </span>
+                </h2>
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -774,14 +788,10 @@ function ClassPage() {
                   </div>
                 </TabsContent>
               </Tabs>
-
-              <p className="mt-3 shrink-0 text-xs text-muted-foreground">
-                Only you can see your notes and your AI summary.
-              </p>
             </section>
 
             <section
-              className="surface-paper flex min-w-0 flex-col rounded-xl p-4 sm:p-6 lg:h-full"
+              className="surface-paper flex min-w-0 flex-col rounded-xl p-4 sm:p-5 lg:h-full"
               aria-label="Lecture slides and AI summary"
             >
               <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
