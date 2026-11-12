@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 import { noteToPlainText } from "@/lib/note-format";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   staticData: { sitemap: false },
@@ -273,10 +274,10 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-12">
+      <main className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-12">
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border pb-8">
           <div className="max-w-xl">
             <h1 className="text-3xl sm:text-4xl">
@@ -543,6 +544,7 @@ function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <SiteFooter />
     </div>
   );
 }

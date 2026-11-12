@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { BookOpen, GraduationCap, NotebookPen, Sparkles } from "lucide-react";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/")({
   staticData: { sitemap: true },
@@ -71,11 +72,11 @@ function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       {signedIn ? (
         <AuthenticatedHeader />
       ) : (
-        <header className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
+        <header className="mx-auto w-full flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
           <div className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
@@ -87,7 +88,7 @@ function Landing() {
       )}
 
       <main>
-        <section className="mx-auto max-w-4xl px-4 sm:px-6 pb-16 pt-16 text-center">
+        <section className="mx-auto w-full max-w-4xl px-4 sm:px-6 pb-16 pt-16 text-center">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
             For NYU students · Your personal class notebook
           </p>
@@ -108,7 +109,7 @@ function Landing() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1600px] px-4 sm:px-6 pb-24">
+        <section className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 pb-24">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step) => (
               <div key={step.title} className="surface-paper rounded-xl p-6">
@@ -121,21 +122,7 @@ function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-border/70">
-        <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-3 px-4 py-8 sm:flex-row sm:px-6">
-          <span className="text-sm text-muted-foreground">
-            LectureLoop — your notes, summarized.
-          </span>
-          <div className="flex items-center gap-4">
-            <Link to="/privacy" className="text-sm font-medium text-primary hover:underline">
-              Privacy
-            </Link>
-            <Link to="/about" className="text-sm font-medium text-primary hover:underline">
-              About
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
