@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,11 +20,9 @@ import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
 type AuthenticatedHeaderProps = {
   trailing?: ReactNode;
-  /** Match a full-width page (e.g. the class workspace) so the logo lines up with its content. */
-  wide?: boolean;
 };
 
-export function AuthenticatedHeader({ trailing, wide = false }: AuthenticatedHeaderProps) {
+export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
   const navigate = useNavigate();
   const { isAdmin } = useRoles();
   const uniTheme = useUniversityTheme();
@@ -89,12 +86,8 @@ export function AuthenticatedHeader({ trailing, wide = false }: AuthenticatedHea
       className="border-b border-black/10"
       style={{ backgroundColor: uniTheme.primary, color: "#fff" }}
     >
-      <div
-        className={cn(
-          "mx-auto grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between",
-          wide ? "max-w-[1600px]" : "max-w-6xl",
-        )}
-      >
+      {/* Same container as every page (max-w-[1600px] px-4 sm:px-6) so the logo lines up with page content. */}
+      <div className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between">
         <div className="flex min-w-0 items-center gap-4 md:gap-6">
           <Link
             to="/dashboard"

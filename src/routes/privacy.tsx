@@ -76,7 +76,7 @@ const sections: { title: string; body: string[] }[] = [
 function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+      <header className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <GraduationCap className="h-5 w-5" />
           <span className="font-display text-xl">LectureLoop</span>

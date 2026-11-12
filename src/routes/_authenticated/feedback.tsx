@@ -26,7 +26,8 @@ export const Route = createFileRoute("/_authenticated/feedback")({
       { title: "Share feedback — LectureLoop" },
       {
         name: "description",
-        content: "Tell us what could be better about LectureLoop — notes, summaries, or anything else.",
+        content:
+          "Tell us what could be better about LectureLoop — notes, summaries, or anything else.",
       },
       { property: "og:title", content: "Share feedback — LectureLoop" },
       { property: "og:description", content: "Suggest improvements to LectureLoop." },
@@ -101,7 +102,6 @@ function FeedbackPage() {
     },
   });
 
-
   async function submit() {
     const parsed = feedbackSchema.safeParse({ category, message });
     if (!parsed.success) {
@@ -152,7 +152,7 @@ function FeedbackPage() {
     <div className="min-h-screen bg-background">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-10">
+      <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-10 [&>*]:max-w-4xl">
         <h1 className="font-display text-3xl font-bold">Share feedback</h1>
         <p className="mt-2 text-muted-foreground">
           Noticed something confusing, missing, or worth improving? Tell us and we will look at it.
@@ -237,24 +237,33 @@ function FeedbackPage() {
                 {(inbox ?? []).map((f) => {
                   const name = f.author_name;
                   return (
-
                     <li key={f.id} className="rounded-lg border bg-card p-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold">{name ?? "Student"}</span>
                         <Badge variant="secondary">
                           {CATEGORIES.find((c) => c.value === f.category)?.label ?? f.category}
                         </Badge>
-                        <Badge variant={f.status === "open" ? "outline" : "default"}>{f.status}</Badge>
+                        <Badge variant={f.status === "open" ? "outline" : "default"}>
+                          {f.status}
+                        </Badge>
                         <span className="text-xs text-muted-foreground">
                           {new Date(f.created_at).toLocaleDateString()}
                         </span>
                       </div>
                       <p className="mt-2 whitespace-pre-wrap text-sm">{f.message}</p>
                       <div className="mt-3 flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setStatus(f.id, "in_review")}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(f.id, "in_review")}
+                        >
                           Mark in review
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => setStatus(f.id, "resolved")}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setStatus(f.id, "resolved")}
+                        >
                           Mark resolved
                         </Button>
                       </div>
