@@ -31,6 +31,7 @@ const sections: { id: string; title: string; body: string[] }[] = [
     body: [
       "Account details: your name, your NYU email address (@nyu.edu or @stern.nyu.edu) and your university. If you sign in with Google, we receive your name, email address and profile picture from Google. If you use a password, it is stored only as a secure hash.",
       "Content you create: class notes, handwritten pages (the images and their text), lecture slides you upload, slide bookmarks and comments, lecture transcripts, your AI summaries, and feedback you send us.",
+      "Contact messages: if you use the contact form, we keep your name, email and message so we can reply.",
       "Lecture audio: when you use the Transcribe tab we store only the resulting text. Audio recordings are never saved.",
       "Class activity: the classes you join or create, and your role (student or admin).",
       "On your device: your browser keeps small preferences (such as the notes/slides split) and an unsaved transcript draft, so a reload doesn't lose a lecture. These stay in your browser.",
@@ -89,7 +90,7 @@ const sections: { id: string; title: string; body: string[] }[] = [
     title: "Changes and contact",
     body: [
       "If we change this policy we will update the date at the top of this page and, for significant changes, tell you in the app.",
-      `Questions or requests? Contact ${CONTACT_EMAIL}.`,
+      `Questions or requests? Use the contact form at lectureloop.org/contact or email ${CONTACT_EMAIL}.`,
     ],
   },
 ];

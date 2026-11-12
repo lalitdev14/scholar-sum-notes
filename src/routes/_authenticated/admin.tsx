@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { AnnouncementsAdmin } from "@/components/AnnouncementsAdmin";
+import { ContactMessagesAdmin } from "@/components/ContactMessagesAdmin";
 import {
   Dialog,
   DialogContent,
@@ -284,6 +285,7 @@ function AdminPanel() {
           ))}
         </section>
 
+        <ContactMessagesAdmin />
         <AnnouncementsAdmin />
 
         <section className="surface-paper mt-10 rounded-xl p-6" aria-labelledby="signup-heading">
