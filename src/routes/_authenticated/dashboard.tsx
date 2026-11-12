@@ -143,7 +143,7 @@ function Dashboard() {
   const [deleteMyData, setDeleteMyData] = useState(false);
   const [removing, setRemoving] = useState(false);
 
-  /** Unenrolls the student; optionally deletes their own notes, slides and handwriting for the class. */
+  /** Unenrolls the student; optionally deletes their own notes, slides, handwriting and transcripts for the class. */
   async function removeClass() {
     if (!removeTarget) return;
     setRemoving(true);
@@ -187,6 +187,12 @@ function Dashboard() {
             .eq("user_id", userId);
           if (error) throw error;
         }
+        const { error: transcriptsError } = await supabase
+          .from("audio_transcripts")
+          .delete()
+          .eq("class_id", classId)
+          .eq("user_id", userId);
+        if (transcriptsError) throw transcriptsError;
         const { error: notesError } = await supabase
           .from("notes")
           .delete()
@@ -504,7 +510,7 @@ function Dashboard() {
             <AlertDialogTitle>Remove {removeTarget?.subject}?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteMyData
-                ? "The class is removed from your dashboard and your notes, AI summary, slides and handwriting for it are permanently deleted."
+                ? "The class is removed from your dashboard and your notes, AI summary, slides, handwriting and lecture transcripts for it are permanently deleted."
                 : "The class is removed from your dashboard. Your notes are kept and come back if you enroll in it again."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -512,11 +518,11 @@ function Dashboard() {
             <Checkbox
               checked={deleteMyData}
               onCheckedChange={(v) => setDeleteMyData(v === true)}
-              aria-label="Also delete my notes, slides and handwriting for this class"
+              aria-label="Also delete my notes, slides, handwriting and transcripts for this class"
               className="mt-0.5"
             />
             <span>
-              Also delete my notes, slides and handwriting for this class
+              Also delete my notes, slides, handwriting and transcripts for this class
               <span className="block text-xs text-muted-foreground">This cannot be undone.</span>
             </span>
           </label>

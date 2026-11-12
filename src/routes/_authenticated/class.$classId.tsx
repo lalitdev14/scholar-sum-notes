@@ -3,13 +3,24 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { saveNote, summarizeMyNotes, transcribeHandwriting } from "@/lib/notes.functions";
+import {
+  saveNote,
+  summarizeMyNotes,
+  transcribeAudioChunk,
+  transcribeHandwriting,
+} from "@/lib/notes.functions";
+import { AudioTranscriber } from "@/components/AudioTranscriber";
+import {
+  RecordingsList,
+  type Recording,
+  type RecordingExportFormat,
+} from "@/components/RecordingsList";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NoteEditor, noteContentExtensions } from "@/components/NoteEditor";
 import type { ExportFormat, ExportPart } from "@/lib/export-notes";
 import { renderNote } from "@/components/SummaryMarkdown";
-import { noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
+import { escapeHtml, noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HandwritingCanvas } from "@/components/HandwritingCanvas";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
@@ -75,6 +86,8 @@ function ClassPage() {
   const save = useServerFn(saveNote);
   const summarize = useServerFn(summarizeMyNotes);
   const transcribe = useServerFn(transcribeHandwriting);
+  const transcribeAudio = useServerFn(transcribeAudioChunk);
+  const [isRecording, setIsRecording] = useState(false);
 
   const [content, setContent] = useState("");
   const [noteId, setNoteId] = useState<string | null>(null);
@@ -271,6 +284,108 @@ function ClassPage() {
       return signed;
     },
   });
+
+  const { data: recordings } = useQuery({
+    queryKey: ["recordings", classId],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("audio_transcripts")
+        .select("id, title, transcript, duration_seconds, created_at")
+        .eq("class_id", classId)
+        .eq("user_id", userData.user!.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as Recording[];
+    },
+  });
+
+  async function saveRecording(rec: {
+    title: string;
+    transcript: string;
+    durationSeconds: number;
+  }): Promise<boolean> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) throw new Error("You're signed out. Sign in again to save.");
+      const { error } = await supabase.from("audio_transcripts").insert({
+        class_id: classId,
+        user_id: userId,
+        title: rec.title.slice(0, 200),
+        transcript: rec.transcript,
+        duration_seconds: rec.durationSeconds,
+      });
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["recordings", classId] });
+      toast.success("Transcript saved to this class");
+      return true;
+    } catch (err) {
+      console.error("[saveRecording]", err);
+      toast.error("Could not save the transcript. It's kept here; try again.");
+      return false;
+    }
+  }
+
+  async function deleteRecording(rec: Recording) {
+    const { error } = await supabase.from("audio_transcripts").delete().eq("id", rec.id);
+    if (error) {
+      toast.error("Could not delete the transcript.");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["recordings", classId] });
+    toast.success("Transcript deleted");
+  }
+
+  function addRecordingToNotes(rec: Recording) {
+    setContent(
+      (prev) =>
+        (noteToPlainText(prev) ? toEditorHtml(prev) : "") +
+        `<h2>${escapeHtml(rec.title)}</h2>` +
+        plainTextToHtml(rec.transcript),
+    );
+    toast.success("Transcript added to your notes. Remember to save.");
+  }
+
+  async function exportRecording(rec: Recording, format: RecordingExportFormat) {
+    const base = `${klass?.code || "class"}-transcript-${rec.title}`
+      .replace(/[^\w.-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    if (format === "txt") {
+      const header = `${rec.title}\n${klass?.subject ?? ""}${klass?.code ? ` (${klass.code})` : ""}\n${new Date(rec.created_at).toLocaleString()}\n\n`;
+      const url = URL.createObjectURL(new Blob([header + rec.transcript], { type: "text/plain" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${base}.txt`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      return;
+    }
+    try {
+      const { exportNotes } = await import("@/lib/export-notes");
+      await exportNotes(
+        {
+          extensions: noteContentExtensions(),
+          subject: klass?.subject ?? "Class",
+          code: klass?.code ?? "",
+          professor: klass?.professor ?? null,
+          term: klass?.term ?? null,
+          notesHtml: "",
+          summary: "",
+          keyPoints: [],
+          transcript: { title: rec.title, text: rec.transcript },
+        },
+        format,
+        "transcript",
+      );
+      toast.success(`Downloaded ${format === "docx" ? "Word" : "PDF"} file`);
+    } catch (err) {
+      console.error("[exportRecording]", err);
+      toast.error("Could not create the file. Please try again.");
+    }
+  }
 
   const { data: klass } = useQuery({
     queryKey: ["class", classId],
@@ -529,6 +644,15 @@ function ClassPage() {
                 <TabsList className="shrink-0">
                   <TabsTrigger value="type">Type</TabsTrigger>
                   <TabsTrigger value="write">Handwrite</TabsTrigger>
+                  <TabsTrigger value="record" className="gap-1.5">
+                    {isRecording && (
+                      <span
+                        className="h-2 w-2 animate-pulse rounded-full bg-red-500"
+                        aria-label="Recording"
+                      />
+                    )}
+                    Transcribe
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="type" className="flex min-h-0 flex-1 flex-col">
                   <NoteEditor
@@ -583,6 +707,44 @@ function ClassPage() {
                         Every page you convert is archived here as the original handwriting.
                       </p>
                     )}
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Saved lecture transcripts
+                    </p>
+                    <RecordingsList
+                      recordings={recordings}
+                      onExport={(r, f) => void exportRecording(r, f)}
+                      onAddToNotes={addRecordingToNotes}
+                      onDelete={deleteRecording}
+                      emptyText="Transcripts you record in the Transcribe tab are saved here too."
+                    />
+                  </div>
+                </TabsContent>
+                {/* Kept mounted so a recording keeps running while you switch tabs. */}
+                <TabsContent
+                  value="record"
+                  forceMount
+                  className="min-h-0 flex-1 data-[state=inactive]:hidden lg:overflow-y-auto lg:pr-1"
+                >
+                  <AudioTranscriber
+                    classId={classId}
+                    defaultTitle={`${klass?.code ? `${klass.code} ` : ""}lecture – ${new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`}
+                    transcribeChunk={async (args) => (await transcribeAudio({ data: args })).text}
+                    onSave={saveRecording}
+                    onRecordingChange={setIsRecording}
+                  />
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Saved lecture transcripts
+                    </p>
+                    <RecordingsList
+                      recordings={recordings}
+                      onExport={(r, f) => void exportRecording(r, f)}
+                      onAddToNotes={addRecordingToNotes}
+                      onDelete={deleteRecording}
+                    />
                   </div>
                 </TabsContent>
               </Tabs>
