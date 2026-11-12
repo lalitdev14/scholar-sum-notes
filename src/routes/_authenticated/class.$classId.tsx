@@ -544,10 +544,7 @@ function ClassPage() {
 
   return (
     <div className="min-h-screen">
-      <AuthenticatedHeader
-        wide
-        trailing={klass && <Badge variant="secondary">{klass.code}</Badge>}
-      />
+      <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
       <main className="mx-auto max-w-[1600px] px-4 pt-4 pb-6 sm:px-6 lg:pb-4">
         {/* Compact one-line class header so the editor and slides get the height. */}

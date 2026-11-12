@@ -75,7 +75,7 @@ function Landing() {
       {signedIn ? (
         <AuthenticatedHeader />
       ) : (
-        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <header className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
           <div className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
@@ -108,7 +108,7 @@ function Landing() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-24">
+        <section className="mx-auto max-w-[1600px] px-4 sm:px-6 pb-24">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step) => (
               <div key={step.title} className="surface-paper rounded-xl p-6">
@@ -122,7 +122,7 @@ function Landing() {
       </main>
 
       <footer className="border-t border-border/70">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 sm:flex-row">
+        <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-3 px-4 py-8 sm:flex-row sm:px-6">
           <span className="text-sm text-muted-foreground">
             LectureLoop — your notes, summarized.
           </span>

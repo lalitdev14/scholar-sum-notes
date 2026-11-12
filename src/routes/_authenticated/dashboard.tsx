@@ -276,7 +276,7 @@ function Dashboard() {
     <div className="min-h-screen">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-12">
+      <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-12">
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-border pb-8">
           <div className="max-w-xl">
             <h1 className="text-3xl sm:text-4xl">
@@ -410,7 +410,7 @@ function Dashboard() {
 
         <section className="mt-8" aria-label="Your classes">
           <h2 className="text-2xl">Your classes</h2>
-          <div className="mt-5 grid gap-6 md:grid-cols-2">
+          <div className="mt-5 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {isPending &&
               Array.from({ length: 2 }, (_, index) => (
                 <div
@@ -441,7 +441,7 @@ function Dashboard() {
             {classes?.map((klass) => {
               const note = klass.myNote;
               const preview = (note?.summary || noteToPlainText(note?.content ?? ""))
-                .replace(/\[color=[a-z]+\]|\[\/color\]|\*\*|^## |^- /gm, "")
+                .replace(/\[color=[a-z]+\]|\[\/color\]|\*\*|^#{1,3} |^- /gm, "")
                 .trim();
               return (
                 <Link
