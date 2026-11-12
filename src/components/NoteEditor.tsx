@@ -52,7 +52,13 @@ export function noteContentExtensions() {
   ];
 }
 
-type Props = { value: string; onChange: (html: string) => void; placeholder?: string };
+type Props = {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder?: string;
+  /** On desktop, grow to fill the parent's remaining height instead of a fixed height. */
+  fill?: boolean;
+};
 
 const TEXT_COLORS = [
   "#000000",
@@ -71,7 +77,7 @@ const TEXT_COLORS = [
 const HIGHLIGHTS = ["#fef08a", "#bbf7d0", "#bfdbfe", "#fbcfe8", "#fed7aa", "#e9d5ff"];
 const FONT_SIZES = ["12", "14", "16", "18", "20", "24", "30", "36"];
 
-export function NoteEditor({ value, onChange, placeholder }: Props) {
+export function NoteEditor({ value, onChange, placeholder, fill }: Props) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -101,7 +107,12 @@ export function NoteEditor({ value, onChange, placeholder }: Props) {
 
   return (
     // Fixed-height document: the toolbar and word count stay put, only the text scrolls.
-    <div className="mt-3 flex h-[clamp(420px,62vh,760px)] flex-col overflow-hidden rounded-lg border border-border bg-background">
+    <div
+      className={cn(
+        "mt-3 flex h-[clamp(420px,62vh,760px)] flex-col overflow-hidden rounded-lg border border-border bg-background",
+        fill && "lg:h-auto lg:min-h-[320px] lg:flex-1",
+      )}
+    >
       <div className="shrink-0">
         {editor ? (
           <Toolbar editor={editor} />

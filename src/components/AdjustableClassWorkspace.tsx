@@ -1,19 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
 // Explicit storage keeps browser APIs out of server rendering and tolerates
 // browsers where persistent storage is unavailable.
 const layoutStorage = {
   getItem: (key: string) => {
-    try { return window.localStorage.getItem(key); } catch { return null; }
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
   },
   setItem: (key: string, value: string) => {
-    try { window.localStorage.setItem(key, value); } catch { /* Optional preference. */ }
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      /* Optional preference. */
+    }
   },
 };
 
@@ -25,26 +29,39 @@ function DesktopWorkspace({ children }: { children: [ReactNode, ReactNode] }) {
     onlySaveAfterUserInteractions: true,
   });
 
+  // The panel library sets an inline `height: 100%` on the group, so the viewport-based
+  // height must live on this wrapper (otherwise the panels grow to fit their content).
   return (
-    <ResizablePanelGroup
-      orientation="horizontal"
-      defaultLayout={defaultLayout}
-      onLayoutChanged={onLayoutChanged}
-      className="min-h-[600px] h-[calc(100dvh-12rem)] max-h-[1000px]"
-    >
-      <ResizablePanel id="notes" defaultSize="50%" minSize="30%" className="h-full overflow-y-auto">
-        {children[0]}
-      </ResizablePanel>
-      <ResizableHandle
-        withHandle
-        aria-label="Resize notes and slides"
-        title="Resize notes and slides"
-        className="mx-3 shrink-0 touch-none"
-      />
-      <ResizablePanel id="slides" defaultSize="50%" minSize="30%" className="h-full overflow-y-auto">
-        {children[1]}
-      </ResizablePanel>
-    </ResizablePanelGroup>
+    <div className="h-[calc(100dvh-14rem)] min-h-[560px] max-h-[1000px]">
+      <ResizablePanelGroup
+        orientation="horizontal"
+        defaultLayout={defaultLayout}
+        onLayoutChanged={onLayoutChanged}
+      >
+        <ResizablePanel
+          id="notes"
+          defaultSize="50%"
+          minSize="30%"
+          className="h-full overflow-y-auto"
+        >
+          {children[0]}
+        </ResizablePanel>
+        <ResizableHandle
+          withHandle
+          aria-label="Resize notes and slides"
+          title="Resize notes and slides"
+          className="mx-3 shrink-0 touch-none"
+        />
+        <ResizablePanel
+          id="slides"
+          defaultSize="50%"
+          minSize="30%"
+          className="h-full overflow-y-auto"
+        >
+          {children[1]}
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </div>
   );
 }
 
@@ -61,7 +78,11 @@ export function AdjustableClassWorkspace({ children }: { children: [ReactNode, R
 
   return (
     <div className="min-w-0 lg:col-span-2">
-      {desktop ? <DesktopWorkspace>{children}</DesktopWorkspace> : <div className="grid min-w-0 gap-6">{children}</div>}
+      {desktop ? (
+        <DesktopWorkspace>{children}</DesktopWorkspace>
+      ) : (
+        <div className="grid min-w-0 gap-6">{children}</div>
+      )}
     </div>
   );
 }
