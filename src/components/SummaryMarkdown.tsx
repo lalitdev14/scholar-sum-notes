@@ -68,7 +68,7 @@ export function renderNote(text: string): ReactNode {
       return;
     }
     flush();
-    const h = line.match(/^## (.*)$/);
+    const h = line.match(/^#{1,3} (.*)$/);
     if (h)
       blocks.push(
         <h3 key={i} className="mt-3 text-xl font-bold">

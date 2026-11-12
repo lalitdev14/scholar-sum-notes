@@ -448,6 +448,102 @@ export function LectureSlideViewer({
             )}
           </div>
         )}
+        {/* Bookmarks: floats over the slide so it never takes space from it. */}
+        {ready && bookmarksOpen && (
+          <div
+            id="slide-bookmarks"
+            className="absolute inset-x-3 bottom-3 z-20 max-h-[min(18rem,calc(100%-1.5rem))] overflow-y-auto rounded-lg border border-border bg-background/95 p-3 pt-2 shadow-lg backdrop-blur-md"
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+                <Bookmark className="h-3.5 w-3.5" /> Bookmarks
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Close bookmarks"
+                onClick={() => setBookmarksOpen(false)}
+              >
+                <X />
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {isPdf ? (
+                <label className="flex items-center gap-1 text-sm text-muted-foreground">
+                  Page
+                  <Input
+                    type="number"
+                    min={1}
+                    value={pdfPage}
+                    onChange={(e) => setPdfPage(Number(e.target.value))}
+                    className="h-8 w-16"
+                    aria-label="Page number to bookmark"
+                  />
+                </label>
+              ) : (
+                <span className="text-sm text-muted-foreground">Slide {slide}</span>
+              )}
+              <Input
+                value={comment}
+                maxLength={1000}
+                onChange={(e) => setComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void addBookmark();
+                }}
+                placeholder="Add a comment (optional)"
+                className="h-8 min-w-0 flex-1"
+                aria-label="Bookmark comment"
+              />
+              <Button size="sm" onClick={() => void addBookmark()} disabled={adding}>
+                <Bookmark /> {adding ? "Saving…" : "Add"}
+              </Button>
+            </div>
+            {bookmarks && bookmarks.length > 0 ? (
+              <ul className="mt-3 space-y-1.5">
+                {bookmarks.map((b) => (
+                  <li
+                    key={b.id}
+                    className={cn(
+                      "flex items-start gap-2 rounded-md border px-3 py-1.5 text-sm",
+                      b.slide_number === currentNumber
+                        ? "border-primary bg-primary/5"
+                        : "border-border",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => goTo(b.slide_number)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <span className="font-semibold">
+                        {unit} {b.slide_number}
+                      </span>
+                      {b.comment && (
+                        <span className="mt-0.5 block break-words text-muted-foreground">
+                          {b.comment}
+                        </span>
+                      )}
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                      aria-label={`Remove bookmark on ${b.slide_number}`}
+                      onClick={() => void removeBookmark(b.id)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Bookmark important {isPdf ? "pages" : "slides"} to jump back to them later.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Toolbar */}
@@ -537,89 +633,6 @@ export function LectureSlideViewer({
               </Button>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Bookmarks panel */}
-      {ready && bookmarksOpen && (
-        <div
-          id="slide-bookmarks"
-          className="mt-3 max-h-56 shrink-0 overflow-y-auto rounded-lg border border-border bg-background/60 p-3"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            {isPdf ? (
-              <label className="flex items-center gap-1 text-sm text-muted-foreground">
-                Page
-                <Input
-                  type="number"
-                  min={1}
-                  value={pdfPage}
-                  onChange={(e) => setPdfPage(Number(e.target.value))}
-                  className="h-8 w-16"
-                  aria-label="Page number to bookmark"
-                />
-              </label>
-            ) : (
-              <span className="text-sm text-muted-foreground">Slide {slide}</span>
-            )}
-            <Input
-              value={comment}
-              maxLength={1000}
-              onChange={(e) => setComment(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void addBookmark();
-              }}
-              placeholder="Add a comment (optional)"
-              className="h-8 min-w-0 flex-1"
-              aria-label="Bookmark comment"
-            />
-            <Button size="sm" onClick={() => void addBookmark()} disabled={adding}>
-              <Bookmark /> {adding ? "Saving…" : "Add"}
-            </Button>
-          </div>
-          {bookmarks && bookmarks.length > 0 ? (
-            <ul className="mt-3 space-y-1.5">
-              {bookmarks.map((b) => (
-                <li
-                  key={b.id}
-                  className={cn(
-                    "flex items-start gap-2 rounded-md border px-3 py-1.5 text-sm",
-                    b.slide_number === currentNumber
-                      ? "border-primary bg-primary/5"
-                      : "border-border",
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => goTo(b.slide_number)}
-                    className="min-w-0 flex-1 text-left"
-                  >
-                    <span className="font-semibold">
-                      {unit} {b.slide_number}
-                    </span>
-                    {b.comment && (
-                      <span className="mt-0.5 block break-words text-muted-foreground">
-                        {b.comment}
-                      </span>
-                    )}
-                  </button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
-                    aria-label={`Remove bookmark on ${b.slide_number}`}
-                    onClick={() => void removeBookmark(b.id)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Bookmark important {isPdf ? "pages" : "slides"} to jump back to them later.
-            </p>
-          )}
         </div>
       )}
     </div>
