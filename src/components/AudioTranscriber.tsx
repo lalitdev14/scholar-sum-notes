@@ -545,21 +545,21 @@ export function AudioTranscriber({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm">
+      <div className="grid grid-cols-2 gap-2 text-sm">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={defaultTitle}
           maxLength={200}
           aria-label="Recording title"
-          className="h-9 min-w-[12rem] flex-1"
+          className="col-span-2 h-9 min-w-0"
         />
         <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
           disabled={busy}
           aria-label="Lecture language"
-          className="h-9 rounded-md border border-input bg-background px-2"
+          className="h-9 min-w-0 rounded-md border border-input bg-background px-2"
         >
           {LANGUAGES.map(([code, label]) => (
             <option key={code} value={code}>
@@ -575,13 +575,11 @@ export function AudioTranscriber({
           }}
           disabled={busy || status === "paused"}
           aria-label="Transcription engine"
-          className="h-9 rounded-md border border-input bg-background px-2"
+          className="h-9 min-w-0 rounded-md border border-input bg-background px-2"
         >
           {browserSupported.current && <option value="browser">Live (instant)</option>}
           <option value="ai">
-            {whisperAvailable
-              ? "Whisper AI (most accurate, ~15 s delay)"
-              : "AI (more accurate, ~15 s delay)"}
+            {whisperAvailable ? "Whisper AI (most accurate)" : "AI (more accurate, ~15 s delay)"}
           </option>
         </select>
       </div>
