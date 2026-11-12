@@ -35,6 +35,23 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toEditorHtml } from "@/lib/note-format";
 
+/** The document schema used by the editor (also used to export notes to Word/PDF). */
+export function noteContentExtensions() {
+  return [
+    StarterKit.configure({
+      heading: { levels: [1, 2, 3] },
+      link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
+    }),
+    TextStyle,
+    Color,
+    FontSize,
+    Highlight.configure({ multicolor: true }),
+    TextAlign.configure({ types: ["heading", "paragraph"] }),
+    TaskList,
+    TaskItem.configure({ nested: true }),
+  ];
+}
+
 type Props = { value: string; onChange: (html: string) => void; placeholder?: string };
 
 const TEXT_COLORS = [
@@ -58,17 +75,7 @@ export function NoteEditor({ value, onChange, placeholder }: Props) {
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-        link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
-      }),
-      TextStyle,
-      Color,
-      FontSize,
-      Highlight.configure({ multicolor: true }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
+      ...noteContentExtensions(),
       Placeholder.configure({ placeholder: placeholder ?? "Start typing…" }),
       CharacterCount,
     ],

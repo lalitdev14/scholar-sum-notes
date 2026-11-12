@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { saveNote, summarizeMyNotes, transcribeHandwriting } from "@/lib/notes.functions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { NoteEditor } from "@/components/NoteEditor";
+import { NoteEditor, noteContentExtensions } from "@/components/NoteEditor";
+import type { ExportFormat, ExportPart } from "@/lib/export-notes";
 import { renderNote } from "@/components/SummaryMarkdown";
 import { noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,25 @@ import { LectureSlideViewer } from "@/components/LectureSlideViewer";
 import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { FileUp, Pencil, Save, Sparkles, Trash2, User } from "lucide-react";
+import {
+  Download,
+  FileText,
+  FileType,
+  FileUp,
+  Pencil,
+  Save,
+  Sparkles,
+  Trash2,
+  User,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
@@ -28,8 +47,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-
-
 export const Route = createFileRoute("/_authenticated/class/$classId")({
   staticData: { sitemap: false },
   head: () => ({
@@ -37,10 +54,14 @@ export const Route = createFileRoute("/_authenticated/class/$classId")({
       { title: "Class notes — LectureLoop" },
       {
         name: "description",
-        content: "Write your class notes next to the lecture slides and get an AI summary of your own notes.",
+        content:
+          "Write your class notes next to the lecture slides and get an AI summary of your own notes.",
       },
       { property: "og:title", content: "Class notes — LectureLoop" },
-      { property: "og:description", content: "Personal note-taking with an AI summary of your notes." },
+      {
+        property: "og:description",
+        content: "Personal note-taking with an AI summary of your notes.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -59,6 +80,7 @@ function ClassPage() {
   const [noteId, setNoteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [converting, setConverting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -74,20 +96,29 @@ function ClassPage() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) return [];
-      const { data, error } = await supabase.from("lecture_slides")
+      const { data, error } = await supabase
+        .from("lecture_slides")
         .select("id, title, file_name, file_path, content_type, created_at")
-        .eq("class_id", classId).eq("user_id", userId)
+        .eq("class_id", classId)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 
-  const activeSlides = lectureSlides?.find((item) => item.id === selectedSlideId) ?? lectureSlides?.[0];
+  const activeSlides =
+    lectureSlides?.find((item) => item.id === selectedSlideId) ?? lectureSlides?.[0];
 
   async function handleSlideUpload(file: File | undefined) {
     if (!file) return;
-    if (!/\.(pdf|pptx)$/i.test(file.name) || !["application/pdf", "application/vnd.openxmlformats-officedocument.presentationml.presentation"].includes(file.type)) {
+    if (
+      !/\.(pdf|pptx)$/i.test(file.name) ||
+      ![
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      ].includes(file.type)
+    ) {
       toast.error("Choose a PDF or PowerPoint (.pptx) file.");
       return;
     }
@@ -101,11 +132,22 @@ function ClassPage() {
       const userId = userData.user?.id;
       if (!userId) throw new Error("Sign in to upload slides.");
       const filePath = `${userId}/${classId}/${crypto.randomUUID()}.${file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "pptx"}`;
-      const { error: uploadError } = await supabase.storage.from("lecture-slides").upload(filePath, file, { contentType: file.type });
+      const { error: uploadError } = await supabase.storage
+        .from("lecture-slides")
+        .upload(filePath, file, { contentType: file.type });
       if (uploadError) throw uploadError;
-      const { data: row, error: saveError } = await supabase.from("lecture_slides")
-        .insert({ class_id: classId, user_id: userId, file_path: filePath, file_name: file.name.slice(0, 255), content_type: file.type, title: (newSlideTitle.trim() || file.name.replace(/\.(pdf|pptx)$/i, "")).slice(0, 120) })
-        .select("id").single();
+      const { data: row, error: saveError } = await supabase
+        .from("lecture_slides")
+        .insert({
+          class_id: classId,
+          user_id: userId,
+          file_path: filePath,
+          file_name: file.name.slice(0, 255),
+          content_type: file.type,
+          title: (newSlideTitle.trim() || file.name.replace(/\.(pdf|pptx)$/i, "")).slice(0, 120),
+        })
+        .select("id")
+        .single();
       if (saveError) {
         await supabase.storage.from("lecture-slides").remove([filePath]);
         throw saveError;
@@ -124,10 +166,18 @@ function ClassPage() {
 
   async function handleSlideRename() {
     if (!activeSlides) return;
-    const name = window.prompt("Name these slides", activeSlides.title || activeSlides.file_name)?.trim();
+    const name = window
+      .prompt("Name these slides", activeSlides.title || activeSlides.file_name)
+      ?.trim();
     if (name === undefined || name === null) return;
-    const { error } = await supabase.from("lecture_slides").update({ title: name.slice(0, 120) }).eq("id", activeSlides.id);
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("lecture_slides")
+      .update({ title: name.slice(0, 120) })
+      .eq("id", activeSlides.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
     toast.success("Slides renamed");
   }
@@ -136,9 +186,14 @@ function ClassPage() {
     if (!activeSlides) return;
     setRemovingSlideId(activeSlides.id);
     try {
-      const { error } = await supabase.storage.from("lecture-slides").remove([activeSlides.file_path]);
+      const { error } = await supabase.storage
+        .from("lecture-slides")
+        .remove([activeSlides.file_path]);
       if (error) throw error;
-      const { error: removeError } = await supabase.from("lecture_slides").delete().eq("id", activeSlides.id);
+      const { error: removeError } = await supabase
+        .from("lecture_slides")
+        .delete()
+        .eq("id", activeSlides.id);
       if (removeError) throw removeError;
       setSelectedSlideId(null);
       await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
@@ -180,7 +235,9 @@ function ClassPage() {
         toast.error("Nothing legible found on the canvas.");
         return false;
       }
-      setContent((prev) => (noteToPlainText(prev) ? toEditorHtml(prev) : "") + plainTextToHtml(res.text));
+      setContent(
+        (prev) => (noteToPlainText(prev) ? toEditorHtml(prev) : "") + plainTextToHtml(res.text),
+      );
       void archiveHandwriting(imageDataUrl, res.text);
       return true;
     } catch (err) {
@@ -215,8 +272,6 @@ function ClassPage() {
     },
   });
 
-
-
   const { data: klass } = useQuery({
     queryKey: ["class", classId],
     queryFn: async () => {
@@ -229,7 +284,6 @@ function ClassPage() {
       return data;
     },
   });
-
 
   const { data: myNote } = useQuery({
     queryKey: ["my-note", classId],
@@ -318,13 +372,40 @@ function ClassPage() {
 
   const mySummary = myNote?.summary?.trim() ? myNote.summary : "";
   const keyPoints = Array.isArray(myNote?.key_points) ? (myNote.key_points as string[]) : [];
+  const hasNotes = Boolean(noteToPlainText(content));
+
+  async function handleExport(format: ExportFormat, part: ExportPart) {
+    setExporting(true);
+    try {
+      const { exportNotes } = await import("@/lib/export-notes");
+      await exportNotes(
+        {
+          extensions: noteContentExtensions(),
+          subject: klass?.subject ?? "Class",
+          code: klass?.code ?? "",
+          professor: klass?.professor ?? null,
+          term: klass?.term ?? null,
+          notesHtml: content,
+          summary: mySummary,
+          keyPoints,
+        },
+        format,
+        part,
+      );
+      toast.success(`Downloaded ${format === "docx" ? "Word" : "PDF"} file`);
+    } catch (err) {
+      console.error("[export]", err);
+      toast.error("Could not create the file. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen">
       <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
       <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-10">
-
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl">{klass?.subject ?? "Class"}</h1>
@@ -349,152 +430,262 @@ function ClassPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <AdjustableClassWorkspace>
-          <section className="surface-paper min-w-0 rounded-xl p-4 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-2xl">Your notes</h2>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {saving ? "Saving…" : "Save"}
-                </Button>
+            <section className="surface-paper min-w-0 rounded-xl p-4 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-2xl">Your notes</h2>
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={exporting || (!hasNotes && !mySummary)}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        {exporting ? "Exporting…" : "Export"}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-60">
+                      {(["docx", "pdf"] as const).map((format, i) => (
+                        <div key={format}>
+                          {i > 0 && <DropdownMenuSeparator />}
+                          <DropdownMenuLabel className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+                            {format === "docx" ? (
+                              <FileText className="h-3.5 w-3.5" />
+                            ) : (
+                              <FileType className="h-3.5 w-3.5" />
+                            )}
+                            {format === "docx" ? "Word (.docx)" : "PDF"}
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem
+                            disabled={!hasNotes}
+                            onSelect={() => void handleExport(format, "notes")}
+                          >
+                            My notes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={!mySummary}
+                            onSelect={() => void handleExport(format, "summary")}
+                          >
+                            My AI summary
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={!hasNotes || !mySummary}
+                            onSelect={() => void handleExport(format, "both")}
+                          >
+                            Notes + summary
+                          </DropdownMenuItem>
+                        </div>
+                      ))}
+                      {!mySummary && (
+                        <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                          Press "Summarize my notes" to export a summary.
+                        </p>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {saving ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={deleting || (!noteId && !noteToPlainText(content))}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {deleting ? "Deleting…" : "Delete"}
+                  </Button>
+                </div>
+              </div>
+
+              <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete your notes for this class?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This permanently removes everything you have written for this class, including
+                      its AI summary. It cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deleting}>Keep my notes</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDelete();
+                      }}
+                      disabled={deleting}
+                    >
+                      {deleting ? "Deleting…" : "Yes, delete permanently"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Tabs defaultValue="type" className="mt-4">
+                <TabsList>
+                  <TabsTrigger value="type">Type</TabsTrigger>
+                  <TabsTrigger value="write">Handwrite</TabsTrigger>
+                </TabsList>
+                <TabsContent value="type">
+                  <NoteEditor
+                    value={content}
+                    onChange={setContent}
+                    placeholder="Start writing what the professor is covering…"
+                  />
+                </TabsContent>
+                <TabsContent value="write">
+                  <HandwritingCanvas onConvert={handleConvert} converting={converting} />
+                  <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-4">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Live transcript {converting ? "· converting…" : ""}
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed">
+                      {noteToPlainText(content) ||
+                        "Your handwriting will appear here as typed text."}
+                    </p>
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Saved handwritten pages
+                    </p>
+                    {pages && pages.length > 0 ? (
+                      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {pages.map((page) => (
+                          <a
+                            key={page.id}
+                            href={page.url ?? undefined}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block overflow-hidden rounded-lg border border-border/60 bg-white"
+                          >
+                            {page.url && (
+                              <img
+                                src={page.url}
+                                alt={`Handwritten note from ${new Date(page.created_at).toLocaleString()}`}
+                                loading="lazy"
+                                className="h-28 w-full object-cover"
+                              />
+                            )}
+                            <span className="block px-2 py-1 text-[10px] text-muted-foreground">
+                              {new Date(page.created_at).toLocaleString()}
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Every page you convert is archived here as the original handwriting.
+                      </p>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <p className="mt-3 text-xs text-muted-foreground">
+                Only you can see your notes and your AI summary.
+              </p>
+            </section>
+
+            <section className="min-w-0" aria-label="Lecture slides">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-2xl">Lecture slides</h2>
+                <input
+                  ref={slidesInputRef}
+                  type="file"
+                  accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                  className="hidden"
+                  aria-label="Upload lecture slides"
+                  onChange={(event) => void handleSlideUpload(event.target.files?.[0])}
+                />
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Input
+                  value={newSlideTitle}
+                  maxLength={120}
+                  onChange={(e) => setNewSlideTitle(e.target.value)}
+                  placeholder="Name, e.g. Chapter 1"
+                  aria-label="Name for new slides"
+                  className="h-9"
+                />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => setConfirmDelete(true)}
-                  disabled={deleting || (!noteId && !noteToPlainText(content))}
+                  className="shrink-0"
+                  disabled={uploadingSlides}
+                  onClick={() => slidesInputRef.current?.click()}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {deleting ? "Deleting…" : "Delete"}
+                  <FileUp /> {uploadingSlides ? "Uploading…" : "Add slides"}
                 </Button>
               </div>
-            </div>
-
-            <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete your notes for this class?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This permanently removes everything you have written for this class, including
-                    its AI summary. It cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deleting}>Keep my notes</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleDelete();
-                    }}
-                    disabled={deleting}
-                  >
-                    {deleting ? "Deleting…" : "Yes, delete permanently"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-
-            <Tabs defaultValue="type" className="mt-4">
-              <TabsList>
-                <TabsTrigger value="type">Type</TabsTrigger>
-                <TabsTrigger value="write">Handwrite</TabsTrigger>
-              </TabsList>
-              <TabsContent value="type">
-                <NoteEditor
-                  value={content}
-                  onChange={setContent}
-                  placeholder="Start writing what the professor is covering…"
-                />
-              </TabsContent>
-              <TabsContent value="write">
-                <HandwritingCanvas onConvert={handleConvert} converting={converting} />
-                <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-4">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Live transcript {converting ? "· converting…" : ""}
-                  </p>
-                   <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed">
-                    {noteToPlainText(content) || "Your handwriting will appear here as typed text."}
-                  </p>
+              {lectureSlides && lectureSlides.length > 0 && (
+                <div
+                  className="mt-3 flex flex-wrap gap-2"
+                  role="tablist"
+                  aria-label="Your slide decks"
+                >
+                  {lectureSlides.map((item) => (
+                    <Button
+                      key={item.id}
+                      role="tab"
+                      aria-selected={item.id === activeSlides?.id}
+                      size="sm"
+                      variant={item.id === activeSlides?.id ? "default" : "outline"}
+                      onClick={() => setSelectedSlideId(item.id)}
+                      className="max-w-full"
+                    >
+                      <span className="truncate">{item.title || item.file_name}</span>
+                    </Button>
+                  ))}
                 </div>
-
-                <div className="mt-6">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Saved handwritten pages
-                  </p>
-                  {pages && pages.length > 0 ? (
-                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {pages.map((page) => (
-                        <a
-                          key={page.id}
-                          href={page.url ?? undefined}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block overflow-hidden rounded-lg border border-border/60 bg-white"
-                        >
-                          {page.url && (
-                            <img
-                              src={page.url}
-                              alt={`Handwritten note from ${new Date(page.created_at).toLocaleString()}`}
-                              loading="lazy"
-                              className="h-28 w-full object-cover"
-                            />
-                          )}
-                          <span className="block px-2 py-1 text-[10px] text-muted-foreground">
-                            {new Date(page.created_at).toLocaleString()}
-                          </span>
-                        </a>
-                      ))}
+              )}
+              {activeSlides ? (
+                <>
+                  <div className="mt-3 flex min-w-0 items-center justify-between gap-2 text-sm text-muted-foreground">
+                    <span className="truncate" title={activeSlides.file_name}>
+                      {activeSlides.title || activeSlides.file_name}
+                    </span>
+                    <div className="flex shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Rename slides"
+                        title="Rename slides"
+                        onClick={() => void handleSlideRename()}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remove selected slides"
+                        title="Remove selected slides"
+                        disabled={removingSlideId === activeSlides.id}
+                        onClick={() => void handleSlideRemove()}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 />
+                      </Button>
                     </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Every page you convert is archived here as the original handwriting.
-                    </p>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <p className="mt-3 text-xs text-muted-foreground">
-              Only you can see your notes and your AI summary.
-            </p>
-          </section>
-
-           <section className="min-w-0" aria-label="Lecture slides">
-             <div className="flex flex-wrap items-center justify-between gap-2">
-               <h2 className="text-2xl">Lecture slides</h2>
-               <input ref={slidesInputRef} type="file" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation" className="hidden" aria-label="Upload lecture slides" onChange={(event) => void handleSlideUpload(event.target.files?.[0])} />
-             </div>
-             <div className="mt-3 flex gap-2">
-               <Input value={newSlideTitle} maxLength={120} onChange={(e) => setNewSlideTitle(e.target.value)} placeholder="Name, e.g. Chapter 1" aria-label="Name for new slides" className="h-9" />
-               <Button variant="outline" size="sm" className="shrink-0" disabled={uploadingSlides} onClick={() => slidesInputRef.current?.click()}>
-                 <FileUp /> {uploadingSlides ? "Uploading…" : "Add slides"}
-               </Button>
-             </div>
-             {lectureSlides && lectureSlides.length > 0 && (
-               <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label="Your slide decks">
-                 {lectureSlides.map((item) => (
-                   <Button key={item.id} role="tab" aria-selected={item.id === activeSlides?.id} size="sm" variant={item.id === activeSlides?.id ? "default" : "outline"} onClick={() => setSelectedSlideId(item.id)} className="max-w-full">
-                     <span className="truncate">{item.title || item.file_name}</span>
-                   </Button>
-                 ))}
-               </div>
-             )}
-             {activeSlides ? (
-               <>
-                 <div className="mt-3 flex min-w-0 items-center justify-between gap-2 text-sm text-muted-foreground">
-                   <span className="truncate" title={activeSlides.file_name}>{activeSlides.title || activeSlides.file_name}</span>
-                   <div className="flex shrink-0">
-                     <Button variant="ghost" size="icon" aria-label="Rename slides" title="Rename slides" onClick={() => void handleSlideRename()}><Pencil /></Button>
-                     <Button variant="ghost" size="icon" aria-label="Remove selected slides" title="Remove selected slides" disabled={removingSlideId === activeSlides.id} onClick={() => void handleSlideRemove()} className="text-destructive hover:text-destructive"><Trash2 /></Button>
-                   </div>
-                 </div>
-                 <LectureSlideViewer key={activeSlides.id} slideId={activeSlides.id} filePath={activeSlides.file_path} fileName={activeSlides.file_name} contentType={activeSlides.content_type} />
-               </>
-             ) : (
-               <p className="mt-5 border border-dashed border-border px-4 py-16 text-center text-sm text-muted-foreground">Upload a PDF or PowerPoint (.pptx) to follow along while you write.</p>
-             )}
-           </section>
+                  </div>
+                  <LectureSlideViewer
+                    key={activeSlides.id}
+                    slideId={activeSlides.id}
+                    filePath={activeSlides.file_path}
+                    fileName={activeSlides.file_name}
+                    contentType={activeSlides.content_type}
+                  />
+                </>
+              ) : (
+                <p className="mt-5 border border-dashed border-border px-4 py-16 text-center text-sm text-muted-foreground">
+                  Upload a PDF or PowerPoint (.pptx) to follow along while you write.
+                </p>
+              )}
+            </section>
           </AdjustableClassWorkspace>
 
           <aside className="ink-panel rounded-xl p-6 lg:col-span-2" aria-label="Your AI summary">
@@ -535,7 +726,6 @@ function ClassPage() {
               </p>
             )}
           </aside>
-
         </div>
       </main>
     </div>
