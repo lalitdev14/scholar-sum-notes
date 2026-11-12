@@ -236,7 +236,7 @@ function AdminPanel() {
 
   if (checkingRole) {
     return (
-      <p className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-16 text-muted-foreground">
+      <p className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-16 text-muted-foreground lg:px-10 xl:px-16">
         Checking access…
       </p>
     );
@@ -261,7 +261,7 @@ function AdminPanel() {
     <div className="flex min-h-screen flex-col">
       <AuthenticatedHeader />
 
-      <main className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-12">
+      <main className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-12 lg:px-10 xl:px-16">
         <h1 className="text-3xl sm:text-4xl">Admin panel</h1>
         <p className="mt-1 text-muted-foreground">
           {data?.scope.universityName

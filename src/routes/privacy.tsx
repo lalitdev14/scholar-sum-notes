@@ -105,7 +105,7 @@ function PrivacyPage() {
       {signedIn ? (
         <AuthenticatedHeader />
       ) : (
-        <header className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
+        <header className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6 lg:px-10 xl:px-16">
           <Link to="/" className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
@@ -116,7 +116,7 @@ function PrivacyPage() {
         </header>
       )}
 
-      <main className="mx-auto w-full max-w-[1600px] px-4 py-10 sm:px-6 sm:py-14">
+      <main className="mx-auto w-full max-w-[1600px] px-4 py-10 sm:px-6 sm:py-14 lg:px-10 xl:px-16">
         <div className="grid gap-8 lg:grid-cols-[14rem_minmax(0,48rem)]">
           {/* Contents: sticky on desktop */}
           <nav aria-label="On this page" className="hidden lg:block">

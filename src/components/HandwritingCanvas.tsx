@@ -35,7 +35,9 @@ export function HandwritingCanvas({
     ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    const all = drawingRef.current ? [...strokesRef.current, drawingRef.current] : strokesRef.current;
+    const all = drawingRef.current
+      ? [...strokesRef.current, drawingRef.current]
+      : strokesRef.current;
     for (const stroke of all) {
       ctx.strokeStyle = stroke.erase ? "#ffffff" : "#141414";
       for (let i = 1; i < stroke.points.length; i++) {
@@ -88,9 +90,12 @@ export function HandwritingCanvas({
     if (!live && idleTimer.current) clearTimeout(idleTimer.current);
   }, [live]);
 
-  useEffect(() => () => {
-    if (idleTimer.current) clearTimeout(idleTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    },
+    [],
+  );
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -112,9 +117,10 @@ export function HandwritingCanvas({
   function move(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawingRef.current) return;
     e.preventDefault();
-    const events = typeof e.nativeEvent.getCoalescedEvents === "function"
-      ? e.nativeEvent.getCoalescedEvents()
-      : [e.nativeEvent];
+    const events =
+      typeof e.nativeEvent.getCoalescedEvents === "function"
+        ? e.nativeEvent.getCoalescedEvents()
+        : [e.nativeEvent];
     const rect = e.currentTarget.getBoundingClientRect();
     for (const ev of events) {
       drawingRef.current.points.push({
