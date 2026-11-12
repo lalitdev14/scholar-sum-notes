@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GraduationCap, Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 import aboutDesk from "@/../public/about-desk.jpg";
+import { CONTACT_EMAIL, SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/about")({
   staticData: { sitemap: true },
@@ -53,10 +54,10 @@ function AboutPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       {signedIn ? <AuthenticatedHeader /> : <MinimalHeader />}
 
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-16 sm:py-24">
+      <main className="mx-auto w-full max-w-4xl px-4 sm:px-6 py-16 sm:py-24">
         <article className="surface-paper rounded-2xl p-8 md:p-16">
           <header className="mb-12 md:mb-16">
             <span className="mb-4 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -151,7 +152,7 @@ function AboutPage() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <a href="mailto:lalit.dev.jakher@nyu.edu">
+              <a href={`mailto:${CONTACT_EMAIL}`}>
                 <Mail className="mr-2 h-4 w-4" />
                 Get in touch
               </a>
@@ -160,23 +161,14 @@ function AboutPage() {
         </article>
       </main>
 
-      <footer className="border-t border-border/70">
-        <div className="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-3 px-4 py-8 sm:flex-row sm:px-6">
-          <span className="text-sm text-muted-foreground">
-            LectureLoop — your notes, summarized.
-          </span>
-          <Link to="/" className="text-sm font-medium text-primary hover:underline">
-            Back to home
-          </Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
 
 function MinimalHeader() {
   return (
-    <header className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
+    <header className="mx-auto w-full flex max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6">
       <Link to="/" className="flex items-center gap-2">
         <GraduationCap className="h-5 w-5" />
         <span className="font-display text-xl">LectureLoop</span>

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { useRoles } from "@/hooks/useRoles";
 import { MessageSquarePlus, Inbox } from "lucide-react";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/_authenticated/feedback")({
   staticData: { sitemap: false },
@@ -149,10 +150,10 @@ function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-10 [&>*]:max-w-4xl">
+      <main className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-10 [&>*]:max-w-4xl">
         <h1 className="font-display text-3xl font-bold">Share feedback</h1>
         <p className="mt-2 text-muted-foreground">
           Noticed something confusing, missing, or worth improving? Tell us and we will look at it.
@@ -275,6 +276,7 @@ function FeedbackPage() {
           </section>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }

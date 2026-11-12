@@ -44,6 +44,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { KeyRound, Pencil, ShieldCheck, Trash2, Upload, UserX } from "lucide-react";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   staticData: { sitemap: false },
@@ -235,7 +236,7 @@ function AdminPanel() {
 
   if (checkingRole) {
     return (
-      <p className="mx-auto max-w-[1600px] px-4 sm:px-6 py-16 text-muted-foreground">
+      <p className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-16 text-muted-foreground">
         Checking access…
       </p>
     );
@@ -243,7 +244,7 @@ function AdminPanel() {
 
   if (!isAdmin) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-24 text-center">
+      <main className="mx-auto w-full max-w-2xl px-6 py-24 text-center">
         <ShieldCheck className="mx-auto h-8 w-8 text-muted-foreground" />
         <h1 className="mt-4 text-3xl">Admin only</h1>
         <p className="mt-2 text-muted-foreground">
@@ -257,10 +258,10 @@ function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <AuthenticatedHeader />
 
-      <main className="mx-auto max-w-[1600px] px-4 sm:px-6 py-12">
+      <main className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 py-12">
         <h1 className="text-3xl sm:text-4xl">Admin panel</h1>
         <p className="mt-1 text-muted-foreground">
           {data?.scope.universityName
@@ -958,6 +959,7 @@ function AdminPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <SiteFooter />
     </div>
   );
 }
