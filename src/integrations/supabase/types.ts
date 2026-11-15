@@ -10,21 +10,86 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
-      allowed_email_domains: {
-        Row: { created_at: string; domain: string; university_id: string | null }
-        Insert: { created_at?: string; domain: string; university_id?: string | null }
-        Update: { created_at?: string; domain?: string; university_id?: string | null }
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          target: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          target?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          target?: string | null
+        }
         Relationships: []
       }
-      registration_allowlist: {
-        Row: { created_at: string; email: string; note: string }
-        Insert: { created_at?: string; email: string; note?: string }
-        Update: { created_at?: string; email?: string; note?: string }
+      ai_usage: {
+        Row: {
+          count: number
+          day: string
+          feature: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          day?: string
+          feature: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          feature?: string
+          user_id?: string
+        }
         Relationships: []
+      }
+      allowed_email_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          university_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          university_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          university_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allowed_email_domains_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       announcement_reads: {
         Row: {
@@ -79,45 +144,39 @@ export type Database = {
         }
         Relationships: []
       }
-      class_summaries: {
+      audio_transcripts: {
         Row: {
           class_id: string
-          key_points: Json
-          notes_count: number
-          review_note: string
-          reviewed: boolean
-          reviewed_at: string | null
-          reviewed_by: string | null
-          summary: string
-          updated_at: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          title: string
+          transcript: string
+          user_id: string
         }
         Insert: {
           class_id: string
-          key_points?: Json
-          notes_count?: number
-          review_note?: string
-          reviewed?: boolean
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          summary?: string
-          updated_at?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          title?: string
+          transcript?: string
+          user_id: string
         }
         Update: {
           class_id?: string
-          key_points?: Json
-          notes_count?: number
-          review_note?: string
-          reviewed?: boolean
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          summary?: string
-          updated_at?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          title?: string
+          transcript?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "class_summaries_class_id_fkey"
+            foreignKeyName: "audio_transcripts_class_id_fkey"
             columns: ["class_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -330,44 +389,6 @@ export type Database = {
           },
         ]
       }
-      audio_transcripts: {
-        Row: {
-          class_id: string
-          created_at: string
-          duration_seconds: number
-          id: string
-          title: string
-          transcript: string
-          user_id: string
-        }
-        Insert: {
-          class_id: string
-          created_at?: string
-          duration_seconds?: number
-          id?: string
-          title?: string
-          transcript?: string
-          user_id: string
-        }
-        Update: {
-          class_id?: string
-          created_at?: string
-          duration_seconds?: number
-          id?: string
-          title?: string
-          transcript?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audio_transcripts_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       handwriting_pages: {
         Row: {
           class_id: string
@@ -517,6 +538,24 @@ export type Database = {
           },
         ]
       }
+      registration_allowlist: {
+        Row: {
+          created_at: string
+          email: string
+          note: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          note?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          note?: string
+        }
+        Relationships: []
+      }
       slide_bookmarks: {
         Row: {
           comment: string
@@ -606,6 +645,7 @@ export type Database = {
     }
     Functions: {
       can_register: { Args: { _email: string }; Returns: boolean }
+      consume_ai_quota: { Args: { _feature: string }; Returns: boolean }
       current_university_id: { Args: never; Returns: string }
       has_role: {
         Args: {

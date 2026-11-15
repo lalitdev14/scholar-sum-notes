@@ -37,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { AnnouncementsAdmin } from "@/components/AnnouncementsAdmin";
 import { ContactMessagesAdmin } from "@/components/ContactMessagesAdmin";
+import { AdminAuditLog } from "@/components/AdminAuditLog";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { KeyRound, Pencil, ShieldCheck, Trash2, Upload, UserX } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
+import { friendlyError } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   staticData: { sitemap: false },
@@ -127,7 +129,7 @@ function AdminPanel() {
       else setNewDomain("");
       queryClient.invalidateQueries({ queryKey: ["admin-registration"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
 
   const { data: myUserId } = useQuery({
@@ -155,7 +157,7 @@ function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["admin-directory"] });
       queryClient.invalidateQueries({ queryKey: ["my-roles"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
 
   const passwordMutation = useMutation({
@@ -165,7 +167,7 @@ function AdminPanel() {
       setPasswordTarget(null);
       setNewPassword("");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
 
   const uploadMutation = useMutation({
@@ -189,7 +191,7 @@ function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
 
   const editMutation = useMutation({
@@ -200,7 +202,7 @@ function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
 
   const deleteUserMutation = useMutation({
@@ -211,7 +213,7 @@ function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["admin-directory"] });
       queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
 
   const deleteMutation = useMutation({
@@ -223,7 +225,7 @@ function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
 
   const visibleClasses = (data?.classes ?? []).filter((c) => {
@@ -784,6 +786,7 @@ function AdminPanel() {
             {directoryPending && <p className="p-3 text-muted-foreground">Loading accounts…</p>}
           </div>
         </section>
+        <AdminAuditLog />
       </main>
 
       <Dialog

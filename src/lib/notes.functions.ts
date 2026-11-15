@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { noteToPlainText } from "@/lib/note-format";
 
 /** Turns AI provider failures into a message a student can act on. */
@@ -16,6 +18,37 @@ function aiError(err: unknown, fallback: string): Error {
     return new Error("The AI is busy right now (too many requests). Please try again in a minute.");
   }
   return new Error(fallback);
+}
+
+const QUOTA_LABELS = {
+  summary: "AI summaries",
+  handwriting: "handwriting conversions",
+  slide_overview: "slide overviews",
+  audio: "AI audio transcription",
+} as const;
+
+/**
+ * Counts one use of an AI feature against the signed-in user's daily limit (enforced in
+ * the database) and throws a friendly error when the limit is reached.
+ */
+async function useAiQuota(supabase: SupabaseClient<Database>, feature: keyof typeof QUOTA_LABELS) {
+  const { data, error } = await supabase.rpc("consume_ai_quota", { _feature: feature });
+  if (error) {
+    console.error("[ai-quota]", error.message);
+    throw new Error("Could not check your AI usage. Please try again.");
+  }
+  if (!data) {
+    throw new Error(
+      `You've reached today's limit for ${QUOTA_LABELS[feature]}. It resets at midnight (UTC).`,
+    );
+  }
+}
+
+/** Database errors are logged, never shown: students get a short, safe message. */
+function saveError(error: { code?: string; message: string }): Error {
+  console.error("[saveNote]", error.code, error.message);
+  if (error.code === "42501") return new Error("Enroll in this class to save notes here.");
+  return new Error("Could not save your notes. Please try again.");
 }
 
 const SaveNoteInput = z.object({
@@ -38,7 +71,7 @@ export const saveNote = createServerFn({ method: "POST" })
         .eq("user_id", userId)
         .select("id")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) throw saveError(error);
       return { id: row.id };
     }
 
@@ -47,7 +80,7 @@ export const saveNote = createServerFn({ method: "POST" })
       .insert({ class_id: data.classId, user_id: userId, content: data.content })
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) throw saveError(error);
     return { id: row.id };
   });
 
@@ -78,10 +111,14 @@ export const summarizeMyNotes = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (noteError) throw new Error(noteError.message);
+    if (noteError) {
+      console.error("[summarize]", noteError.message);
+      throw new Error("Could not load your notes. Please try again.");
+    }
 
     const text = noteToPlainText(note?.content ?? "");
     if (!note || !text) throw new Error("Write and save some notes first.");
+    await useAiQuota(supabase, "summary");
 
     const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText, Output } = await import("ai");
@@ -133,7 +170,8 @@ const TranscribeInput = z.object({
 export const transcribeHandwriting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => TranscribeInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await useAiQuota(context.supabase, "handwriting");
     const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText } = await import("ai");
     const model = resolveTextModel();
@@ -178,7 +216,8 @@ const AudioChunkInput = z.object({
 export const transcribeAudioChunk = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AudioChunkInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await useAiQuota(context.supabase, "audio");
     const base64 = data.wavDataUrl.slice("data:audio/wav;base64,".length);
 
     // Prefer Whisper (purpose-built speech-to-text) when a key is configured.
@@ -246,15 +285,27 @@ export const getTranscriptionSetup = createServerFn({ method: "GET" })
     return { whisper: resolveWhisperConfig() !== null };
   });
 
+// Kept short on purpose so slide overviews can't be used as a general-purpose chatbot.
 const SlideOverviewInput = z.object({
-  headline: z.string().trim().min(1).max(300),
-  slideText: z.string().max(3000).optional().default(""),
+  headline: z
+    .string()
+    .trim()
+    .min(1)
+    .max(1000)
+    .transform((s) => s.slice(0, 200)),
+  slideText: z
+    .string()
+    .max(10_000)
+    .optional()
+    .default("")
+    .transform((s) => s.slice(0, 1500)),
 });
 
 export const slideOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SlideOverviewInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    await useAiQuota(context.supabase, "slide_overview");
     const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText } = await import("ai");
     const result = await generateText({

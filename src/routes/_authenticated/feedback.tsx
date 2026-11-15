@@ -19,6 +19,7 @@ import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { useRoles } from "@/hooks/useRoles";
 import { MessageSquarePlus, Inbox } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
+import { friendlyError } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/feedback")({
   staticData: { sitemap: false },
@@ -133,7 +134,7 @@ function FeedbackPage() {
       queryClient.invalidateQueries({ queryKey: ["my-feedback"] });
       queryClient.invalidateQueries({ queryKey: ["feedback-inbox"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not send feedback");
+      toast.error(friendlyError(err, "Could not send feedback"));
     } finally {
       setSaving(false);
     }
@@ -142,7 +143,7 @@ function FeedbackPage() {
   async function setStatus(id: string, status: string) {
     const { error } = await supabase.from("feedback").update({ status }).eq("id", id);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Something went wrong. Please try again."));
       return;
     }
     toast.success("Status updated");

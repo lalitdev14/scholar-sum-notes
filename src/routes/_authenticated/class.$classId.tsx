@@ -50,7 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -159,7 +159,13 @@ function ClassPage() {
       const filePath = `${userId}/${classId}/${crypto.randomUUID()}.${file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "pptx"}`;
       const { error: uploadError } = await supabase.storage
         .from("lecture-slides")
-        .upload(filePath, file, { contentType: file.type });
+        // Set the type from the extension: some browsers report an empty type for .pptx,
+        // and storage only accepts PDF and PowerPoint files.
+        .upload(filePath, file, {
+          contentType: filePath.endsWith(".pdf")
+            ? "application/pdf"
+            : "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        });
       if (uploadError) throw uploadError;
       const { data: row, error: saveError } = await supabase
         .from("lecture_slides")
@@ -181,7 +187,7 @@ function ClassPage() {
       await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
       toast.success("Slides uploaded");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not upload slides");
+      toast.error(friendlyError(err, "Could not upload slides"));
     } finally {
       setUploadingSlides(false);
       if (slidesInputRef.current) slidesInputRef.current.value = "";
@@ -199,7 +205,7 @@ function ClassPage() {
       .update({ title: name.slice(0, 120) })
       .eq("id", activeSlides.id);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Something went wrong. Please try again."));
       return;
     }
     await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
@@ -223,7 +229,7 @@ function ClassPage() {
       await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
       toast.success("Slides removed");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not remove slides");
+      toast.error(friendlyError(err, "Could not remove slides"));
     } finally {
       setRemovingSlideId(null);
     }
@@ -265,7 +271,7 @@ function ClassPage() {
       void archiveHandwriting(imageDataUrl, res.text);
       return true;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not convert handwriting");
+      toast.error(friendlyError(err, "Could not convert handwriting"));
       return false;
     } finally {
       setConverting(false);
@@ -447,7 +453,7 @@ function ClassPage() {
       toast.success("Notes saved");
       queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not save notes");
+      toast.error(friendlyError(err, "Could not save notes"));
     } finally {
       setSaving(false);
     }
@@ -471,7 +477,7 @@ function ClassPage() {
       toast.success("Your notes were deleted");
       queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not delete your notes");
+      toast.error(friendlyError(err, "Could not delete your notes"));
     } finally {
       setDeleting(false);
     }
@@ -492,7 +498,7 @@ function ClassPage() {
       queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not summarize your notes");
+      toast.error(friendlyError(err, "Could not summarize your notes"));
     } finally {
       setSummarizing(false);
     }

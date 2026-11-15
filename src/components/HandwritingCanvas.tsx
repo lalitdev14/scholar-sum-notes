@@ -18,7 +18,8 @@ export function HandwritingCanvas({
   const drawingRef = useRef<Stroke | null>(null);
   const [tool, setTool] = useState<"pen" | "eraser">("pen");
   const [isEmpty, setIsEmpty] = useState(true);
-  const [live, setLive] = useState(true);
+  // Off by default: live convert calls the AI on every pause, which is slow and uses quota.
+  const [live, setLive] = useState(false);
   const liveRef = useRef(true);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busyRef = useRef(false);
