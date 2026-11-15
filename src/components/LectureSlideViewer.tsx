@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { slideOverview } from "@/lib/notes.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -300,7 +300,7 @@ export function LectureSlideViewer({
       await queryClient.invalidateQueries({ queryKey: ["slide-bookmarks", slideId] });
       toast.success(`Bookmarked ${isPdf ? "page" : "slide"} ${n}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not add bookmark");
+      toast.error(friendlyError(e, "Could not add bookmark"));
     } finally {
       setAdding(false);
     }
@@ -309,7 +309,7 @@ export function LectureSlideViewer({
   async function removeBookmark(id: string) {
     const { error } = await supabase.from("slide_bookmarks").delete().eq("id", id);
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Something went wrong. Please try again."));
       return;
     }
     await queryClient.invalidateQueries({ queryKey: ["slide-bookmarks", slideId] });

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { friendlyError } from "@/lib/utils";
 
 export const Route = createFileRoute("/contact")({
   staticData: { sitemap: true },
@@ -97,7 +98,7 @@ function ContactPage() {
       setSent(true);
       setMessage("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not send your message.");
+      toast.error(friendlyError(err, "Could not send your message."));
     } finally {
       setSending(false);
     }

@@ -64,6 +64,7 @@ function AuthPage() {
         });
         if (checkError) throw checkError;
         if (!allowed) throw new Error(NYU_ONLY_MESSAGE);
+        if (password.length < 8) throw new Error("Use a password with at least 8 characters.");
 
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
@@ -164,7 +165,7 @@ function AuthPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    minLength={6}
+                    minLength={mode === "signup" ? 8 : undefined}
                     autoComplete={mode === "signup" ? "new-password" : "current-password"}
                     className="pr-12"
                     required
@@ -180,6 +181,11 @@ function AuthPage() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+                {mode === "signup" && (
+                  <p className="text-xs text-muted-foreground">
+                    At least 8 characters. Avoid passwords you use on other sites.
+                  </p>
+                )}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}

@@ -16,7 +16,7 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
  * Admins are scoped to their own university. The super admin (and an admin
  * whose profile has no university) sees everything.
  */
-async function adminScope(context: { supabase: any; userId: string }) {
+async function adminScope(context: { supabase: any; userId: string; claims?: { email?: string } }) {
   await assertAdmin(context);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const [{ data, error }, { data: superRow }] = await Promise.all([
@@ -61,7 +61,33 @@ async function adminScope(context: { supabase: any; userId: string }) {
       throw new Error("Only the super admin can manage other admin accounts.");
   };
 
-  return { supabaseAdmin, universityId, memberIds, isSuper, assertCanManageAccount };
+  /** Email of an account, for readable audit entries. */
+  const emailOf = async (userId: string) => {
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+    return u?.user?.email ?? userId;
+  };
+
+  /** Records an admin action. Never blocks the action itself if logging fails. */
+  const audit = async (action: string, target: string, details: Record<string, unknown> = {}) => {
+    const { error: logError } = await supabaseAdmin.from("admin_audit_log").insert({
+      actor_id: context.userId,
+      actor_email: context.claims?.email ?? null,
+      action,
+      target,
+      details: details as never,
+    });
+    if (logError) console.error("[admin-audit]", logError.message);
+  };
+
+  return {
+    supabaseAdmin,
+    universityId,
+    memberIds,
+    isSuper,
+    assertCanManageAccount,
+    emailOf,
+    audit,
+  };
 }
 
 function assertSuper(scope: { isSuper: boolean }) {
@@ -180,7 +206,7 @@ export const uploadSubjects = createServerFn({ method: "POST" })
     z.object({ rows: z.array(SubjectRow).min(1).max(500) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, universityId } = await adminScope(context as never);
+    const { supabaseAdmin, universityId, audit } = await adminScope(context as never);
 
     let existingQuery = supabaseAdmin.from("classes").select("code, university_id");
     if (universityId) existingQuery = existingQuery.eq("university_id", universityId);
@@ -209,6 +235,11 @@ export const uploadSubjects = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
+    await audit("classes.import", `${fresh.length} classes`, {
+      inserted: fresh.length,
+      skipped: data.rows.length - fresh.length,
+      codes: fresh.slice(0, 50).map((r) => r.code.trim()),
+    });
     return { inserted: fresh.length, skipped: data.rows.length - fresh.length };
   });
 
@@ -224,12 +255,12 @@ export const deleteClasses = createServerFn({ method: "POST" })
     z.object({ classIds: z.array(z.string().uuid()).min(1).max(200) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, universityId } = await adminScope(context as never);
+    const { supabaseAdmin, universityId, audit } = await adminScope(context as never);
     const ids = [...new Set(data.classIds)];
 
     const { data: targets, error: targetError } = await supabaseAdmin
       .from("classes")
-      .select("id, university_id")
+      .select("id, university_id, code, subject")
       .in("id", ids);
     if (targetError) throw new Error(targetError.message);
     if ((targets ?? []).length !== ids.length)
@@ -254,9 +285,13 @@ export const deleteClasses = createServerFn({ method: "POST" })
 
     const { error: notesError } = await supabaseAdmin.from("notes").delete().in("class_id", ids);
     if (notesError) throw new Error(notesError.message);
-    // Cascades to enrollments, slides, bookmarks, handwriting pages and old summaries.
+    // Cascades to enrollments, slides, bookmarks, handwriting pages and transcripts.
     const { error } = await supabaseAdmin.from("classes").delete().in("id", ids);
     if (error) throw new Error(error.message);
+    await audit("classes.delete", `${ids.length} classes`, {
+      classes: (targets ?? []).map((t) => `${t.code} ${t.subject}`),
+      files: slidePaths.length + pagePaths.length,
+    });
     return { deleted: ids.length, files: slidePaths.length + pagePaths.length };
   });
 
@@ -264,11 +299,11 @@ export const deleteClass = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ classId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, universityId } = await adminScope(context as never);
+    const { supabaseAdmin, universityId, audit } = await adminScope(context as never);
 
     const { data: target, error: targetError } = await supabaseAdmin
       .from("classes")
-      .select("id, university_id")
+      .select("id, university_id, code, subject")
       .eq("id", data.classId)
       .maybeSingle();
     if (targetError) throw new Error(targetError.message);
@@ -280,6 +315,7 @@ export const deleteClass = createServerFn({ method: "POST" })
     await supabaseAdmin.from("notes").delete().eq("class_id", data.classId);
     const { error } = await supabaseAdmin.from("classes").delete().eq("id", data.classId);
     if (error) throw new Error(error.message);
+    await audit("class.delete", `${target.code} ${target.subject}`);
     return { ok: true };
   });
 
@@ -380,6 +416,9 @@ export const setUserRole = createServerFn({ method: "POST" })
         .eq("role", data.role as never);
       if (error) throw new Error(error.message);
     }
+    await scope.audit(data.grant ? "role.grant" : "role.revoke", await scope.emailOf(data.userId), {
+      role: data.role,
+    });
     return { ok: true };
   });
 
@@ -406,6 +445,7 @@ export const setUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
+    await scope.audit("account.password_reset", await scope.emailOf(data.userId));
     return { ok: true };
   });
 
@@ -421,11 +461,11 @@ export const updateClass = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => ClassEdit.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, universityId } = await adminScope(context as never);
+    const { supabaseAdmin, universityId, audit } = await adminScope(context as never);
 
     const { data: target, error: targetError } = await supabaseAdmin
       .from("classes")
-      .select("id, university_id")
+      .select("id, university_id, subject, code, professor, term")
       .eq("id", data.classId)
       .maybeSingle();
     if (targetError) throw new Error(targetError.message);
@@ -457,6 +497,15 @@ export const updateClass = createServerFn({ method: "POST" })
       })
       .eq("id", data.classId);
     if (error) throw new Error(error.message);
+    await audit("class.update", `${data.code} ${data.subject}`, {
+      before: {
+        subject: target.subject,
+        code: target.code,
+        professor: target.professor,
+        term: target.term,
+      },
+      after: { subject: data.subject, code: data.code, professor: data.professor, term: data.term },
+    });
     return { ok: true };
   });
 
@@ -523,15 +572,13 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
       .from("faculty_requests")
       .update({ reviewed_by: null })
       .eq("reviewed_by", data.userId);
-    await supabaseAdmin
-      .from("class_summaries")
-      .update({ reviewed_by: null })
-      .eq("reviewed_by", data.userId);
 
     // Deleting the auth user cascades to profile, roles, enrollments, slides, bookmarks,
-    // handwriting pages, feedback, faculty requests and update reads.
+    // handwriting pages, transcripts, feedback, faculty requests and update reads.
+    const email = await scope.emailOf(data.userId);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
+    await scope.audit("account.delete", email, { files });
     return { ok: true, files };
   });
 
@@ -608,5 +655,6 @@ export const updateRegistrationSettings = createServerFn({ method: "POST" })
       const { error } = await db.from("registration_allowlist").delete().eq("email", data.value);
       if (error) throw new Error(error.message);
     }
+    await scope.audit(`registration.${data.kind}.${data.action}`, data.value);
     return { ok: true };
   });

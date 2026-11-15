@@ -114,3 +114,18 @@ bun install
 cp .env.example .env   # fill in the blanks
 bun run dev            # http://localhost:8080
 ```
+
+## Security settings
+
+- **AI limits (per user, per day, UTC):** 20 summaries, 80 handwriting conversions, 150 slide
+  overviews, 1500 audio chunks (about 5 hours). Admins get 5x. Change them in the
+  `consume_ai_quota` function (`supabase/migrations/20261115120000_security_hardening.sql`).
+- **Browser security headers** (CSP, no framing, nosniff, referrer and permissions policies) are
+  set in `vite.config.ts` and emitted into the Vercel routing config at build time. If you add
+  a new third-party script, font, image or API host, add it to `CONTENT_SECURITY_POLICY`.
+- **Admin activity log:** password resets, role changes, deletions, class edits, sign-up
+  settings, updates and contact-inbox changes are recorded in `admin_audit_log` and shown in
+  the admin panel.
+- **Sessions:** the app signs a device out after 30 days without use.
+- **Supabase Auth:** minimum password length 8 and re-authentication for password changes are
+  on. Leaked-password protection and server-side session timeouts need the Supabase Pro plan.

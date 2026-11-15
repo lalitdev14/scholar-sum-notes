@@ -10,6 +10,36 @@ import { nitro } from "nitro/vite";
 // Deploy target: nitro auto-detects the host (Vercel, Netlify, Cloudflare, ...) and
 // falls back to a Node server locally. Force one with the NITRO_PRESET env var,
 // e.g. NITRO_PRESET=vercel or NITRO_PRESET=cloudflare-module.
+// Browser security headers for every response (audit M2): no framing (clickjacking),
+// no MIME sniffing, a Content-Security-Policy limited to this site, Google Fonts and
+// Supabase, and the microphone only for this site (lecture transcription).
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  // TanStack Start inlines its hydration data; pdf.js needs WebAssembly for some images.
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com",
+  "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co",
+  "worker-src 'self' blob:",
+  "media-src 'self' blob:",
+  "frame-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests",
+].join("; ");
+
+const SECURITY_HEADERS = {
+  "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), geolocation=(), payment=(), usb=(), microphone=(self)",
+  "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+};
+
 export default defineConfig(({ command, mode }) => {
   // Expose VITE_* vars to both the client and SSR bundles.
   const env = loadEnv(mode, process.cwd(), "VITE_");
@@ -53,7 +83,9 @@ export default defineConfig(({ command, mode }) => {
         // Use src/server.ts (SSR error wrapper) as the server entry.
         server: { entry: "server" },
       }),
-      ...(command === "build" ? [nitro()] : []),
+      ...(command === "build"
+        ? [nitro({ routeRules: { "/**": { headers: SECURITY_HEADERS } } })]
+        : []),
       viteReact(),
     ],
   };

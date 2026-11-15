@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { friendlyError } from "@/lib/utils";
 
 /**
  * Admin-only: publish updates that every user sees once as a popup after signing in.
@@ -58,7 +59,7 @@ export function AnnouncementsAdmin() {
       setBody("");
       refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not publish the update");
+      toast.error(friendlyError(err, "Could not publish the update"));
     } finally {
       setSending(false);
     }
@@ -66,7 +67,7 @@ export function AnnouncementsAdmin() {
 
   async function setActive(id: string, active: boolean) {
     const { error } = await supabase.from("announcements").update({ active }).eq("id", id);
-    if (error) toast.error(error.message);
+    if (error) toast.error(friendlyError(error, "Something went wrong. Please try again."));
     else {
       toast.success(active ? "Update is live again" : "Update hidden from users");
       refresh();
@@ -76,7 +77,7 @@ export function AnnouncementsAdmin() {
   async function remove(id: string) {
     if (!window.confirm("Delete this update permanently?")) return;
     const { error } = await supabase.from("announcements").delete().eq("id", id);
-    if (error) toast.error(error.message);
+    if (error) toast.error(friendlyError(error, "Something went wrong. Please try again."));
     else {
       toast.success("Update deleted");
       refresh();

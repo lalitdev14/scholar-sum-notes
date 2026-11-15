@@ -33,7 +33,7 @@ import {
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 import { noteToPlainText } from "@/lib/note-format";
 import { SiteFooter } from "@/components/SiteFooter";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   staticData: { sitemap: false },
@@ -216,7 +216,7 @@ function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["my-enrollments"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not remove the class");
+      toast.error(friendlyError(err, "Could not remove the class"));
     } finally {
       setRemoving(false);
     }
@@ -230,7 +230,7 @@ function Dashboard() {
       .from("enrollments")
       .insert({ user_id: userId, class_id: classId });
     if (error) {
-      toast.error(error.message);
+      toast.error(friendlyError(error, "Something went wrong. Please try again."));
       return;
     }
     toast.success("Enrolled");
@@ -259,7 +259,11 @@ function Dashboard() {
       .select("id")
       .single();
     if (error) {
-      toast.error(error.message);
+      toast.error(
+        error.code === "23505"
+          ? "A class with this code already exists. Search for it with Enroll in subject."
+          : friendlyError(error, "Could not add the class. Please try again."),
+      );
       return;
     }
     if (created && userData.user?.id) {
