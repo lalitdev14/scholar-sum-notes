@@ -53,6 +53,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
     me && Array.isArray(me.universities) && me.universities.length > 0
       ? me.universities[0].name
       : ((me?.universities as { name?: string } | null)?.name ?? "");
+  const isNyu = universityName === "New York University";
 
   const navLinks = (
     <>
@@ -113,7 +114,17 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
                   className="flex items-center gap-1.5 rounded-full border border-white/30 px-2.5 py-1 text-white"
                   style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
                 >
-                  <University className="h-3.5 w-3.5 shrink-0" style={{ color: "#fff" }} />
+                  {isNyu ? (
+                    <img
+                      src="/nyu-torch-white.png"
+                      alt="NYU torch"
+                      width={20}
+                      height={20}
+                      className="-my-0.5 h-5 w-5 shrink-0"
+                    />
+                  ) : (
+                    <University className="h-3.5 w-3.5 shrink-0" style={{ color: "#fff" }} />
+                  )}
                   <span className="max-w-[12rem] truncate">{universityName}</span>
                 </span>
               )}
@@ -152,7 +163,18 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
                   <p className="mt-1 truncate text-sm text-white/90">{me.full_name}</p>
                 )}
                 {universityName && (
-                  <p className="mt-0.5 truncate text-xs text-white/75">{universityName}</p>
+                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-white/75">
+                    {isNyu && (
+                      <img
+                        src="/nyu-torch-white.png"
+                        alt=""
+                        width={14}
+                        height={14}
+                        className="h-3.5 w-3.5"
+                      />
+                    )}
+                    {universityName}
+                  </p>
                 )}
               </div>
               <div
