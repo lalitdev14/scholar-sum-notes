@@ -170,6 +170,28 @@ export function LectureSlideViewer({
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const [slideInfo, setSlideInfo] = useState<{ headline: string; text: string } | null>(null);
   const pdfScrollRef = useRef<HTMLDivElement>(null);
+  // Space available for one PDF page (scroll box minus its padding); pages fit inside it.
+  const [pdfBox, setPdfBox] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    const el = pdfScrollRef.current;
+    if (!el) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const measure = () => {
+      const w = el.clientWidth - 24;
+      const h = el.clientHeight - 24;
+      if (w > 0 && h > 0) setPdfBox((b) => (b && b.w === w && b.h === h ? b : { w, h }));
+    };
+    measure();
+    const ro = new ResizeObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(measure, 60);
+    });
+    ro.observe(el);
+    return () => {
+      clearTimeout(timer);
+      ro.disconnect();
+    };
+  }, [url]);
   const getOverview = useServerFn(slideOverview);
 
   useEffect(() => {
@@ -381,7 +403,7 @@ export function LectureSlideViewer({
             {pdfReady > 0 &&
               pdfDocRef.current &&
               Array.from({ length: pdfDocRef.current.numPages }, (_, i) => (
-                <PdfPage key={`${pdfReady}-${i}`} doc={pdfDocRef.current!} n={i + 1} />
+                <PdfPage key={`${pdfReady}-${i}`} doc={pdfDocRef.current!} n={i + 1} box={pdfBox} />
               ))}
           </div>
         )}
@@ -640,11 +662,33 @@ export function LectureSlideViewer({
 }
 type PdfDocLike = { getPage: (n: number) => Promise<unknown> };
 
-function PdfPage({ doc, n }: { doc: PdfDocLike; n: number }) {
+/**
+ * One PDF page, sized to fit the viewer box (whole page visible, never stretched) and
+ * re-rendered at the new size (debounced) whenever the viewer is resized, so it stays sharp.
+ */
+function PdfPage({
+  doc,
+  n,
+  box,
+}: {
+  doc: PdfDocLike;
+  n: number;
+  box: { w: number; h: number } | null;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(n <= 2);
-  const [aspect, setAspect] = useState(9 / 16);
+  const [aspect, setAspect] = useState(9 / 16); // height / width
+
+  // Fit the page inside the box: limited by the width, or by the height for tall pages.
+  const width = box ? Math.max(120, Math.floor(Math.min(box.w, box.h / aspect))) : null;
+  const [renderWidth, setRenderWidth] = useState<number | null>(null);
+  useEffect(() => {
+    if (!width) return;
+    const t = setTimeout(() => setRenderWidth(width), renderWidth ? 150 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -660,7 +704,7 @@ function PdfPage({ doc, n }: { doc: PdfDocLike; n: number }) {
   }, [visible]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !renderWidth) return;
     let cancelled = false;
     let task: { cancel: () => void; promise: Promise<void> } | null = null;
     void (async () => {
@@ -668,16 +712,25 @@ function PdfPage({ doc, n }: { doc: PdfDocLike; n: number }) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const page = (await doc.getPage(n)) as any;
         const canvas = canvasRef.current;
-        const wrap = wrapRef.current;
-        if (cancelled || !canvas || !wrap) return;
+        if (cancelled || !canvas) return;
         const base = page.getViewport({ scale: 1 });
-        setAspect(base.height / base.width);
-        const scale = ((wrap.clientWidth || 800) / base.width) * (window.devicePixelRatio || 1);
+        const ratio = base.height / base.width;
+        if (Math.abs(ratio - aspect) > 0.001) {
+          setAspect(ratio); // re-runs with the right size
+          return;
+        }
+        const scale = (renderWidth / base.width) * Math.min(window.devicePixelRatio || 1, 2);
         const viewport = page.getViewport({ scale });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        task = page.render({ canvas, canvasContext: canvas.getContext("2d"), viewport });
+        // Render off-screen first so the old image stays visible until the new one is ready.
+        const off = document.createElement("canvas");
+        off.width = Math.floor(viewport.width);
+        off.height = Math.floor(viewport.height);
+        task = page.render({ canvas: off, canvasContext: off.getContext("2d"), viewport });
         await task!.promise;
+        if (cancelled) return;
+        canvas.width = off.width;
+        canvas.height = off.height;
+        canvas.getContext("2d")?.drawImage(off, 0, 0);
       } catch {
         /* render cancelled */
       }
@@ -686,14 +739,14 @@ function PdfPage({ doc, n }: { doc: PdfDocLike; n: number }) {
       cancelled = true;
       task?.cancel();
     };
-  }, [visible, doc, n]);
+  }, [visible, doc, n, renderWidth, aspect]);
 
   return (
     <div
       ref={wrapRef}
       data-page={n}
-      className="mx-auto mb-3 overflow-hidden rounded-md bg-background shadow-sm last:mb-0"
-      style={{ aspectRatio: `${1 / aspect}` }}
+      className="mx-auto mb-3 max-w-full overflow-hidden rounded-md bg-background shadow-sm last:mb-0"
+      style={{ width: width ?? "100%", aspectRatio: `${1 / aspect}` }}
     >
       <canvas ref={canvasRef} className="block h-full w-full" aria-label={`Page ${n}`} />
     </div>

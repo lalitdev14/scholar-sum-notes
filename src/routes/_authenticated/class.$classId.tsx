@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -29,6 +29,7 @@ import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace"
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import {
+  ArrowLeft,
   Download,
   FileText,
   FileType,
@@ -549,22 +550,36 @@ function ClassPage() {
       <main className="mx-auto max-w-[1600px] px-4 pt-4 pb-6 sm:px-6 lg:pb-4 lg:px-10 xl:px-16">
         {/* Compact one-line class header so the editor and slides get the height. */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
-            <h1 className="truncate text-xl sm:text-2xl">{klass?.subject ?? "Class"}</h1>
-            <p className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-              {klass?.professor && (
-                <span className="inline-flex items-center gap-1.5 truncate">
-                  <User className="h-3.5 w-3.5 shrink-0" />
-                  {klass.professor}
-                </span>
-              )}
-              {klass?.term ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="opacity-60">·</span>
-                  {klass.term}
-                </span>
-              ) : null}
-            </p>
+          <div className="flex min-w-0 items-center gap-3">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 gap-1.5 px-2.5"
+              title="Back to dashboard"
+            >
+              <Link to="/dashboard" aria-label="Back to dashboard">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+            </Button>
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <h1 className="truncate text-xl sm:text-2xl">{klass?.subject ?? "Class"}</h1>
+              <p className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                {klass?.professor && (
+                  <span className="inline-flex items-center gap-1.5 truncate">
+                    <User className="h-3.5 w-3.5 shrink-0" />
+                    {klass.professor}
+                  </span>
+                )}
+                {klass?.term ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="opacity-60">·</span>
+                    {klass.term}
+                  </span>
+                ) : null}
+              </p>
+            </div>
           </div>
           <Button size="sm" onClick={handleSummarize} disabled={summarizing}>
             <Sparkles className="mr-2 h-4 w-4" />
