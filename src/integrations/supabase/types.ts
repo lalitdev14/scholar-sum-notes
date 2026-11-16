@@ -397,27 +397,39 @@ export type Database = {
       }
       handwriting_pages: {
         Row: {
+          background_path: string | null
           class_id: string
           created_at: string
           id: string
           image_path: string
+          paper: string
+          strokes: Json | null
           transcript: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          background_path?: string | null
           class_id: string
           created_at?: string
           id?: string
           image_path: string
+          paper?: string
+          strokes?: Json | null
           transcript?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
+          background_path?: string | null
           class_id?: string
           created_at?: string
           id?: string
           image_path?: string
+          paper?: string
+          strokes?: Json | null
           transcript?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [

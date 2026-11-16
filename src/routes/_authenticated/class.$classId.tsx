@@ -23,7 +23,14 @@ import type { ExportFormat, ExportPart } from "@/lib/export-notes";
 import { renderNote } from "@/components/SummaryMarkdown";
 import { escapeHtml, noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HandwritingCanvas } from "@/components/HandwritingCanvas";
+import {
+  HandwritingNotebook,
+  type NotebookHandle,
+  type Paper,
+  type RenderedPage,
+  type SavedPageResult,
+  type Stroke,
+} from "@/components/HandwritingNotebook";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
 import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace";
 import { toast } from "sonner";
@@ -235,47 +242,142 @@ function ClassPage() {
     }
   }
 
-  async function archiveHandwriting(imageDataUrl: string, transcript: string) {
+  const notebookRef = useRef<NotebookHandle>(null);
+
+  /** Saves a notebook page (new or edited): PNG + slide background in storage, ink in the row. */
+  async function saveHandwritingPage(
+    page: RenderedPage,
+    transcript?: string,
+  ): Promise<SavedPageResult | null> {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
-      if (!userId) return;
-      const blob = await (await fetch(imageDataUrl)).blob();
-      const path = `${userId}/${classId}/${Date.now()}.png`;
+      if (!userId) throw new Error("You're signed out. Sign in again to save.");
+      const toBlob = async (url: string) => (await fetch(url)).blob();
+      const stamp = Date.now();
+      const imagePath = page.imagePath ?? `${userId}/${classId}/${stamp}.png`;
       const { error: uploadError } = await supabase.storage
         .from("handwriting")
-        .upload(path, blob, { contentType: "image/png" });
+        .upload(imagePath, await toBlob(page.imageDataUrl), {
+          contentType: "image/png",
+          upsert: true,
+        });
       if (uploadError) throw uploadError;
-      const { error: insertError } = await supabase
-        .from("handwriting_pages")
-        .insert({ class_id: classId, user_id: userId, image_path: path, transcript });
-      if (insertError) throw insertError;
-      queryClient.invalidateQueries({ queryKey: ["handwriting", classId] });
+
+      let backgroundPath = page.backgroundPath ?? null;
+      if (!backgroundPath && page.backgroundDataUrl) {
+        backgroundPath = `${userId}/${classId}/${stamp}-slide.png`;
+        const { error: bgError } = await supabase.storage
+          .from("handwriting")
+          .upload(backgroundPath, await toBlob(page.backgroundDataUrl), {
+            contentType: "image/png",
+          });
+        if (bgError) throw bgError;
+      }
+
+      const fields = {
+        image_path: imagePath,
+        strokes: page.strokes as unknown as never,
+        paper: page.paper,
+        background_path: backgroundPath,
+        ...(transcript !== undefined ? { transcript } : {}),
+      };
+      let id = page.savedId;
+      if (id) {
+        const { error } = await supabase.from("handwriting_pages").update(fields).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { data: row, error } = await supabase
+          .from("handwriting_pages")
+          .insert({ ...fields, class_id: classId, user_id: userId, transcript: transcript ?? "" })
+          .select("id")
+          .single();
+        if (error) throw error;
+        id = row.id;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["handwriting", classId] });
+      return { id, imagePath, backgroundPath };
     } catch (err) {
-      console.error("Could not archive handwriting", err);
-      toast.error("Text captured, but the handwritten copy could not be saved.");
+      toast.error(friendlyError(err, "Could not save the handwritten page."));
+      return null;
     }
   }
 
-  async function handleConvert(imageDataUrl: string): Promise<boolean> {
+  async function handleSavePage(page: RenderedPage) {
+    const res = await saveHandwritingPage(page);
+    if (res) toast.success("Page saved to this class");
+    return res;
+  }
+
+  /** Converts a notebook page to typed text (AI), appends it to the notes and saves the page. */
+  async function handleConvert(page: RenderedPage): Promise<SavedPageResult | null> {
     setConverting(true);
     try {
-      const res = await transcribe({ data: { imageDataUrl } });
+      const res = await transcribe({ data: { imageDataUrl: page.imageDataUrl } });
       if (!res.text) {
-        toast.error("Nothing legible found on the canvas.");
-        return false;
+        toast.error("Nothing legible found on this page.");
+        return null;
       }
       setContent(
         (prev) => (noteToPlainText(prev) ? toEditorHtml(prev) : "") + plainTextToHtml(res.text),
       );
-      void archiveHandwriting(imageDataUrl, res.text);
-      return true;
+      const saved = await saveHandwritingPage(page, res.text);
+      toast.success("Added to your typed notes. Remember to save them.");
+      return saved;
     } catch (err) {
       toast.error(friendlyError(err, "Could not convert handwriting"));
-      return false;
+      return null;
     } finally {
       setConverting(false);
     }
+  }
+
+  async function openSavedPage(row: {
+    id: string;
+    image_path: string;
+    strokes: unknown;
+    paper: string;
+    background_path: string | null;
+  }) {
+    let background: string | null = null;
+    if (row.background_path) {
+      const { data } = await supabase.storage
+        .from("handwriting")
+        .createSignedUrl(row.background_path, 600);
+      if (data?.signedUrl) {
+        const blob = await (await fetch(data.signedUrl)).blob();
+        background = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.readAsDataURL(blob);
+        });
+      }
+    }
+    notebookRef.current?.openSaved({
+      id: row.id,
+      imagePath: row.image_path,
+      strokes: (Array.isArray(row.strokes) ? row.strokes : []) as Stroke[],
+      paper: row.paper as Paper,
+      backgroundPath: row.background_path,
+      background,
+    });
+  }
+
+  async function deleteSavedPage(row: {
+    id: string;
+    image_path: string;
+    background_path: string | null;
+  }) {
+    if (!window.confirm("Delete this saved handwritten page?")) return;
+    const paths = [row.image_path, row.background_path].filter((x): x is string => Boolean(x));
+    await supabase.storage.from("handwriting").remove(paths);
+    const { error } = await supabase.from("handwriting_pages").delete().eq("id", row.id);
+    if (error) {
+      toast.error(friendlyError(error, "Could not delete the page."));
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["handwriting", classId] });
+    toast.success("Page deleted");
   }
 
   const { data: pages } = useQuery({
@@ -284,7 +386,7 @@ function ClassPage() {
       const { data: userData } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("handwriting_pages")
-        .select("id, image_path, transcript, created_at")
+        .select("id, image_path, transcript, created_at, strokes, paper, background_path")
         .eq("class_id", classId)
         .eq("user_id", userData.user!.id)
         .order("created_at", { ascending: false })
@@ -745,16 +847,20 @@ function ClassPage() {
                     placeholder="Start writing what the professor is covering…"
                   />
                 </TabsContent>
-                <TabsContent value="write" className="min-h-0 flex-1 lg:overflow-y-auto lg:pr-1">
-                  <HandwritingCanvas onConvert={handleConvert} converting={converting} />
-                  <div className="mt-4 rounded-lg border border-border/60 bg-background/40 p-4">
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Live transcript {converting ? "· converting…" : ""}
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed">
-                      {noteToPlainText(content) ||
-                        "Your handwriting will appear here as typed text."}
-                    </p>
+                {/* Kept mounted so notebook pages and undo history survive switching tabs. */}
+                <TabsContent
+                  value="write"
+                  forceMount
+                  className="min-h-0 flex-1 data-[state=inactive]:hidden lg:overflow-y-auto lg:pr-1"
+                >
+                  <div className="mt-3">
+                    <HandwritingNotebook
+                      ref={notebookRef}
+                      classId={classId}
+                      converting={converting}
+                      onConvert={handleConvert}
+                      onSave={handleSavePage}
+                    />
                   </div>
 
                   <div className="mt-6">
@@ -762,32 +868,57 @@ function ClassPage() {
                       Saved handwritten pages
                     </p>
                     {pages && pages.length > 0 ? (
-                      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      <div
+                        className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"
+                        data-testid="saved-pages"
+                      >
                         {pages.map((page) => (
-                          <a
+                          <div
                             key={page.id}
-                            href={page.url ?? undefined}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block overflow-hidden rounded-lg border border-border/60 bg-white"
+                            className="group overflow-hidden rounded-lg border border-border/60 bg-white"
                           >
-                            {page.url && (
-                              <img
-                                src={page.url}
-                                alt={`Handwritten note from ${new Date(page.created_at).toLocaleString()}`}
-                                loading="lazy"
-                                className="h-28 w-full object-cover"
-                              />
-                            )}
-                            <span className="block px-2 py-1 text-[0.625rem] text-muted-foreground">
-                              {new Date(page.created_at).toLocaleString()}
-                            </span>
-                          </a>
+                            <a href={page.url ?? undefined} target="_blank" rel="noreferrer">
+                              {page.url && (
+                                <img
+                                  src={page.url}
+                                  alt={`Handwritten page from ${new Date(page.created_at).toLocaleString()}`}
+                                  loading="lazy"
+                                  className="h-28 w-full object-cover"
+                                />
+                              )}
+                            </a>
+                            <div className="flex items-center gap-1 px-2 py-1">
+                              <span className="min-w-0 flex-1 truncate text-[0.625rem] text-muted-foreground">
+                                {new Date(page.created_at).toLocaleString()}
+                              </span>
+                              {Array.isArray(page.strokes) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-1.5 text-xs"
+                                  onClick={() => void openSavedPage(page)}
+                                  aria-label="Edit this page"
+                                >
+                                  <Pencil className="mr-1 h-3 w-3" /> Edit
+                                </Button>
+                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                onClick={() => void deleteSavedPage(page)}
+                                aria-label="Delete this page"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     ) : (
                       <p className="mt-2 text-sm text-muted-foreground">
-                        Every page you convert is archived here as the original handwriting.
+                        Pages you save or convert are kept here. Open one again with Edit to keep
+                        writing.
                       </p>
                     )}
                   </div>
