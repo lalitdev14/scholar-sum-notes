@@ -282,7 +282,7 @@ function Dashboard() {
     <div className="flex min-h-screen flex-col">
       <AuthenticatedHeader />
 
-      <main className="mx-auto w-full max-w-[1600px] px-4 pb-14 pt-10 sm:px-6 lg:px-10 xl:px-16">
+      <main className="mx-auto w-full max-w-[100rem] px-4 pb-14 pt-10 sm:px-6 lg:px-10 xl:px-16">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="max-w-3xl">
             <h1 className="text-3xl sm:text-4xl">

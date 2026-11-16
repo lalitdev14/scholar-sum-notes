@@ -150,6 +150,16 @@
     border-color: var(--color-border);
   }
 
+  /*
+   * Fluid UI scale: everything sized in rem (text, spacing, page width) grows with big
+   * screens. Phones, tablets and laptops up to 1440px wide keep the 16px base (16px also
+   * stops iOS from zooming into text fields); from there it rises smoothly to 19px
+   * (about 18px on a 1920px screen) and stops growing on very large monitors.
+   */
+  html {
+    font-size: clamp(16px, calc(16px + (100vw - 1440px) * 0.004), 19px);
+  }
+
   body {
     background: oklch(1 0 0);
     color: var(--color-foreground);

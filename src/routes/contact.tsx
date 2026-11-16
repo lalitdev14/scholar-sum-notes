@@ -109,7 +109,7 @@ function ContactPage() {
       {signedIn ? (
         <AuthenticatedHeader />
       ) : (
-        <header className="mx-auto flex w-full max-w-[1600px] items-center justify-between px-4 py-6 sm:px-6 lg:px-10 xl:px-16">
+        <header className="mx-auto flex w-full max-w-[100rem] items-center justify-between px-4 py-6 sm:px-6 lg:px-10 xl:px-16">
           <Link to="/" className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
@@ -120,7 +120,7 @@ function ContactPage() {
         </header>
       )}
 
-      <main className="mx-auto w-full max-w-[1600px] px-4 py-10 sm:px-6 lg:px-10 xl:px-16">
+      <main className="mx-auto w-full max-w-[100rem] px-4 py-10 sm:px-6 lg:px-10 xl:px-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,40rem)] lg:gap-16">
           <div>
             <h1 className="text-3xl sm:text-4xl">Contact us</h1>
