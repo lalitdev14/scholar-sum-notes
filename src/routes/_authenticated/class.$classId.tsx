@@ -24,6 +24,7 @@ import { renderNote } from "@/components/SummaryMarkdown";
 import { escapeHtml, noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotebookViewer } from "@/components/NotebookViewer";
+import { LAST_CLASS_KEY } from "@/components/WelcomeHome";
 import {
   HandwritingNotebook,
   type NotebookHandle,
@@ -99,6 +100,14 @@ export const Route = createFileRoute("/_authenticated/class/$classId")({
 
 function ClassPage() {
   const { classId } = Route.useParams();
+  // Remember the last class opened, for "Continue where you left off" on the home page.
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAST_CLASS_KEY, JSON.stringify({ id: classId, at: Date.now() }));
+    } catch {
+      /* private mode */
+    }
+  }, [classId]);
   const queryClient = useQueryClient();
   const save = useServerFn(saveNote);
   const summarize = useServerFn(summarizeMyNotes);

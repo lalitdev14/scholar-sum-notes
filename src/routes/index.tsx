@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { BookOpen, GraduationCap, NotebookPen, Sparkles } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
+import { WelcomeHome } from "@/components/WelcomeHome";
 
 export const Route = createFileRoute("/")({
   staticData: { sitemap: true },
@@ -55,7 +56,8 @@ const steps = [
 ];
 
 function Landing() {
-  const [signedIn, setSignedIn] = useState(false);
+  // null until we know: avoids flashing the public landing page at signed-in students.
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -87,40 +89,47 @@ function Landing() {
         </header>
       )}
 
-      <main>
-        <section className="mx-auto w-full max-w-4xl px-4 sm:px-6 pb-16 pt-16 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-            For NYU students · Your personal class notebook
-          </p>
-          <h1 className="mt-5 text-4xl leading-[1.1] sm:text-6xl">
-            Your notes,
-            <span className="italic"> summarized for you.</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-            Take your own notes during class — typed or handwritten, right next to the lecture
-            slides. Then get a comprehensive AI summary of everything you wrote, ready for revision.
-          </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg">
-              <Link to={signedIn ? "/dashboard" : "/auth"}>
-                {signedIn ? "Back to your dashboard" : "Start taking notes"}
-              </Link>
-            </Button>
-          </div>
-        </section>
+      {signedIn === null ? (
+        <main className="flex-1" aria-busy="true" />
+      ) : signedIn ? (
+        <WelcomeHome />
+      ) : (
+        <main>
+          <section className="mx-auto w-full max-w-4xl px-4 sm:px-6 pb-16 pt-16 text-center">
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              For NYU students · Your personal class notebook
+            </p>
+            <h1 className="mt-5 text-4xl leading-[1.1] sm:text-6xl">
+              Your notes,
+              <span className="italic"> summarized for you.</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
+              Take your own notes during class — typed or handwritten, right next to the lecture
+              slides. Then get a comprehensive AI summary of everything you wrote, ready for
+              revision.
+            </p>
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <Button asChild size="lg">
+                <Link to={signedIn ? "/dashboard" : "/auth"}>
+                  {signedIn ? "Back to your dashboard" : "Start taking notes"}
+                </Link>
+              </Button>
+            </div>
+          </section>
 
-        <section className="mx-auto w-full max-w-[100rem] px-4 sm:px-6 pb-24 lg:px-10 xl:px-16">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step) => (
-              <div key={step.title} className="surface-paper rounded-xl p-6">
-                <step.icon className="h-5 w-5 text-accent" />
-                <h2 className="mt-4 text-xl">{step.title}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </main>
+          <section className="mx-auto w-full max-w-[100rem] px-4 sm:px-6 pb-24 lg:px-10 xl:px-16">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {steps.map((step) => (
+                <div key={step.title} className="surface-paper rounded-xl p-6">
+                  <step.icon className="h-5 w-5 text-accent" />
+                  <h2 className="mt-4 text-xl">{step.title}</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
+      )}
 
       <SiteFooter />
     </div>

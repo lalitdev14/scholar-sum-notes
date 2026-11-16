@@ -44,12 +44,13 @@ function AuthPage() {
     }
   }, []);
 
+  // Signed in: start at the home page (welcome note), then on to the dashboard.
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) navigate({ to: "/" });
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) navigate({ to: "/dashboard" });
+      if (session) navigate({ to: "/" });
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
