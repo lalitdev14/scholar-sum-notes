@@ -187,6 +187,8 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           professor: string
           subject: string
@@ -197,6 +199,8 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           professor: string
           subject: string
@@ -207,6 +211,8 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           professor?: string
           subject?: string

@@ -404,8 +404,10 @@ function ClassPage() {
     }
   }
 
-  const { data: klass } = useQuery({
+  const { data: klass, isError: classMissing } = useQuery({
     queryKey: ["class", classId],
+    // "No such class" (deleted or wrong link) is final: show the message right away.
+    retry: (count, err) => (err as { code?: string }).code !== "PGRST116" && count < 2,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("classes")
@@ -547,6 +549,27 @@ function ClassPage() {
     } finally {
       setExporting(false);
     }
+  }
+
+  // The class was removed (e.g. moved to Recently deleted by an admin) or never existed.
+  if (classMissing) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <AuthenticatedHeader />
+        <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center sm:px-6 lg:px-10 xl:px-16">
+          <h1 className="text-2xl">This class isn't available</h1>
+          <p className="max-w-md text-muted-foreground">
+            It may have been removed by an admin. Your notes are kept, and the class will come back
+            if it's restored.
+          </p>
+          <Button asChild>
+            <Link to="/dashboard">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to dashboard
+            </Link>
+          </Button>
+        </main>
+      </div>
+    );
   }
 
   return (

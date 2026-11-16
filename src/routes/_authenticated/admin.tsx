@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   deleteClasses,
+  restoreClasses,
   deleteUserAccount,
   getAdminOverview,
   getRegistrationSettings,
@@ -38,6 +39,7 @@ import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import { AnnouncementsAdmin } from "@/components/AnnouncementsAdmin";
 import { ContactMessagesAdmin } from "@/components/ContactMessagesAdmin";
 import { AdminAuditLog } from "@/components/AdminAuditLog";
+import { DeletedClassesAdmin } from "@/components/DeletedClassesAdmin";
 import {
   Dialog,
   DialogContent,
@@ -103,6 +105,7 @@ function AdminPanel() {
   const fetchOverview = useServerFn(getAdminOverview);
   const upload = useServerFn(uploadSubjects);
   const removeClasses = useServerFn(deleteClasses);
+  const bringBackClasses = useServerFn(restoreClasses);
   const fetchDirectory = useServerFn(getUserDirectory);
   const changeRole = useServerFn(setUserRole);
   const changePassword = useServerFn(setUserPassword);
@@ -217,13 +220,37 @@ function AdminPanel() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (classIds: string[]) => removeClasses({ data: { classIds } }),
+    mutationFn: (classIds: string[]) =>
+      removeClasses({ data: { classIds } }).then((res) => ({ ...res, classIds })),
     onSuccess: (res) => {
       setClassesToDelete(null);
       setSelectedClasses(new Set());
-      toast.success(`${res.deleted} class${res.deleted === 1 ? "" : "es"} deleted`);
-      queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      const refresh = () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-deleted-classes"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-audit-log"] });
+        queryClient.invalidateQueries({ queryKey: ["classes"] });
+      };
+      toast.success(
+        `${res.deleted} class${res.deleted === 1 ? "" : "es"} moved to Recently deleted`,
+        {
+          duration: 10_000,
+          action: {
+            label: "Undo",
+            onClick: () => {
+              bringBackClasses({ data: { classIds: res.classIds } })
+                .then(() => {
+                  toast.success("Restored");
+                  refresh();
+                })
+                .catch((e: unknown) =>
+                  toast.error(friendlyError(e, "Could not restore. Please try again.")),
+                );
+            },
+          },
+        },
+      );
+      refresh();
     },
     onError: (e: Error) => toast.error(friendlyError(e, "That didn't work. Please try again.")),
   });
@@ -613,6 +640,8 @@ function AdminPanel() {
           </div>
         </section>
 
+        <DeletedClassesAdmin />
+
         <section className="mt-10">
           <h2 className="text-2xl">Recent note activity</h2>
           <div className="mt-4 grid gap-3">
@@ -885,13 +914,13 @@ function AdminPanel() {
                 : `Delete ${classesToDelete?.length ?? 0} classes?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes{" "}
-              {classesToDelete?.length === 1 ? "the class" : "these classes"} for everyone,
-              including{" "}
+              {classesToDelete?.length === 1 ? "The class" : "These classes"} will be hidden from
+              every student and moved to <strong>Recently deleted</strong>. Nothing is erased yet:{" "}
               <strong>
                 {(classesToDelete ?? []).reduce((n, c) => n + c.notes, 0)} student note(s)
               </strong>
-              , enrollments, uploaded slides and handwriting. This cannot be undone.
+              , enrollments, slides and handwriting are kept, and you can restore{" "}
+              {classesToDelete?.length === 1 ? "it" : "them"} at any time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {classesToDelete && classesToDelete.length > 1 && (

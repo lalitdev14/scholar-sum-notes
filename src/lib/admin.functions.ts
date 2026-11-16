@@ -103,6 +103,7 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     let classQuery = supabaseAdmin
       .from("classes")
       .select("id, subject, professor, code, term, created_at, university_id, created_by")
+      .is("deleted_at", null)
       .order("subject");
     // University admins manage their university's classes plus unassigned ones
     // (classes students add without a university are visible to everyone).
@@ -208,7 +209,10 @@ export const uploadSubjects = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin, universityId, audit } = await adminScope(context as never);
 
-    let existingQuery = supabaseAdmin.from("classes").select("code, university_id");
+    let existingQuery = supabaseAdmin
+      .from("classes")
+      .select("code, university_id")
+      .is("deleted_at", null);
     if (universityId) existingQuery = existingQuery.eq("university_id", universityId);
     const { data: existing, error: existingError } = await existingQuery;
     if (existingError) throw new Error(existingError.message);
@@ -248,28 +252,173 @@ function canManageClass(adminUniversityId: string | null, classUniversityId: str
   return !adminUniversityId || !classUniversityId || classUniversityId === adminUniversityId;
 }
 
-/** Deletes classes with everything in them: files in storage, notes, then the class rows (cascades). */
+const ClassIds = z.object({ classIds: z.array(z.string().uuid()).min(1).max(200) });
+
+/** Loads classes the admin may manage; `deleted` selects active or Recently deleted ones. */
+async function manageableClasses(
+  scope: Awaited<ReturnType<typeof adminScope>>,
+  ids: string[],
+  deleted: boolean,
+) {
+  let query = scope.supabaseAdmin
+    .from("classes")
+    .select("id, university_id, code, subject")
+    .in("id", ids);
+  query = deleted ? query.not("deleted_at", "is", null) : query.is("deleted_at", null);
+  const { data: targets, error } = await query;
+  if (error) throw new Error(error.message);
+  if ((targets ?? []).length !== ids.length)
+    throw new Error("One or more classes have changed. Refresh and try again.");
+  if ((targets ?? []).some((t) => !canManageClass(scope.universityId, t.university_id))) {
+    throw new Error("One or more classes belong to another university.");
+  }
+  return targets ?? [];
+}
+
+/**
+ * "Deletes" classes by moving them to Recently deleted: hidden from students, but notes,
+ * slides, transcripts and enrollments are kept so an admin can restore them.
+ */
 export const deleteClasses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    z.object({ classIds: z.array(z.string().uuid()).min(1).max(200) }).parse(input),
-  )
+  .inputValidator((input: unknown) => ClassIds.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin, universityId, audit } = await adminScope(context as never);
+    const scope = await adminScope(context as never);
     const ids = [...new Set(data.classIds)];
-
-    const { data: targets, error: targetError } = await supabaseAdmin
+    const targets = await manageableClasses(scope, ids, false);
+    const { error } = await scope.supabaseAdmin
       .from("classes")
-      .select("id, university_id, code, subject")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: context.userId })
       .in("id", ids);
-    if (targetError) throw new Error(targetError.message);
-    if ((targets ?? []).length !== ids.length)
-      throw new Error("One or more classes no longer exist. Refresh and try again.");
-    if ((targets ?? []).some((t) => !canManageClass(universityId, t.university_id))) {
-      throw new Error("One or more classes belong to another university.");
+    if (error) throw new Error(error.message);
+    await scope.audit("classes.trash", `${ids.length} classes`, {
+      classes: targets.map((t) => `${t.code} ${t.subject}`),
+    });
+    return { deleted: ids.length };
+  });
+
+/** Single-class version of deleteClasses (moves the class to Recently deleted). */
+export const deleteClass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ classId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const scope = await adminScope(context as never);
+    const [target] = await manageableClasses(scope, [data.classId], false);
+    const { error } = await scope.supabaseAdmin
+      .from("classes")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: context.userId })
+      .eq("id", data.classId);
+    if (error) throw new Error(error.message);
+    await scope.audit("classes.trash", `${target!.code} ${target!.subject}`);
+    return { ok: true };
+  });
+
+/** Classes in Recently deleted, with what restoring them would bring back. */
+export const getDeletedClasses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin, universityId } = await adminScope(context as never);
+    let query = supabaseAdmin
+      .from("classes")
+      .select("id, subject, code, professor, term, university_id, deleted_at, deleted_by")
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false });
+    if (universityId) query = query.or(`university_id.eq.${universityId},university_id.is.null`);
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+    const ids = (rows ?? []).map((r) => r.id);
+    if (!ids.length) return [];
+
+    const [enrollRes, notesRes, slidesRes, namesRes] = await Promise.all([
+      supabaseAdmin.from("enrollments").select("class_id").in("class_id", ids),
+      supabaseAdmin.from("notes").select("class_id").in("class_id", ids),
+      supabaseAdmin.from("lecture_slides").select("class_id").in("class_id", ids),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, full_name")
+        .in(
+          "id",
+          (rows ?? []).map((r) => r.deleted_by).filter((x): x is string => Boolean(x)),
+        ),
+    ]);
+    const count = (list: { class_id: string }[] | null, id: string) =>
+      (list ?? []).filter((x) => x.class_id === id).length;
+    const names = new Map((namesRes.data ?? []).map((p) => [p.id, p.full_name]));
+
+    // A class can't be restored while an active class uses the same code.
+    const { data: active } = await supabaseAdmin
+      .from("classes")
+      .select("code")
+      .is("deleted_at", null)
+      .in(
+        "code",
+        (rows ?? []).map((r) => r.code),
+      );
+    const taken = new Set((active ?? []).map((a) => a.code));
+
+    return (rows ?? []).map((r) => ({
+      id: r.id,
+      subject: r.subject,
+      code: r.code,
+      professor: r.professor,
+      term: r.term,
+      deleted_at: r.deleted_at as string,
+      deleted_by_name: r.deleted_by ? (names.get(r.deleted_by) ?? "an admin") : "an admin",
+      enrolled: count(enrollRes.data, r.id),
+      notes: count(notesRes.data, r.id),
+      slides: count(slidesRes.data, r.id),
+      code_taken: taken.has(r.code),
+    }));
+  });
+
+/** Brings classes back from Recently deleted, exactly as they were, for every student. */
+export const restoreClasses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ClassIds.parse(input))
+  .handler(async ({ data, context }) => {
+    const scope = await adminScope(context as never);
+    const ids = [...new Set(data.classIds)];
+    const targets = await manageableClasses(scope, ids, true);
+
+    const { data: clash, error: clashError } = await scope.supabaseAdmin
+      .from("classes")
+      .select("code")
+      .is("deleted_at", null)
+      .in(
+        "code",
+        targets.map((t) => t.code),
+      );
+    if (clashError) throw new Error(clashError.message);
+    if (clash && clash.length) {
+      throw new Error(
+        `Another active class already uses the code ${clash.map((c) => `"${c.code}"`).join(", ")}. Rename or delete it first.`,
+      );
     }
 
-    // Uploaded files are not removed by database cascades.
+    const { error } = await scope.supabaseAdmin
+      .from("classes")
+      .update({ deleted_at: null, deleted_by: null })
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    await scope.audit("classes.restore", `${ids.length} classes`, {
+      classes: targets.map((t) => `${t.code} ${t.subject}`),
+    });
+    return { restored: ids.length };
+  });
+
+/**
+ * Permanently deletes classes from Recently deleted with everything in them: files in
+ * storage, notes, then the class rows (which cascade to enrollments, slides, transcripts…).
+ */
+export const purgeClasses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ClassIds.parse(input))
+  .handler(async ({ data, context }) => {
+    const scope = await adminScope(context as never);
+    const { supabaseAdmin } = scope;
+    const ids = [...new Set(data.classIds)];
+    const targets = await manageableClasses(scope, ids, true);
+
     const [{ data: slides }, { data: pages }] = await Promise.all([
       supabaseAdmin.from("lecture_slides").select("file_path").in("class_id", ids),
       supabaseAdmin.from("handwriting_pages").select("image_path").in("class_id", ids),
@@ -285,38 +434,13 @@ export const deleteClasses = createServerFn({ method: "POST" })
 
     const { error: notesError } = await supabaseAdmin.from("notes").delete().in("class_id", ids);
     if (notesError) throw new Error(notesError.message);
-    // Cascades to enrollments, slides, bookmarks, handwriting pages and transcripts.
     const { error } = await supabaseAdmin.from("classes").delete().in("id", ids);
     if (error) throw new Error(error.message);
-    await audit("classes.delete", `${ids.length} classes`, {
-      classes: (targets ?? []).map((t) => `${t.code} ${t.subject}`),
+    await scope.audit("classes.purge", `${ids.length} classes`, {
+      classes: targets.map((t) => `${t.code} ${t.subject}`),
       files: slidePaths.length + pagePaths.length,
     });
     return { deleted: ids.length, files: slidePaths.length + pagePaths.length };
-  });
-
-export const deleteClass = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ classId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { supabaseAdmin, universityId, audit } = await adminScope(context as never);
-
-    const { data: target, error: targetError } = await supabaseAdmin
-      .from("classes")
-      .select("id, university_id, code, subject")
-      .eq("id", data.classId)
-      .maybeSingle();
-    if (targetError) throw new Error(targetError.message);
-    if (!target) throw new Error("Class not found.");
-    if (!canManageClass(universityId, target.university_id)) {
-      throw new Error("This class belongs to another university.");
-    }
-
-    await supabaseAdmin.from("notes").delete().eq("class_id", data.classId);
-    const { error } = await supabaseAdmin.from("classes").delete().eq("id", data.classId);
-    if (error) throw new Error(error.message);
-    await audit("class.delete", `${target.code} ${target.subject}`);
-    return { ok: true };
   });
 
 export const getUserDirectory = createServerFn({ method: "POST" })
@@ -467,6 +591,7 @@ export const updateClass = createServerFn({ method: "POST" })
       .from("classes")
       .select("id, university_id, subject, code, professor, term")
       .eq("id", data.classId)
+      .is("deleted_at", null)
       .maybeSingle();
     if (targetError) throw new Error(targetError.message);
     if (!target) throw new Error("Class not found.");
@@ -479,7 +604,8 @@ export const updateClass = createServerFn({ method: "POST" })
       .from("classes")
       .select("id")
       .ilike("code", data.code)
-      .neq("id", data.classId);
+      .neq("id", data.classId)
+      .is("deleted_at", null);
     dupQuery = target.university_id
       ? dupQuery.eq("university_id", target.university_id)
       : dupQuery.is("university_id", null);
