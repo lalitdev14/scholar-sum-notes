@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   BookOpen,
+  History,
   LayoutDashboard,
   NotebookPen,
   PenLine,
@@ -17,6 +18,35 @@ function greeting(now = new Date()) {
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
+}
+
+type Activity = "typed" | "handwriting" | "opened";
+const ACTIVITY_LABEL: Record<Activity, string> = {
+  typed: "You last typed notes here",
+  handwriting: "You last wrote by hand here",
+  opened: "You were last here",
+};
+
+/** The class last opened on this device (set by the class page). */
+export const LAST_CLASS_KEY = "lectureloop:last-class";
+function lastVisit(): { id: string; at: number } | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(LAST_CLASS_KEY) ?? "null");
+    return v && typeof v.id === "string" && typeof v.at === "number" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function timeAgo(iso: string) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return "just now";
+  const n = (v: number, unit: string) => `${v} ${unit}${v === 1 ? "" : "s"} ago`;
+  if (s < 3600) return n(Math.max(1, Math.round(s / 60)), "minute");
+  if (s < 86400) return n(Math.round(s / 3600), "hour");
+  if (s < 2 * 86400) return "yesterday";
+  if (s < 7 * 86400) return `${Math.round(s / 86400)} days ago`;
+  return `on ${new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
 }
 
 /**
@@ -36,22 +66,46 @@ export function WelcomeHome() {
       ]);
       const ids = (enrollments ?? []).map((e) => e.class_id);
       if (!ids.length) return { name: profile?.full_name ?? "", classes: [] };
-      const [{ data: classes }, { data: notes }] = await Promise.all([
+      const [{ data: classes }, { data: notes }, { data: pages }] = await Promise.all([
         supabase.from("classes").select("id, subject, code, professor").in("id", ids),
         supabase
           .from("notes")
           .select("class_id, updated_at")
           .eq("user_id", userId)
           .in("class_id", ids),
+        supabase
+          .from("handwriting_pages")
+          .select("class_id, updated_at")
+          .eq("user_id", userId)
+          .in("class_id", ids)
+          .order("updated_at", { ascending: false })
+          .limit(200),
       ]);
-      const touched = new Map((notes ?? []).map((n) => [n.class_id, n.updated_at]));
+      const typed = new Map((notes ?? []).map((n) => [n.class_id, n.updated_at]));
+      const drawn = new Map<string, string>();
+      for (const pg of pages ?? [])
+        if (!drawn.has(pg.class_id)) drawn.set(pg.class_id, pg.updated_at);
+      const visit = lastVisit();
       const list = (classes ?? [])
-        .map((c) => ({ ...c, updatedAt: touched.get(c.id) ?? null }))
-        // Most recently written in first, then alphabetical.
+        .map((c) => {
+          // What happened last in this class: typed notes, handwriting, or just opened it.
+          const events: [string, Activity][] = [];
+          if (typed.get(c.id)) events.push([typed.get(c.id)!, "typed"]);
+          if (drawn.get(c.id)) events.push([drawn.get(c.id)!, "handwriting"]);
+          if (visit?.id === c.id) events.push([new Date(visit.at).toISOString(), "opened"]);
+          events.sort((a, b) => b[0].localeCompare(a[0]));
+          const written = [typed.get(c.id), drawn.get(c.id)].filter(Boolean).sort().pop() ?? null;
+          return {
+            ...c,
+            updatedAt: written,
+            lastAt: events[0]?.[0] ?? null,
+            lastWhat: events[0]?.[1],
+          };
+        })
+        // Most recent first, then alphabetical.
         .sort(
           (a, b) =>
-            (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "") ||
-            a.subject.localeCompare(b.subject),
+            (b.lastAt ?? "").localeCompare(a.lastAt ?? "") || a.subject.localeCompare(b.subject),
         );
       return { name: profile?.full_name ?? "", classes: list };
     },
@@ -60,6 +114,7 @@ export function WelcomeHome() {
   const first = (data?.name ?? "").trim().split(/\s+/)[0];
   const classes = data?.classes ?? [];
   const shown = classes.slice(0, 6);
+  const last = classes[0]?.lastAt ? classes[0] : null;
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
@@ -90,7 +145,7 @@ export function WelcomeHome() {
             right next to the lecture slides, and turn them into a clear summary when it's time to
             revise.
           </p>
-          <p>Your notes are private to you. Pick up where you left off below.</p>
+          <p>Your notes are private to you.</p>
         </div>
         <div className="mt-7 flex flex-wrap gap-3">
           <Button asChild size="lg">
@@ -98,15 +153,45 @@ export function WelcomeHome() {
               <LayoutDashboard className="mr-2 h-4 w-4" /> Go to your dashboard
             </Link>
           </Button>
-          {shown[0] && (
-            <Button asChild size="lg" variant="outline">
-              <Link to="/class/$classId" params={{ classId: shown[0].id }}>
-                <PenLine className="mr-2 h-4 w-4" /> Continue {shown[0].code || shown[0].subject}
-              </Link>
-            </Button>
-          )}
         </div>
       </section>
+
+      {/* Continue where you left off: the last class they were in */}
+      {last && (
+        <section
+          className="mt-6 overflow-hidden rounded-2xl border border-primary/25 bg-primary/[0.04] p-5 sm:p-6"
+          aria-labelledby="continue-title"
+          data-testid="continue-card"
+        >
+          <p
+            id="continue-title"
+            className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary"
+          >
+            <History className="h-3.5 w-3.5" /> Continue where you left off
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {last.code}
+              </p>
+              <p className="truncate text-xl font-medium sm:text-2xl">{last.subject}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {[
+                  last.professor,
+                  `${ACTIVITY_LABEL[last.lastWhat ?? "opened"]} ${timeAgo(last.lastAt!)}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            </div>
+            <Button asChild size="lg" className="w-full sm:w-auto">
+              <Link to="/class/$classId" params={{ classId: last.id }}>
+                <PenLine className="mr-2 h-4 w-4" /> Continue where you left off
+              </Link>
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Classes */}
       <section className="mt-10" aria-labelledby="home-classes">
