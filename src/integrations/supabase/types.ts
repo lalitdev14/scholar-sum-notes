@@ -402,7 +402,10 @@ export type Database = {
           created_at: string
           id: string
           image_path: string
+          notebook_id: string | null
+          notebook_title: string | null
           page_height: number
+          page_index: number
           paper: string
           strokes: Json | null
           transcript: string
@@ -415,7 +418,10 @@ export type Database = {
           created_at?: string
           id?: string
           image_path: string
+          notebook_id?: string | null
+          notebook_title?: string | null
           page_height?: number
+          page_index?: number
           paper?: string
           strokes?: Json | null
           transcript?: string
@@ -428,7 +434,10 @@ export type Database = {
           created_at?: string
           id?: string
           image_path?: string
+          notebook_id?: string | null
+          notebook_title?: string | null
           page_height?: number
+          page_index?: number
           paper?: string
           strokes?: Json | null
           transcript?: string
