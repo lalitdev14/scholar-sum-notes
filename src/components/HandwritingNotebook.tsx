@@ -43,6 +43,7 @@ import { Input } from "@/components/ui/input";
 export const PAGE_W = 1000;
 /** Default page length; pages grow longer as you write near the bottom. */
 export const PAGE_H = 700;
+const PEN_SEEN_KEY = "lectureloop:pen-seen";
 const MAX_PAGE_H = 8000;
 /** Grow a page when ink comes this close to the bottom, by this much. */
 const GROW_MARGIN = 140;
@@ -341,7 +342,14 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const bgImgRef = useRef<{ src: string; img: HTMLImageElement } | null>(null);
   const drawingRef = useRef<Stroke | null>(null);
   const erasingRef = useRef(false);
+  // Once a stylus has been used on this device, fingers never draw (palm rejection).
   const penSeenRef = useRef(false);
+  /** The one pointer that is drawing/erasing right now; every other pointer is ignored. */
+  const drawPtrRef = useRef<{ id: number; type: string } | null>(null);
+  /** Touches set aside as a palm: ignored until they lift. */
+  const palmIdsRef = useRef(new Set<number>());
+  /** When the pen last lifted; touches just after that are treated as the resting hand. */
+  const penUpAtRef = useRef(0);
   const scaleRef = useRef(1);
   const viewRef = useRef<View>({ z: 1, x: 0, y: 0 });
   const aspectRef = useRef(PAGE_H / PAGE_W); // viewport height / width
@@ -352,6 +360,18 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const touchesRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
   const panRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  /** Where a one- or two-finger gesture began, to spot a page-turn swipe when it ends. */
+  const swipeRef = useRef<{
+    x: number;
+    y: number;
+    dist: number;
+    t: number;
+    fingers: number;
+  } | null>(null);
+  /** Latest page-turn function, for listeners registered once. */
+  const turnPageRef = useRef<(dir: 1 | -1) => void>(() => {});
+  /** Which way the page just turned, for the slide-in animation. */
+  const [flip, setFlip] = useState<{ dir: 1 | -1; n: number } | null>(null);
   const frameRef = useRef(0);
   const [fullscreen, setFullscreen] = useState(false);
   const [slidesOpen, setSlidesOpen] = useState(false);
@@ -496,6 +516,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const wheelSwipe = { sum: 0, last: 0, lockedUntil: 0 };
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
@@ -505,6 +526,22 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
         // Scroll the page when it's bigger than the screen (zoomed in or a long page).
         const v = viewRef.current;
         const h = pageHeight(pageRef.current ?? { height: PAGE_H });
+        // Trackpad: a sideways two-finger swipe turns the page (when not zoomed in).
+        if (v.z <= 1.001 && Math.abs(e.deltaX) > Math.abs(e.deltaY) * 1.5) {
+          e.preventDefault(); // also stops the browser's swipe-back navigation
+          const now = Date.now();
+          const w = wheelSwipe;
+          if (now - w.last > 250) w.sum = 0; // a new gesture
+          w.last = now;
+          if (now < w.lockedUntil) return;
+          w.sum += e.deltaX;
+          if (Math.abs(w.sum) > 120) {
+            turnPageRef.current(w.sum > 0 ? 1 : -1);
+            w.sum = 0;
+            w.lockedUntil = now + 700; // one turn per swipe (momentum keeps sending events)
+          }
+          return;
+        }
         const overflow = v.z > 1.001 || (PAGE_W * aspectRef.current) / v.z < h - 1;
         if (!overflow) return;
         e.preventDefault();
@@ -575,12 +612,73 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     erasingRef.current = true;
   };
 
+  const PALM_SIZE = 32; // CSS px: a contact wider/taller than this is a palm, not a fingertip
+  const PEN_GRACE_MS = 400; // touches this soon after the pen lifts are the resting hand
+
+  function markPenSeen() {
+    if (penSeenRef.current) return;
+    penSeenRef.current = true;
+    try {
+      localStorage.setItem(PEN_SEEN_KEY, "1");
+    } catch {
+      /* private mode */
+    }
+  }
+
+  /** Puts every current touch aside as a palm (and stops any pan/pinch they started). */
+  function rejectTouches() {
+    for (const id of touchesRef.current.keys()) palmIdsRef.current.add(id);
+    touchesRef.current.clear();
+    pinchRef.current = null;
+    if (panRef.current && palmIdsRef.current.has(panRef.current.id)) panRef.current = null;
+  }
+
+  const SWIPE_MIN_PX = 70;
+  const SWIPE_MAX_MS = 600;
+  /** A quick sideways swipe turns the page, like a book (only when the page isn't zoomed in). */
+  function endSwipe(endX: number, endY: number, endDist = 0) {
+    const sw = swipeRef.current;
+    swipeRef.current = null;
+    if (!sw || viewRef.current.z > 1.001) return;
+    const dx = endX - sw.x;
+    const dy = endY - sw.y;
+    const pinched = sw.fingers === 2 && sw.dist > 0 && Math.abs(endDist / sw.dist - 1) > 0.2;
+    if (pinched || Date.now() - sw.t > SWIPE_MAX_MS) return;
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    turnPageRef.current(dx < 0 ? 1 : -1); // right-to-left → next page
+  }
+
   function onDown(e: ReactPointerEvent<HTMLCanvasElement>) {
-    if (e.pointerType === "touch") {
+    window.getSelection()?.removeAllRanges(); // a stray text selection would steal the pen
+    const drawing = drawPtrRef.current;
+
+    if (e.pointerType === "pen") {
+      markPenSeen();
+      // The pen always wins: a palm that landed first and started a stroke loses it.
+      if (drawing && drawing.type !== "pen") {
+        drawingRef.current = null;
+        drawPtrRef.current = null;
+        erasingRef.current = false;
+      } else if (drawing) return;
+      rejectTouches();
+    } else if (e.pointerType === "touch") {
+      const palmLike =
+        e.width > PALM_SIZE ||
+        e.height > PALM_SIZE ||
+        drawing?.type === "pen" ||
+        Date.now() - penUpAtRef.current < PEN_GRACE_MS;
+      if (palmLike) {
+        palmIdsRef.current.add(e.pointerId);
+        return;
+      }
       touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (touchesRef.current.size === 2) {
         // Two fingers: pinch to zoom / drag to pan. Drop any stroke the first finger began.
-        drawingRef.current = null;
+        if (drawing?.type === "touch") {
+          drawingRef.current = null;
+          drawPtrRef.current = null;
+          erasingRef.current = false;
+        }
         panRef.current = null;
         const [a, b] = [...touchesRef.current.values()] as [
           { x: number; y: number },
@@ -591,20 +689,35 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
           midX: (a.x + b.x) / 2,
           midY: (a.y + b.y) / 2,
         };
+        swipeRef.current = {
+          x: pinchRef.current.midX,
+          y: pinchRef.current.midY,
+          dist: pinchRef.current.dist,
+          t: Date.now(),
+          fingers: 2,
+        };
         paint();
         return;
       }
-      if (touchesRef.current.size > 2) return;
+      if (touchesRef.current.size > 2 || drawing) return;
+    } else if (drawing) {
+      return;
     }
-    if (e.pointerType === "pen") penSeenRef.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    // Palm rejection: once a stylus is used, a finger pans instead of drawing.
-    // The hand tool always pans.
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone */
+    }
+    // Once a stylus is used, a finger pans instead of drawing. The hand tool always pans.
     if ((e.pointerType === "touch" && penSeenRef.current) || tool === "hand") {
       panRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      if (e.pointerType === "touch")
+        swipeRef.current = { x: e.clientX, y: e.clientY, dist: 0, t: Date.now(), fingers: 1 };
       return;
     }
     const [x, y] = toPage(e);
+    drawPtrRef.current = { id: e.pointerId, type: e.pointerType };
     const eraser = tool === "eraser" || e.buttons === 32;
     if (eraser) {
       erasingRef.current = false;
@@ -621,6 +734,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   }
 
   function onMove(e: ReactPointerEvent<HTMLCanvasElement>) {
+    if (palmIdsRef.current.has(e.pointerId)) return;
     if (e.pointerType === "touch" && touchesRef.current.has(e.pointerId)) {
       touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const prev = pinchRef.current;
@@ -646,7 +760,8 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       return;
     }
     const d = drawingRef.current;
-    if (!d) return;
+    // Only the pointer that started the stroke adds to it (a resting palm never does).
+    if (!d || drawPtrRef.current?.id !== e.pointerId) return;
     e.preventDefault();
     const events =
       typeof e.nativeEvent.getCoalescedEvents === "function"
@@ -667,12 +782,22 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     paint();
   }
 
-  function onUp(e?: ReactPointerEvent<HTMLCanvasElement>) {
-    if (e) {
-      touchesRef.current.delete(e.pointerId);
-      if (touchesRef.current.size < 2) pinchRef.current = null;
-      if (panRef.current?.id === e.pointerId) panRef.current = null;
+  function onUp(e: ReactPointerEvent<HTMLCanvasElement>) {
+    if (palmIdsRef.current.delete(e.pointerId)) return;
+    const pinch = pinchRef.current;
+    if (pinch && swipeRef.current?.fingers === 2 && e.type === "pointerup") {
+      endSwipe(pinch.midX, pinch.midY, pinch.dist);
+    } else if (panRef.current?.id === e.pointerId && swipeRef.current?.fingers === 1) {
+      if (e.type === "pointerup") endSwipe(e.clientX, e.clientY);
+      else swipeRef.current = null;
     }
+    touchesRef.current.delete(e.pointerId);
+    if (touchesRef.current.size < 2) pinchRef.current = null;
+    if (panRef.current?.id === e.pointerId) panRef.current = null;
+    // Lifting (or cancelling) any other pointer never ends the stroke in progress.
+    if (drawPtrRef.current?.id !== e.pointerId) return;
+    if (drawPtrRef.current.type === "pen") penUpAtRef.current = Date.now();
+    drawPtrRef.current = null;
     const d = drawingRef.current;
     drawingRef.current = null;
     erasingRef.current = false;
@@ -693,6 +818,34 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       };
     });
   }
+
+  // iPad Safari: block its own touch gestures on the page (text selection, the magnifier,
+  // swipe-to-scroll, double-tap zoom, swipe down out of full screen). Must be non-passive.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      penSeenRef.current ||= localStorage.getItem(PEN_SEEN_KEY) === "1";
+    } catch {
+      /* private mode */
+    }
+    const block = (ev: Event) => {
+      if (ev.cancelable) ev.preventDefault();
+    };
+    const opts = { passive: false } as const;
+    canvas.addEventListener("touchstart", block, opts);
+    canvas.addEventListener("touchmove", block, opts);
+    canvas.addEventListener("gesturestart", block, opts);
+    canvas.addEventListener("contextmenu", block);
+    canvas.addEventListener("selectstart", block);
+    return () => {
+      canvas.removeEventListener("touchstart", block);
+      canvas.removeEventListener("touchmove", block);
+      canvas.removeEventListener("gesturestart", block);
+      canvas.removeEventListener("contextmenu", block);
+      canvas.removeEventListener("selectstart", block);
+    };
+  }, []);
 
   /* ---------------- actions */
   const undo = () =>
@@ -737,6 +890,34 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       return next.length ? next : [blankPage()];
     });
   }
+
+  /** Next/previous page; turning past the last page opens a new one (unless it's blank). */
+  function turnPage(dir: 1 | -1) {
+    if (dir < 0) {
+      if (index === 0) return;
+      setIndex(index - 1);
+    } else if (index < pages.length - 1) {
+      setIndex(index + 1);
+    } else if (hasContent(page)) {
+      addPage();
+    } else {
+      return;
+    }
+    setFlip((f) => ({ dir, n: (f?.n ?? 0) + 1 }));
+  }
+  turnPageRef.current = turnPage;
+  // Slide the new page in from the side it came from.
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!flip || !el?.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate(
+      [
+        { transform: `translateX(${flip.dir * 48}px)`, opacity: 0.35 },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" },
+    );
+  }, [flip]);
 
   async function writeOnSlide() {
     const img = await captureCurrentSlide().catch(() => null);
@@ -964,9 +1145,11 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   function enterFullscreen() {
     setFullscreen(true);
     // Also hide the browser's own bars where supported (the whole document, so messages
-    // and dialogs stay visible). The overlay works without it (e.g. iPad Safari).
+    // and dialogs stay visible). Not on touch screens: there a downward pen or finger swipe
+    // ends the browser's full screen. The overlay alone covers the window just as well.
     const root = document.documentElement;
-    if (!document.fullscreenElement && root.requestFullscreen) {
+    const touchScreen = navigator.maxTouchPoints > 0 || matchMedia("(pointer: coarse)").matches;
+    if (!touchScreen && !document.fullscreenElement && root.requestFullscreen) {
       root.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
     }
   }
@@ -978,7 +1161,9 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     if (!fullscreen) return;
     const html = document.documentElement;
     const prevOverflow = html.style.overflow;
+    const prevOverscroll = html.style.overscrollBehavior;
     html.style.overflow = "hidden"; // no page scrolling behind the overlay
+    html.style.overscrollBehavior = "none"; // no pull-to-refresh / bounce while writing
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") exitFullscreen();
     };
@@ -992,6 +1177,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     document.addEventListener("fullscreenchange", onChange);
     return () => {
       html.style.overflow = prevOverflow;
+      html.style.overscrollBehavior = prevOverscroll;
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("fullscreenchange", onChange);
     };
@@ -1006,6 +1192,8 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       className={cn(
         "flex flex-col gap-3",
         fullscreen && "fixed inset-0 z-50 bg-background p-3 sm:p-4",
+        // No text selection / iOS callout around the page (it would grab the pen).
+        "select-none [-webkit-touch-callout:none] [&_input]:select-text",
       )}
       data-testid="notebook"
       data-fullscreen={fullscreen || undefined}
@@ -1193,6 +1381,77 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
             fullscreen ? "flex min-w-0 flex-1 flex-col gap-3 overflow-hidden pr-2" : "contents"
           }
         >
+          {/* Pages + actions */}
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                onClick={() => turnPage(-1)}
+                disabled={index === 0}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-[5rem] text-center text-sm tabular-nums text-muted-foreground">
+                Page {index + 1} / {pages.length}
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                onClick={() => turnPage(1)}
+                disabled={index >= pages.length - 1}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => addPage()}>
+              <FilePlus2 className="mr-1.5 h-4 w-4" /> New page
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => void writeOnSlide()}>
+              <Presentation className="mr-1.5 h-4 w-4" /> Write on slide
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={deletePage}
+              aria-label="Remove page from notebook"
+              title="Remove page from notebook"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={
+                  saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)
+                }
+                onClick={() => void save()}
+              >
+                <Save className="mr-1.5 h-4 w-4" />
+                {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save page"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={isEmpty || converting}
+                onClick={() => void convert()}
+              >
+                <Sparkles className="mr-1.5 h-4 w-4" />
+                {converting ? "Converting…" : "Convert to text"}
+              </Button>
+            </div>
+          </div>
+
           {/* Page */}
           <div ref={wrapRef} className={cn("relative w-full", fullscreen && "min-h-0 flex-1")}>
             <canvas
@@ -1203,7 +1462,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
               onPointerCancel={onUp}
               onLostPointerCapture={onUp}
               className={cn(
-                "block w-full touch-none rounded-lg border border-border bg-white shadow-sm",
+                "block w-full touch-none select-none rounded-lg border border-border bg-white shadow-sm",
                 fullscreen && "h-full",
                 tool === "eraser"
                   ? "cursor-cell"
@@ -1283,77 +1542,6 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
               </Button>
             </div>
           </div>
-
-          {/* Pages + actions */}
-          <div className="flex w-full flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="h-8 w-8"
-                onClick={() => setIndex((i) => Math.max(0, i - 1))}
-                disabled={index === 0}
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="min-w-[5rem] text-center text-sm tabular-nums text-muted-foreground">
-                Page {index + 1} / {pages.length}
-              </span>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="h-8 w-8"
-                onClick={() => setIndex((i) => Math.min(pages.length - 1, i + 1))}
-                disabled={index >= pages.length - 1}
-                aria-label="Next page"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button type="button" size="sm" variant="outline" onClick={() => addPage()}>
-              <FilePlus2 className="mr-1.5 h-4 w-4" /> New page
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => void writeOnSlide()}>
-              <Presentation className="mr-1.5 h-4 w-4" /> Write on slide
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              onClick={deletePage}
-              aria-label="Remove page from notebook"
-              title="Remove page from notebook"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={
-                  saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)
-                }
-                onClick={() => void save()}
-              >
-                <Save className="mr-1.5 h-4 w-4" />
-                {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save page"}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={isEmpty || converting}
-                onClick={() => void convert()}
-              >
-                <Sparkles className="mr-1.5 h-4 w-4" />
-                {converting ? "Converting…" : "Convert to text"}
-              </Button>
-            </div>
-          </div>
         </div>
 
         {fullscreen && (
@@ -1401,8 +1589,9 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       <p className={cn("text-xs text-muted-foreground", fullscreen && "hidden")}>
         Write with an Apple Pencil or stylus (pressure-sensitive; your palm is ignored once the
         pencil is used), a mouse or a trackpad. Pinch or ⌘/Ctrl + scroll to zoom; scroll or use Move
-        to get around a zoomed page. Pages are kept on this device until you save them. "Convert to
-        text" adds the page to your typed notes.
+        to get around a zoomed page. Swipe sideways (two fingers, or one once you've used a pencil)
+        to turn the page; swiping past the last page starts a new one. Pages are kept on this device
+        until you save them. "Convert to text" adds the page to your typed notes.
       </p>
     </div>
   );
