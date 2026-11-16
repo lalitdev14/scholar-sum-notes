@@ -23,7 +23,8 @@ const CONTENT_SECURITY_POLICY = [
   "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co",
   "worker-src 'self' blob:",
   "media-src 'self' blob:",
-  "frame-src 'self' blob:",
+  // PDF Studio (merge, split, convert PDFs) is embedded in My notes.
+  "frame-src 'self' blob: https://pdfstudioapp.vercel.app",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
