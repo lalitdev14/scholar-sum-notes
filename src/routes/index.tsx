@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
@@ -56,13 +56,26 @@ const steps = [
 ];
 
 function Landing() {
-  // null until we know: avoids flashing the public landing page at signed-in students.
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  // The server always renders the public page (search engines, and no blank page if the
+  // scripts fail to load). Signed-in students switch to the welcome note before the first
+  // paint: the saved session is checked synchronously in a layout effect.
+  const [signedIn, setSignedIn] = useState(false);
+
+  useLayoutEffect(() => {
+    try {
+      if (Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k))) setSignedIn(true);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
-      if (active) setSignedIn(!!data.session);
+      if (!active) return;
+      setSignedIn(!!data.session);
+      // The app has taken over: stop hiding the public page (see the root layout).
+      document.documentElement.removeAttribute("data-signed-in");
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setSignedIn(!!session);
@@ -78,7 +91,10 @@ function Landing() {
       {signedIn ? (
         <AuthenticatedHeader />
       ) : (
-        <header className="mx-auto w-full flex max-w-[100rem] items-center justify-between px-4 py-6 sm:px-6 lg:px-10 xl:px-16">
+        <header
+          data-public-home
+          className="mx-auto w-full flex max-w-[100rem] items-center justify-between px-4 py-6 sm:px-6 lg:px-10 xl:px-16"
+        >
           <div className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
@@ -89,12 +105,10 @@ function Landing() {
         </header>
       )}
 
-      {signedIn === null ? (
-        <main className="flex-1" aria-busy="true" />
-      ) : signedIn ? (
+      {signedIn ? (
         <WelcomeHome />
       ) : (
-        <main>
+        <main data-public-home>
           <section className="mx-auto w-full max-w-4xl px-4 sm:px-6 pb-16 pt-16 text-center">
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
               For NYU students · Your personal class notebook
