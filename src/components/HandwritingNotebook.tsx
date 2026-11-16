@@ -9,8 +9,11 @@ import {
   type ReactNode,
 } from "react";
 import {
+  BookOpen,
+  BookPlus,
   ChevronLeft,
   ChevronRight,
+  FileDown,
   Eraser,
   Expand,
   FilePlus2,
@@ -32,6 +35,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { captureCurrentSlide } from "@/lib/slide-capture";
+import { Input } from "@/components/ui/input";
 
 /* ------------------------------------------------------------------ model */
 
@@ -77,11 +81,27 @@ export type RenderedPage = {
   strokes: Stroke[];
   paper: Paper;
   height: number;
+  notebookId: string;
+  notebookTitle: string;
+  pageIndex: number;
+};
+
+/** A saved page as loaded back into the notebook. */
+export type OpenPage = {
+  id: string;
+  imagePath: string;
+  strokes: Stroke[];
+  paper: Paper;
+  height: number;
+  backgroundPath: string | null;
+  background: string | null;
 };
 
 export type SavedPageResult = { id: string; imagePath: string; backgroundPath: string | null };
 
 export type NotebookHandle = {
+  /** Opens a whole saved notebook (asks first if the current one has unsaved pages). */
+  openNotebook: (nb: { id: string; title: string; pages: OpenPage[]; startIndex?: number }) => void;
   /** Opens a saved page for editing (adds it as a page, or jumps to it if already open). */
   openSaved: (page: {
     id: string;
@@ -272,16 +292,39 @@ type Props = {
   /** Turns the page into typed text (AI) and saves it. Returns the save result or null. */
   onConvert: (page: RenderedPage) => Promise<SavedPageResult | null>;
   /** Saves the page to the class. Returns the save result or null on failure. */
-  onSave: (page: RenderedPage) => Promise<SavedPageResult | null>;
+  onSave: (page: RenderedPage, opts?: { quiet?: boolean }) => Promise<SavedPageResult | null>;
+  /** Renames a notebook that already has saved pages. */
+  onRenameNotebook?: (id: string, title: string) => void;
+  /** Title for new notebooks, e.g. "CS-221 notebook · Nov 16". */
+  defaultTitle?: string;
   /** Slide viewer shown in the sidebar of full-screen mode. */
   slidesPanel?: ReactNode;
 };
 
 export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function HandwritingNotebook(
-  { classId, converting = false, onConvert, onSave, slidesPanel },
+  {
+    classId,
+    converting = false,
+    onConvert,
+    onSave,
+    onRenameNotebook,
+    defaultTitle = "Notebook",
+    slidesPanel,
+  },
   ref,
 ) {
   const draftKey = `lectureloop:notebook:${classId}`;
+  const [notebookId, setNotebookId] = useState<string>(() => crypto.randomUUID());
+  const [title, setTitle] = useState(defaultTitle);
+  // The default title can change once the class has loaded; follow it until the user edits it.
+  const lastDefault = useRef(defaultTitle);
+  useEffect(() => {
+    const prev = lastDefault.current;
+    lastDefault.current = defaultTitle;
+    setTitle((t) => (t === prev ? defaultTitle : t));
+  }, [defaultTitle]);
+  const [savingAll, setSavingAll] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [pages, setPages] = useState<Page[]>(() => [blankPage()]);
   const [index, setIndex] = useState(0);
   const [tool, setTool] = useState<Tool>("pen");
@@ -324,10 +367,17 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     try {
       const raw = localStorage.getItem(draftKey);
       if (!raw) return;
-      const saved = JSON.parse(raw) as { pages: Omit<Page, "undo" | "redo">[]; index: number };
+      const saved = JSON.parse(raw) as {
+        pages: Omit<Page, "undo" | "redo">[];
+        index: number;
+        notebookId?: string;
+        title?: string;
+      };
       if (saved.pages?.length && saved.pages.some((p) => p.strokes.length || p.background)) {
         setPages(saved.pages.map((p) => ({ ...p, undo: [], redo: [] })));
         setIndex(Math.min(saved.index ?? 0, saved.pages.length - 1));
+        if (saved.notebookId) setNotebookId(saved.notebookId);
+        if (saved.title) setTitle(saved.title);
       }
     } catch {
       /* ignore */
@@ -338,19 +388,22 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     const t = setTimeout(() => {
       try {
         const light = pages.map(({ undo: _u, redo: _r, ...p }) => p);
-        localStorage.setItem(draftKey, JSON.stringify({ pages: light, index }));
+        localStorage.setItem(draftKey, JSON.stringify({ pages: light, index, notebookId, title }));
       } catch {
         // Too big for local storage (large slide images): keep the ink, drop the images.
         try {
           const light = pages.map(({ undo: _u, redo: _r, background: _b, ...p }) => p);
-          localStorage.setItem(draftKey, JSON.stringify({ pages: light, index }));
+          localStorage.setItem(
+            draftKey,
+            JSON.stringify({ pages: light, index, notebookId, title }),
+          );
         } catch {
           /* storage unavailable */
         }
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [pages, index, draftKey]);
+  }, [pages, index, draftKey, notebookId, title]);
 
   /* ---------------- rendering */
   const rebuildCache = useCallback(async () => {
@@ -695,17 +748,85 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     toast.success("Added the current slide as a page. Write on it!");
   }
 
-  async function rendered(): Promise<RenderedPage> {
+  async function rendered(p: Page = page, i: number = index): Promise<RenderedPage> {
     return {
-      savedId: page.savedId,
-      imagePath: page.imagePath,
-      backgroundPath: page.backgroundPath ?? null,
-      backgroundDataUrl: page.backgroundPath ? null : (page.background ?? null),
-      imageDataUrl: await renderPage(page),
-      strokes: page.strokes,
-      paper: page.paper,
-      height: pageHeight(page),
+      savedId: p.savedId,
+      imagePath: p.imagePath,
+      backgroundPath: p.backgroundPath ?? null,
+      backgroundDataUrl: p.backgroundPath ? null : (p.background ?? null),
+      imageDataUrl: await renderPage(p),
+      strokes: p.strokes,
+      paper: p.paper,
+      height: pageHeight(p),
+      notebookId,
+      notebookTitle: title.trim() || defaultTitle,
+      pageIndex: i,
     };
+  }
+
+  const hasContent = (p: Page) => p.strokes.length > 0 || Boolean(p.background);
+  const unsavedPages = pages.filter((p) => hasContent(p) && (p.dirty || !p.savedId));
+
+  /** Saves every page with unsaved ink in this notebook. Returns false if one failed. */
+  async function saveAll(): Promise<boolean> {
+    const todo = pages
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => hasContent(p) && (p.dirty || !p.savedId));
+    if (!todo.length) return true;
+    setSavingAll(true);
+    let ok = 0;
+    try {
+      for (const { p, i } of todo) {
+        const res = await onSave(await rendered(p, i), { quiet: true });
+        if (!res) break;
+        applySaved(res, p.key);
+        ok++;
+      }
+    } finally {
+      setSavingAll(false);
+    }
+    if (ok === todo.length) toast.success(`Saved ${ok} page${ok === 1 ? "" : "s"} in "${title}"`);
+    return ok === todo.length;
+  }
+
+  /** Before replacing this notebook: offer to save unsaved pages, or confirm discarding them. */
+  async function confirmLeave(): Promise<boolean> {
+    if (!unsavedPages.length) return true;
+    const n = unsavedPages.length;
+    if (window.confirm(`Save the ${n} unsaved page${n === 1 ? "" : "s"} in this notebook first?`)) {
+      return saveAll();
+    }
+    return window.confirm("Continue without saving? Unsaved pages will be lost.");
+  }
+
+  async function newNotebook() {
+    if (!(await confirmLeave())) return;
+    setPages([blankPage(page.paper)]);
+    setIndex(0);
+    setNotebookId(crypto.randomUUID());
+    setTitle(defaultTitle);
+    toast.success("Started a new notebook");
+  }
+
+  async function downloadPdf() {
+    const withInk = pages.filter(hasContent);
+    if (!withInk.length) {
+      toast.error("Write something first.");
+      return;
+    }
+    setExportingPdf(true);
+    try {
+      const { downloadNotebookPdf } = await import("@/lib/notebook-pdf");
+      const images = [];
+      for (const p of withInk) images.push(await renderPage(p));
+      await downloadNotebookPdf(title.trim() || defaultTitle, images);
+      toast.success(`Downloaded ${withInk.length}-page PDF`);
+    } catch (err) {
+      console.error("[notebook-pdf]", err);
+      toast.error("Could not create the PDF. Please try again.");
+    } finally {
+      setExportingPdf(false);
+    }
   }
 
   const applySaved = (res: SavedPageResult | null, key: string) => {
@@ -743,6 +864,37 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   }
 
   useImperativeHandle(ref, () => ({
+    openNotebook: (nb) => {
+      void (async () => {
+        if (nb.id === notebookId && pages.some((p) => p.savedId)) {
+          // Already open: just jump to the page.
+          const at = nb.pages[nb.startIndex ?? 0];
+          const i = at ? pages.findIndex((p) => p.savedId === at.id) : -1;
+          if (i >= 0) setIndex(i);
+          return;
+        }
+        if (!(await confirmLeave())) return;
+        setPages(
+          nb.pages.map((sp) => ({
+            key: newKey(),
+            savedId: sp.id,
+            imagePath: sp.imagePath,
+            backgroundPath: sp.backgroundPath,
+            background: sp.background,
+            paper: sp.paper,
+            height: sp.height,
+            strokes: sp.strokes,
+            undo: [],
+            redo: [],
+            dirty: false,
+          })),
+        );
+        setIndex(Math.min(nb.startIndex ?? 0, Math.max(0, nb.pages.length - 1)));
+        setNotebookId(nb.id);
+        setTitle(nb.title);
+        wrapRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      })();
+    },
     openSaved: (saved) => {
       const open = pages.findIndex((p) => p.savedId === saved.id);
       if (open >= 0) {
@@ -861,6 +1013,51 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       aria-modal={fullscreen || undefined}
       aria-label={fullscreen ? "Full-screen handwriting" : undefined}
     >
+      {/* Notebook: title + whole-notebook actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        <BookOpen className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value.slice(0, 200))}
+          onBlur={() => {
+            if (pages.some((p) => p.savedId) && title.trim())
+              onRenameNotebook?.(notebookId, title.trim());
+          }}
+          aria-label="Notebook title"
+          className="h-8 min-w-0 flex-1 sm:max-w-xs"
+        />
+        <span className="text-xs text-muted-foreground">
+          {pages.length} page{pages.length === 1 ? "" : "s"}
+          {unsavedPages.length ? ` · ${unsavedPages.length} unsaved` : ""}
+        </span>
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void saveAll()}
+            disabled={savingAll || !unsavedPages.length}
+          >
+            <Save className="mr-1.5 h-4 w-4" />
+            {savingAll ? "Saving…" : "Save all"}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => void downloadPdf()}
+            disabled={exportingPdf}
+            title="Download every page of this notebook as one PDF"
+          >
+            <FileDown className="mr-1.5 h-4 w-4" />
+            {exportingPdf ? "Making PDF…" : "PDF"}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => void newNotebook()}>
+            <BookPlus className="mr-1.5 h-4 w-4" /> New notebook
+          </Button>
+        </div>
+      </div>
+
       {/* Tools */}
       <div
         className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background p-1.5"
