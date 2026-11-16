@@ -1,0 +1,79 @@
+name: Nightly database backup
+
+# Every night at midnight New York time (05:00 UTC; 01:00 during daylight saving time),
+# dump the production database (roles, schema and all data, including accounts), encrypt
+# it, and keep two copies:
+#   1. In the backup Supabase project's private storage bucket "db-backups" (30 nights).
+#   2. As a GitHub Actions artifact (30 days) — only while this repository is private,
+#      because artifacts of public repositories can be downloaded by any GitHub user.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   PROD_DB_URL                  Production Postgres connection string (session pooler URI)
+#   BACKUP_PASSPHRASE            Long random passphrase used to encrypt every backup
+#   BACKUP_SUPABASE_URL          https://<backup-project-ref>.supabase.co
+#   BACKUP_SUPABASE_SERVICE_KEY  Secret (service role) key of the backup project
+# See DEPLOYMENT.md → "Backups" for setup and restore instructions.
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      BACKUP_SUPABASE_URL: ${{ secrets.BACKUP_SUPABASE_URL }}
+      BACKUP_SUPABASE_SERVICE_KEY: ${{ secrets.BACKUP_SUPABASE_SERVICE_KEY }}
+      KEEP_DAYS: "30"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check configuration
+        run: |
+          missing=0
+          for v in PROD_DB_URL BACKUP_PASSPHRASE BACKUP_SUPABASE_URL BACKUP_SUPABASE_SERVICE_KEY; do
+            if [ -z "${!v}" ]; then echo "::error::Repository secret $v is not set"; missing=1; fi
+          done
+          if [ "${#BACKUP_PASSPHRASE}" -lt 24 ]; then
+            echo "::error::BACKUP_PASSPHRASE must be at least 24 characters"; missing=1
+          fi
+          exit $missing
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump the production database
+        run: bash scripts/backup/dump.sh
+
+      - name: Copy 1 — backup Supabase project storage
+        run: bash scripts/backup/upload-to-supabase.sh "${{ env.BACKUP_FILE }}"
+
+      - name: Copy 2 — GitHub artifact (private repository only)
+        if: ${{ github.event.repository.private }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_NAME }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Note when the GitHub copy is skipped
+        if: ${{ !github.event.repository.private }}
+        run: |
+          echo "::warning::This repository is public, so the GitHub copy was skipped (artifacts of public repositories are downloadable by anyone). Make the repository private to keep a second copy here."
+
+      - name: Remove local files
+        if: always()
+        run: rm -rf backup lectureloop-db-*.tar.gz.gpg

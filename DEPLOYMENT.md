@@ -129,3 +129,47 @@ bun run dev            # http://localhost:8080
 - **Sessions:** the app signs a device out after 30 days without use.
 - **Supabase Auth:** minimum password length 8 and re-authentication for password changes are
   on. Leaked-password protection and server-side session timeouts need the Supabase Pro plan.
+
+## Backups (nightly, two copies)
+
+`.github/workflows/nightly-db-backup.yml` runs every night at **midnight New York time**
+(05:00 UTC; 01:00 during daylight saving) and can also be run by hand (Actions → *Nightly
+database backup* → *Run workflow*). It dumps the whole production database with the Supabase
+CLI (roles, schema, all data including accounts, notes, classes and transcripts), checks the
+dump isn't empty or partial, **encrypts it (AES-256) with your passphrase**, and keeps:
+
+1. **Copy 1:** the backup Supabase project's private storage bucket `db-backups`, 30 nights.
+2. **Copy 2:** a GitHub Actions artifact, 30 days, **only while this repository is private**
+   (artifacts of public repositories can be downloaded by any GitHub user, so the step is
+   skipped with a warning while the repo is public).
+
+GitHub emails you if a nightly run fails.
+
+### One-time setup
+1. **Create the backup project:** in Supabase, *New project* → name `lectureloop-backup`, same
+   region (East US). Free plan is fine. Save its database password in your password manager.
+2. **Backup project keys:** in the backup project, *Project Settings → API Keys*: copy the
+   Project URL and a **secret** key.
+3. **Production connection string:** in the production project, *Connect* → **Session pooler**
+   → URI, and put the database password in it (reset it under *Database → Settings* if needed).
+   Use the session pooler: GitHub runners can't reach the direct (IPv6) address.
+4. **Passphrase:** generate one (for example `openssl rand -base64 32`) and keep it in your
+   password manager. **Without it, the backups can't be opened.**
+5. In GitHub, *Settings → Secrets and variables → Actions → New repository secret*, add:
+   `PROD_DB_URL`, `BACKUP_PASSPHRASE`, `BACKUP_SUPABASE_URL`, `BACKUP_SUPABASE_SERVICE_KEY`.
+6. Run the workflow once by hand and check it goes green and a file appears in the backup
+   project's *Storage → db-backups*.
+
+### Restoring
+Download a backup (from the backup project's storage or the workflow run's artifacts), then:
+
+```bash
+scripts/backup/restore.sh lectureloop-db-YYYY-MM-DD.tar.gz.gpg "postgresql://…target…"
+```
+
+Restore into a **new, empty** Supabase project (for example the backup project when production
+is down), then point `SUPABASE_URL` / `VITE_SUPABASE_URL` and the keys in Vercel at it.
+Needs `gpg` and a PostgreSQL 17 `psql`.
+
+**Not included:** uploaded files (slide PDFs/PowerPoints and handwriting images) live in
+Storage, not in the database. Note text, transcripts and summaries are included.
