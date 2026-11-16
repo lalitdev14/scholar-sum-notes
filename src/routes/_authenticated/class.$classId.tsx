@@ -279,6 +279,7 @@ function ClassPage() {
         image_path: imagePath,
         strokes: page.strokes as unknown as never,
         paper: page.paper,
+        page_height: Math.round(page.height),
         background_path: backgroundPath,
         ...(transcript !== undefined ? { transcript } : {}),
       };
@@ -337,6 +338,7 @@ function ClassPage() {
     image_path: string;
     strokes: unknown;
     paper: string;
+    page_height: number;
     background_path: string | null;
   }) {
     let background: string | null = null;
@@ -358,6 +360,7 @@ function ClassPage() {
       imagePath: row.image_path,
       strokes: (Array.isArray(row.strokes) ? row.strokes : []) as Stroke[],
       paper: row.paper as Paper,
+      height: row.page_height,
       backgroundPath: row.background_path,
       background,
     });
@@ -386,7 +389,9 @@ function ClassPage() {
       const { data: userData } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("handwriting_pages")
-        .select("id, image_path, transcript, created_at, strokes, paper, background_path")
+        .select(
+          "id, image_path, transcript, created_at, strokes, paper, page_height, background_path",
+        )
         .eq("class_id", classId)
         .eq("user_id", userData.user!.id)
         .order("created_at", { ascending: false })

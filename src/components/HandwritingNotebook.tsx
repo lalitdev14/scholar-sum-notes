@@ -37,7 +37,12 @@ import { captureCurrentSlide } from "@/lib/slide-capture";
 
 /** Logical page size; strokes are stored in these units so they scale with the screen. */
 export const PAGE_W = 1000;
+/** Default page length; pages grow longer as you write near the bottom. */
 export const PAGE_H = 700;
+const MAX_PAGE_H = 8000;
+/** Grow a page when ink comes this close to the bottom, by this much. */
+const GROW_MARGIN = 140;
+const GROW_STEP = 500;
 
 export type Paper = "blank" | "lined" | "grid" | "dotted";
 type Tool = "pen" | "highlighter" | "eraser" | "hand";
@@ -52,11 +57,15 @@ type Page = {
   backgroundPath?: string | null;
   background?: string | null; // data URL of a slide image
   paper: Paper;
+  /** Page length in page units (width is always PAGE_W). Older drafts may lack it. */
+  height?: number | undefined;
   strokes: Stroke[];
   undo: Stroke[][];
   redo: Stroke[][];
   dirty: boolean;
 };
+
+const pageHeight = (p: { height?: number | undefined }) => p.height ?? PAGE_H;
 
 /** What the class page receives to save or convert a page. */
 export type RenderedPage = {
@@ -67,6 +76,7 @@ export type RenderedPage = {
   imageDataUrl: string;
   strokes: Stroke[];
   paper: Paper;
+  height: number;
 };
 
 export type SavedPageResult = { id: string; imagePath: string; backgroundPath: string | null };
@@ -78,6 +88,7 @@ export type NotebookHandle = {
     imagePath: string;
     strokes: Stroke[];
     paper: Paper;
+    height: number;
     backgroundPath: string | null;
     background: string | null;
   }) => void;
@@ -100,13 +111,17 @@ const MAX_ZOOM = 4;
 /** Visible part of the page: zoom factor and the top-left corner in page units. */
 type View = { z: number; x: number; y: number };
 
-/** Keeps the view inside the page when zoomed in, and centres the page when zoomed out. */
-function clampView(v: View): View {
+/**
+ * Keeps the view inside the page (when it's bigger than the screen) and centres the page
+ * when it's smaller. `aspect` is the viewport's height / width; at zoom 1 the page width
+ * fills the viewport.
+ */
+function clampView(v: View, pageH: number, aspect: number): View {
   const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.z));
   const vw = PAGE_W / z;
-  const vh = PAGE_H / z;
+  const vh = (PAGE_W * aspect) / z;
   const x = vw >= PAGE_W ? (PAGE_W - vw) / 2 : Math.min(Math.max(v.x, 0), PAGE_W - vw);
-  const y = vh >= PAGE_H ? (PAGE_H - vh) / 2 : Math.min(Math.max(v.y, 0), PAGE_H - vh);
+  const y = vh >= pageH ? (pageH - vh) / 2 : Math.min(Math.max(v.y, 0), pageH - vh);
   return { z, x, y };
 }
 
@@ -122,14 +137,14 @@ const blankPage = (paper: Paper = "lined"): Page => ({
 
 /* ------------------------------------------------------------------ drawing */
 
-function drawPaper(ctx: CanvasRenderingContext2D, paper: Paper) {
+function drawPaper(ctx: CanvasRenderingContext2D, paper: Paper, h = PAGE_H) {
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+  ctx.fillRect(0, 0, PAGE_W, h);
   ctx.save();
   if (paper === "lined") {
     ctx.strokeStyle = "#cfdcef";
     ctx.lineWidth = 1;
-    for (let y = 64; y < PAGE_H; y += 34) {
+    for (let y = 64; y < h; y += 34) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(PAGE_W, y);
@@ -138,7 +153,7 @@ function drawPaper(ctx: CanvasRenderingContext2D, paper: Paper) {
     ctx.strokeStyle = "#f3b3b3";
     ctx.beginPath();
     ctx.moveTo(72, 0);
-    ctx.lineTo(72, PAGE_H);
+    ctx.lineTo(72, h);
     ctx.stroke();
   } else if (paper === "grid") {
     ctx.strokeStyle = "#e3e8ef";
@@ -146,10 +161,10 @@ function drawPaper(ctx: CanvasRenderingContext2D, paper: Paper) {
     for (let x = 25; x < PAGE_W; x += 25) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, PAGE_H);
+      ctx.lineTo(x, h);
       ctx.stroke();
     }
-    for (let y = 25; y < PAGE_H; y += 25) {
+    for (let y = 25; y < h; y += 25) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(PAGE_W, y);
@@ -158,7 +173,7 @@ function drawPaper(ctx: CanvasRenderingContext2D, paper: Paper) {
   } else if (paper === "dotted") {
     ctx.fillStyle = "#c3cad6";
     for (let x = 25; x < PAGE_W; x += 25)
-      for (let y = 25; y < PAGE_H; y += 25) {
+      for (let y = 25; y < h; y += 25) {
         ctx.beginPath();
         ctx.arc(x, y, 1.3, 0, Math.PI * 2);
         ctx.fill();
@@ -234,14 +249,17 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /** Renders a page (paper or slide, then ink) to a PNG data URL at `scale`× page units. */
-async function renderPage(page: Page, scale = 1.5): Promise<string> {
+async function renderPage(page: Page): Promise<string> {
+  const h = pageHeight(page);
+  // Long pages are saved at a slightly lower resolution to stay well under 5 MB.
+  const scale = h > 1600 ? 1 : 1.5;
   const canvas = document.createElement("canvas");
   canvas.width = PAGE_W * scale;
-  canvas.height = PAGE_H * scale;
+  canvas.height = Math.round(h * scale);
   const ctx = canvas.getContext("2d")!;
   ctx.scale(scale, scale);
   if (page.background) drawBackground(ctx, await loadImage(page.background));
-  else drawPaper(ctx, page.paper);
+  else drawPaper(ctx, page.paper, h);
   for (const s of page.strokes) drawStroke(ctx, s);
   return canvas.toDataURL("image/png");
 }
@@ -283,6 +301,10 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const penSeenRef = useRef(false);
   const scaleRef = useRef(1);
   const viewRef = useRef<View>({ z: 1, x: 0, y: 0 });
+  const aspectRef = useRef(PAGE_H / PAGE_W); // viewport height / width
+  const pageRef = useRef<Page | null>(null);
+  pageRef.current = page;
+  const [scrollInfo, setScrollInfo] = useState<{ top: number; size: number } | null>(null);
   const [zoomPct, setZoomPct] = useState(100);
   const touchesRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
@@ -349,15 +371,16 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     ctx.fillStyle = "#eceef2";
     ctx.fillRect(0, 0, cache.width, cache.height);
     ctx.setTransform(k, 0, 0, k, -v.x * k, -v.y * k);
+    const h = page.height ?? PAGE_H;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 0, PAGE_W, PAGE_H);
+    ctx.rect(0, 0, PAGE_W, h);
     ctx.clip();
     if (page.background && bgImgRef.current) drawBackground(ctx, bgImgRef.current.img);
-    else drawPaper(ctx, page.paper);
+    else drawPaper(ctx, page.paper, h);
     for (const st of page.strokes) drawStroke(ctx, st);
     ctx.restore();
-  }, [page.background, page.paper, page.strokes]);
+  }, [page.background, page.paper, page.strokes, page.height]);
 
   const paint = useCallback(() => {
     const canvas = canvasRef.current;
@@ -383,8 +406,13 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
 
   /* ---------------- zoom */
   const setView = (next: View) => {
-    viewRef.current = clampView(next);
-    setZoomPct(Math.round(viewRef.current.z * 100));
+    const h = pageHeight(pageRef.current ?? { height: PAGE_H });
+    const v = clampView(next, h, aspectRef.current);
+    viewRef.current = v;
+    setZoomPct(Math.round(v.z * 100));
+    // Scroll indicator for pages longer than the screen.
+    const vh = (PAGE_W * aspectRef.current) / v.z;
+    setScrollInfo(vh < h - 1 ? { top: Math.max(0, v.y / h), size: Math.min(1, vh / h) } : null);
     cancelAnimationFrame(frameRef.current);
     frameRef.current = requestAnimationFrame(() => redrawRef.current());
   };
@@ -396,9 +424,10 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   };
   const zoomBy = (factor: number) => {
     const v = viewRef.current;
-    zoomAt(factor, v.x + PAGE_W / (2 * v.z), v.y + PAGE_H / (2 * v.z));
+    zoomAt(factor, v.x + PAGE_W / (2 * v.z), v.y + (PAGE_W * aspectRef.current) / (2 * v.z));
   };
-  const fitPage = () => setView({ z: 1, x: 0, y: 0 });
+  /** Back to 100% (page width fits the screen), keeping the current scroll position. */
+  const fitPage = () => setView({ z: 1, x: 0, y: viewRef.current.y });
   /** Page units per screen pixel at the current zoom. */
   const unitsPerPx = () => {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -419,7 +448,12 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
         e.preventDefault();
         const [cx, cy] = toPage(e);
         zoomAt(Math.exp(-e.deltaY * 0.01), cx, cy);
-      } else if (viewRef.current.z > 1.001) {
+      } else {
+        // Scroll the page when it's bigger than the screen (zoomed in or a long page).
+        const v = viewRef.current;
+        const h = pageHeight(pageRef.current ?? { height: PAGE_H });
+        const overflow = v.z > 1.001 || (PAGE_W * aspectRef.current) / v.z < h - 1;
+        if (!overflow) return;
         e.preventDefault();
         panBy(-e.deltaX, -e.deltaY);
       }
@@ -436,18 +470,25 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     if (!canvas || !wrap) return;
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = wrap.clientWidth;
-      if (!w) return; // hidden tab
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      if (!w || !h) return; // hidden tab
       const width = Math.round(w * dpr);
-      if (canvas.width === width) return;
+      const height = Math.round(h * dpr);
+      if (canvas.width === width && canvas.height === height) return;
       scaleRef.current = w / PAGE_W;
+      aspectRef.current = h / w;
       canvas.width = width;
-      canvas.height = Math.round(w * (PAGE_H / PAGE_W) * dpr);
+      canvas.height = height;
+      setView(viewRef.current); // re-clamp for the new box
+      setBoxTick((t) => t + 1);
       redrawRef.current();
     };
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
+    ro.observe(canvas);
     return () => ro.disconnect();
   }, []);
 
@@ -456,10 +497,8 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const toPage = (e: { clientX: number; clientY: number }) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     const v = viewRef.current;
-    return [
-      ((e.clientX - rect.left) / rect.width) * (PAGE_W / v.z) + v.x,
-      ((e.clientY - rect.top) / rect.height) * (PAGE_H / v.z) + v.y,
-    ] as const;
+    const u = PAGE_W / rect.width / v.z; // page units per screen pixel
+    return [(e.clientX - rect.left) * u + v.x, (e.clientY - rect.top) * u + v.y] as const;
   };
 
   const eraseAt = (x: number, y: number) => {
@@ -585,13 +624,21 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     drawingRef.current = null;
     erasingRef.current = false;
     if (!d || !d.color || d.pts.length === 0) return;
-    updatePage((p) => ({
-      ...p,
-      undo: [...p.undo.slice(-99), p.strokes],
-      redo: [],
-      strokes: [...p.strokes, d],
-      dirty: true,
-    }));
+    let maxY = 0;
+    for (let i = 1; i < d.pts.length; i += 3) maxY = Math.max(maxY, d.pts[i]!);
+    updatePage((p) => {
+      const h = pageHeight(p);
+      // Dynamic page: writing near the bottom adds more paper (slide pages keep their size).
+      const grow = !p.background && maxY > h - GROW_MARGIN;
+      return {
+        ...p,
+        height: grow ? Math.min(MAX_PAGE_H, h + GROW_STEP) : p.height,
+        undo: [...p.undo.slice(-99), p.strokes],
+        redo: [],
+        strokes: [...p.strokes, d],
+        dirty: true,
+      };
+    });
   }
 
   /* ---------------- actions */
@@ -657,6 +704,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       imageDataUrl: await renderPage(page),
       strokes: page.strokes,
       paper: page.paper,
+      height: pageHeight(page),
     };
   }
 
@@ -708,6 +756,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
         backgroundPath: saved.backgroundPath,
         background: saved.background,
         paper: saved.paper,
+        height: saved.height,
         strokes: saved.strokes,
         undo: [],
         redo: [],
@@ -740,6 +789,24 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  /* ---------------- dynamic page */
+  // Full screen: a page shorter than the box grows to fill it (slide pages keep their size).
+  const [boxTick, setBoxTick] = useState(0);
+  useEffect(() => {
+    if (!fullscreen || page.background) return;
+    const minH = Math.ceil(PAGE_W * aspectRef.current);
+    if (pageHeight(page) < minH) {
+      updatePage((p) => ({ ...p, height: Math.min(MAX_PAGE_H, Math.max(pageHeight(p), minH)) }));
+    }
+  }, [fullscreen, page, boxTick, updatePage]);
+  // Opening another page starts at its top; growth refreshes the scroll indicator.
+  useEffect(() => {
+    setView({ ...viewRef.current, y: 0 });
+  }, [page.key]);
+  useEffect(() => {
+    setView(viewRef.current);
+  }, [page.height]);
 
   /* ---------------- full screen */
   function enterFullscreen() {
@@ -926,21 +993,11 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       <div className={fullscreen ? "relative flex min-h-0 flex-1" : "contents"}>
         <div
           className={
-            fullscreen
-              ? "flex min-w-0 flex-1 flex-col items-center gap-3 overflow-auto pr-2"
-              : "contents"
+            fullscreen ? "flex min-w-0 flex-1 flex-col gap-3 overflow-hidden pr-2" : "contents"
           }
         >
           {/* Page */}
-          <div
-            ref={wrapRef}
-            className="relative w-full"
-            style={
-              fullscreen
-                ? { maxWidth: `min(100%, calc((100dvh - 9rem) * ${PAGE_W / PAGE_H}))` }
-                : undefined
-            }
-          >
+          <div ref={wrapRef} className={cn("relative w-full", fullscreen && "min-h-0 flex-1")}>
             <canvas
               ref={canvasRef}
               onPointerDown={onDown}
@@ -950,15 +1007,28 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
               onLostPointerCapture={onUp}
               className={cn(
                 "block w-full touch-none rounded-lg border border-border bg-white shadow-sm",
+                fullscreen && "h-full",
                 tool === "eraser"
                   ? "cursor-cell"
                   : tool === "hand"
                     ? "cursor-grab active:cursor-grabbing"
                     : "cursor-crosshair",
               )}
-              style={{ aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
+              style={fullscreen ? undefined : { aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
               aria-label={`Handwriting page ${index + 1} of ${pages.length}`}
             />
+            {scrollInfo && (
+              // Where you are on a long page.
+              <div
+                className="pointer-events-none absolute bottom-2 right-1 top-2 w-1 rounded-full bg-black/5"
+                aria-hidden
+              >
+                <div
+                  className="absolute w-full rounded-full bg-black/30"
+                  style={{ top: `${scrollInfo.top * 100}%`, height: `${scrollInfo.size * 100}%` }}
+                />
+              </div>
+            )}
             {page.dirty && page.savedId && (
               <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                 Unsaved changes
@@ -1018,14 +1088,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
           </div>
 
           {/* Pages + actions */}
-          <div
-            className="flex w-full flex-wrap items-center gap-2"
-            style={
-              fullscreen
-                ? { maxWidth: `min(100%, calc((100dvh - 9rem) * ${PAGE_W / PAGE_H}))` }
-                : undefined
-            }
-          >
+          <div className="flex w-full flex-wrap items-center gap-2">
             <div className="flex items-center gap-1">
               <Button
                 type="button"
