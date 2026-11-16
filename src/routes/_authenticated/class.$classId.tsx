@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotebookViewer } from "@/components/NotebookViewer";
 import { UpgradeDialog } from "@/components/UpgradeDialog";
 import { PRO_REQUIRED, freeSummariesLeft, usePlan } from "@/lib/plan";
+import { LAST_CLASS_KEY } from "@/components/WelcomeHome";
 import {
   HandwritingNotebook,
   type NotebookHandle,
@@ -101,6 +102,14 @@ export const Route = createFileRoute("/_authenticated/class/$classId")({
 
 function ClassPage() {
   const { classId } = Route.useParams();
+  // Remember the last class opened, for "Continue where you left off" on the home page.
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAST_CLASS_KEY, JSON.stringify({ id: classId, at: Date.now() }));
+    } catch {
+      /* private mode */
+    }
+  }, [classId]);
   const queryClient = useQueryClient();
   const save = useServerFn(saveNote);
   const summarize = useServerFn(summarizeMyNotes);
