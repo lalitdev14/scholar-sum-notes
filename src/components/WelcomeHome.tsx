@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowRight,
   BookOpen,
   History,
   LayoutDashboard,
@@ -113,7 +112,6 @@ export function WelcomeHome() {
 
   const first = (data?.name ?? "").trim().split(/\s+/)[0];
   const classes = data?.classes ?? [];
-  const shown = classes.slice(0, 6);
   const last = classes[0]?.lastAt ? classes[0] : null;
 
   return (
@@ -146,13 +144,6 @@ export function WelcomeHome() {
             revise.
           </p>
           <p>Your notes are private to you.</p>
-        </div>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Button asChild size="lg">
-            <Link to="/dashboard">
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Go to your dashboard
-            </Link>
-          </Button>
         </div>
       </section>
 
@@ -193,63 +184,26 @@ export function WelcomeHome() {
         </section>
       )}
 
-      {/* Classes */}
-      <section className="mt-10" aria-labelledby="home-classes">
-        <div className="flex items-end justify-between gap-3">
-          <h2 id="home-classes" className="text-2xl">
-            Your classes
-          </h2>
-          {classes.length > 0 && (
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              {classes.length > shown.length ? `All ${classes.length} classes` : "Dashboard"}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-        </div>
-        {data === undefined ? (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="surface-paper h-28 animate-pulse rounded-xl" />
-            ))}
-          </div>
-        ) : shown.length ? (
-          <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="home-classes">
-            {shown.map((c) => (
-              <li key={c.id}>
-                <Link
-                  to="/class/$classId"
-                  params={{ classId: c.id }}
-                  className="surface-paper group flex h-full flex-col rounded-xl p-5 transition-shadow hover:shadow-md"
-                >
-                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    {c.code}
-                  </span>
-                  <span className="mt-1 text-lg font-medium leading-snug">{c.subject}</span>
-                  {c.professor && (
-                    <span className="mt-0.5 text-sm text-muted-foreground">{c.professor}</span>
-                  )}
-                  <span className="mt-auto flex items-center justify-between pt-3 text-xs text-muted-foreground">
-                    {c.updatedAt
-                      ? `Last written ${new Date(c.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
-                      : "No notes yet"}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="surface-paper mt-4 rounded-xl p-6 text-sm text-muted-foreground">
-            You haven't joined a class yet.{" "}
-            <Link to="/dashboard" className="font-medium text-primary hover:underline">
-              Find your classes on the dashboard
-            </Link>{" "}
-            to start taking notes.
-          </div>
-        )}
+      {/* On to the dashboard: every class, note and summary is there */}
+      <section
+        className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-border/60 p-6 text-center sm:flex-row sm:justify-between sm:text-left"
+        aria-label="Dashboard"
+      >
+        <p className="text-sm text-muted-foreground sm:text-base">
+          {data && !classes.length
+            ? "You haven't joined a class yet. Find your classes on the dashboard."
+            : "All your classes, notes and summaries are on your dashboard."}
+        </p>
+        <Button
+          asChild
+          size="lg"
+          variant={last ? "outline" : "default"}
+          className="w-full sm:w-auto"
+        >
+          <Link to="/dashboard">
+            <LayoutDashboard className="mr-2 h-4 w-4" /> Go to your dashboard
+          </Link>
+        </Button>
       </section>
 
       {/* Quick tips */}
