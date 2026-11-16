@@ -556,7 +556,7 @@ function ClassPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <AuthenticatedHeader />
-        <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center sm:px-6 lg:px-10 xl:px-16">
+        <main className="mx-auto flex w-full max-w-[100rem] flex-1 flex-col items-center justify-center gap-4 px-4 py-16 text-center sm:px-6 lg:px-10 xl:px-16">
           <h1 className="text-2xl">This class isn't available</h1>
           <p className="max-w-md text-muted-foreground">
             It may have been removed by an admin. Your notes are kept, and the class will come back
@@ -576,7 +576,7 @@ function ClassPage() {
     <div className="min-h-screen">
       <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
-      <main className="mx-auto max-w-[1600px] px-4 pt-4 pb-6 sm:px-6 lg:pb-4 lg:px-10 xl:px-16">
+      <main className="mx-auto max-w-[100rem] px-4 pt-4 pb-6 sm:px-6 lg:pb-4 lg:px-10 xl:px-16">
         {/* Compact one-line class header so the editor and slides get the height. */}
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex min-w-0 items-center gap-3">
@@ -779,7 +779,7 @@ function ClassPage() {
                                 className="h-28 w-full object-cover"
                               />
                             )}
-                            <span className="block px-2 py-1 text-[10px] text-muted-foreground">
+                            <span className="block px-2 py-1 text-[0.625rem] text-muted-foreground">
                               {new Date(page.created_at).toLocaleString()}
                             </span>
                           </a>
@@ -945,7 +945,7 @@ function ClassPage() {
                           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
                             Key takeaways
                           </p>
-                          <ul className="mt-2 space-y-1.5 text-[15px] leading-relaxed">
+                          <ul className="mt-2 space-y-1.5 text-[0.9375rem] leading-relaxed">
                             {keyPoints.map((point, i) => (
                               <li key={i} className="flex gap-2">
                                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />

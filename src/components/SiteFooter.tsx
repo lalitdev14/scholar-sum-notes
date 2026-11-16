@@ -16,7 +16,7 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto text-white" style={{ backgroundColor: color }}>
-      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-xs sm:px-6 lg:px-10 xl:px-16">
+      <div className="mx-auto flex max-w-[100rem] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-xs sm:px-6 lg:px-10 xl:px-16">
         <span className="opacity-80">© {new Date().getFullYear()} LectureLoop</span>
         <nav aria-label="Footer" className="flex items-center gap-4">
           <Link to="/privacy" className="opacity-80 transition-opacity hover:opacity-100">
