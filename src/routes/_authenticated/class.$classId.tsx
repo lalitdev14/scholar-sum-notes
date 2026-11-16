@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   HandwritingNotebook,
   type NotebookHandle,
+  type OpenPage,
   type Paper,
   type RenderedPage,
   type SavedPageResult,
@@ -277,6 +278,9 @@ function ClassPage() {
 
       const fields = {
         image_path: imagePath,
+        notebook_id: page.notebookId,
+        notebook_title: page.notebookTitle.slice(0, 200),
+        page_index: Math.min(page.pageIndex, 1000),
         strokes: page.strokes as unknown as never,
         paper: page.paper,
         page_height: Math.round(page.height),
@@ -296,6 +300,12 @@ function ClassPage() {
         if (error) throw error;
         id = row.id;
       }
+      // Keep the title the same on every page of this notebook.
+      await supabase
+        .from("handwriting_pages")
+        .update({ notebook_title: page.notebookTitle.slice(0, 200) })
+        .eq("notebook_id", page.notebookId)
+        .eq("user_id", userId);
       await queryClient.invalidateQueries({ queryKey: ["handwriting", classId] });
       return { id, imagePath, backgroundPath };
     } catch (err) {
@@ -304,10 +314,32 @@ function ClassPage() {
     }
   }
 
-  async function handleSavePage(page: RenderedPage) {
+  async function handleSavePage(page: RenderedPage, opts?: { quiet?: boolean }) {
     const res = await saveHandwritingPage(page);
-    if (res) toast.success("Page saved to this class");
+    if (res && !opts?.quiet) toast.success("Page saved to this class");
     return res;
+  }
+
+  async function renameNotebook(id: string, title: string) {
+    const { error } = await supabase
+      .from("handwriting_pages")
+      .update({ notebook_title: title.slice(0, 200) })
+      .eq("notebook_id", id);
+    if (!error) await queryClient.invalidateQueries({ queryKey: ["handwriting", classId] });
+  }
+
+  async function fileToDataUrl(url: string): Promise<string> {
+    const blob = await (await fetch(url)).blob();
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsDataURL(blob);
+    });
+  }
+  async function backgroundDataUrl(path: string | null): Promise<string | null> {
+    if (!path) return null;
+    const { data } = await supabase.storage.from("handwriting").createSignedUrl(path, 600);
+    return data?.signedUrl ? fileToDataUrl(data.signedUrl) : null;
   }
 
   /** Converts a notebook page to typed text (AI), appends it to the notes and saves the page. */
@@ -390,12 +422,12 @@ function ClassPage() {
       const { data, error } = await supabase
         .from("handwriting_pages")
         .select(
-          "id, image_path, transcript, created_at, strokes, paper, page_height, background_path",
+          "id, image_path, transcript, created_at, updated_at, strokes, paper, page_height, background_path, notebook_id, notebook_title, page_index",
         )
         .eq("class_id", classId)
         .eq("user_id", userData.user!.id)
         .order("created_at", { ascending: false })
-        .limit(24);
+        .limit(300);
       if (error) throw error;
       const signed = await Promise.all(
         (data ?? []).map(async (row) => {
@@ -408,6 +440,87 @@ function ClassPage() {
       return signed;
     },
   });
+
+  /** Saved pages grouped into notebooks (newest first); older loose pages form one group. */
+  type SavedRow = NonNullable<typeof pages>[number];
+  type SavedNotebook = { id: string | null; title: string; pages: SavedRow[]; updatedAt: string };
+  const savedNotebooks: SavedNotebook[] = (() => {
+    const groups = new Map<string, SavedNotebook>();
+    for (const row of pages ?? []) {
+      const key = row.notebook_id ?? "loose";
+      const t = row.updated_at ?? row.created_at;
+      const g = groups.get(key) ?? {
+        id: row.notebook_id,
+        title: row.notebook_id ? row.notebook_title || "Notebook" : "Earlier pages",
+        pages: [],
+        updatedAt: t,
+      };
+      g.pages.push(row);
+      if (t > g.updatedAt) g.updatedAt = t;
+      groups.set(key, g);
+    }
+    for (const g of groups.values())
+      g.pages.sort(
+        (a, b) => a.page_index - b.page_index || a.created_at.localeCompare(b.created_at),
+      );
+    return [...groups.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  })();
+
+  const toOpenPage = async (row: SavedRow): Promise<OpenPage> => ({
+    id: row.id,
+    imagePath: row.image_path,
+    strokes: (Array.isArray(row.strokes) ? row.strokes : []) as Stroke[],
+    paper: row.paper as Paper,
+    height: row.page_height,
+    backgroundPath: row.background_path,
+    background: await backgroundDataUrl(row.background_path),
+  });
+
+  /** Opens a whole saved notebook in the Handwrite tab, optionally at a given page. */
+  async function openSavedNotebook(group: SavedNotebook, startIndex = 0) {
+    if (!group.id) return;
+    const loaded = await Promise.all(group.pages.map(toOpenPage));
+    notebookRef.current?.openNotebook({
+      id: group.id,
+      title: group.title,
+      pages: loaded,
+      startIndex,
+    });
+  }
+
+  async function downloadSavedNotebook(group: SavedNotebook) {
+    try {
+      const images: string[] = [];
+      for (const row of group.pages) if (row.url) images.push(await fileToDataUrl(row.url));
+      const { downloadNotebookPdf } = await import("@/lib/notebook-pdf");
+      await downloadNotebookPdf(group.title, images);
+      toast.success(`Downloaded ${images.length}-page PDF`);
+    } catch (err) {
+      toast.error(friendlyError(err, "Could not create the PDF."));
+    }
+  }
+
+  async function deleteSavedNotebook(group: SavedNotebook) {
+    if (!group.id) return;
+    const n = group.pages.length;
+    if (
+      !window.confirm(
+        `Delete the notebook "${group.title}" and its ${n} page${n === 1 ? "" : "s"}?`,
+      )
+    )
+      return;
+    const paths = group.pages.flatMap((r) =>
+      [r.image_path, r.background_path].filter((x): x is string => Boolean(x)),
+    );
+    if (paths.length) await supabase.storage.from("handwriting").remove(paths);
+    const { error } = await supabase.from("handwriting_pages").delete().eq("notebook_id", group.id);
+    if (error) {
+      toast.error(friendlyError(error, "Could not delete the notebook."));
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["handwriting", classId] });
+    toast.success("Notebook deleted");
+  }
 
   const { data: recordings } = useQuery({
     queryKey: ["recordings", classId],
@@ -865,6 +978,8 @@ function ClassPage() {
                       converting={converting}
                       onConvert={handleConvert}
                       onSave={handleSavePage}
+                      onRenameNotebook={(id, t) => void renameNotebook(id, t)}
+                      defaultTitle={`${klass?.code ? `${klass.code} ` : ""}notebook · ${new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
                       slidesPanel={
                         activeSlides ? (
                           <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -908,60 +1023,108 @@ function ClassPage() {
 
                   <div className="mt-6">
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Saved handwritten pages
+                      Saved notebooks
                     </p>
-                    {pages && pages.length > 0 ? (
-                      <div
-                        className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"
-                        data-testid="saved-pages"
-                      >
-                        {pages.map((page) => (
-                          <div
-                            key={page.id}
-                            className="group overflow-hidden rounded-lg border border-border/60 bg-white"
+                    {savedNotebooks.length > 0 ? (
+                      <ul className="mt-3 space-y-3" data-testid="saved-notebooks">
+                        {savedNotebooks.map((nb) => (
+                          <li
+                            key={nb.id ?? "loose"}
+                            className="rounded-lg border border-border/60 bg-background/60 p-3"
                           >
-                            <a href={page.url ?? undefined} target="_blank" rel="noreferrer">
-                              {page.url && (
-                                <img
-                                  src={page.url}
-                                  alt={`Handwritten page from ${new Date(page.created_at).toLocaleString()}`}
-                                  loading="lazy"
-                                  className="h-28 w-full object-cover"
-                                />
-                              )}
-                            </a>
-                            <div className="flex items-center gap-1 px-2 py-1">
-                              <span className="min-w-0 flex-1 truncate text-[0.625rem] text-muted-foreground">
-                                {new Date(page.created_at).toLocaleString()}
-                              </span>
-                              {Array.isArray(page.strokes) && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">{nb.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {nb.pages.length} page{nb.pages.length === 1 ? "" : "s"} · updated{" "}
+                                  {new Date(nb.updatedAt).toLocaleString()}
+                                </p>
+                              </div>
+                              {nb.id && (
                                 <Button
                                   size="sm"
-                                  variant="ghost"
-                                  className="h-6 px-1.5 text-xs"
-                                  onClick={() => void openSavedPage(page)}
-                                  aria-label="Edit this page"
+                                  variant="outline"
+                                  onClick={() => void openSavedNotebook(nb)}
+                                  aria-label={`Open ${nb.title}`}
                                 >
-                                  <Pencil className="mr-1 h-3 w-3" /> Edit
+                                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> Open
                                 </Button>
                               )}
                               <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                onClick={() => void deleteSavedPage(page)}
-                                aria-label="Delete this page"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void downloadSavedNotebook(nb)}
+                                aria-label={`Download ${nb.title} as PDF`}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
                               </Button>
+                              {nb.id && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  onClick={() => void deleteSavedNotebook(nb)}
+                                  aria-label={`Delete ${nb.title}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
-                          </div>
+                            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                              {nb.pages.map((page, i) => (
+                                <div
+                                  key={page.id}
+                                  className="w-28 shrink-0 overflow-hidden rounded-md border border-border/60 bg-white"
+                                >
+                                  <a href={page.url ?? undefined} target="_blank" rel="noreferrer">
+                                    {page.url && (
+                                      <img
+                                        src={page.url}
+                                        alt={`${nb.title}, page ${i + 1}`}
+                                        loading="lazy"
+                                        className="h-20 w-full object-cover object-top"
+                                      />
+                                    )}
+                                  </a>
+                                  <div className="flex items-center px-1 py-0.5">
+                                    <span className="flex-1 text-[0.625rem] text-muted-foreground">
+                                      Page {i + 1}
+                                    </span>
+                                    {Array.isArray(page.strokes) && (
+                                      <button
+                                        type="button"
+                                        className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                                        onClick={() =>
+                                          nb.id
+                                            ? void openSavedNotebook(nb, i)
+                                            : void openSavedPage(page)
+                                        }
+                                        aria-label="Edit this page"
+                                        title="Edit this page"
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="rounded p-0.5 text-muted-foreground hover:text-destructive"
+                                      onClick={() => void deleteSavedPage(page)}
+                                      aria-label="Delete this page"
+                                      title="Delete this page"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     ) : (
                       <p className="mt-2 text-sm text-muted-foreground">
-                        Pages you save or convert are kept here. Open one again with Edit to keep
-                        writing.
+                        Notebooks you save are kept here. Open one to keep writing, or download it
+                        as a single PDF.
                       </p>
                     )}
                   </div>
