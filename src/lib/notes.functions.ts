@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { PRO_REQUIRED } from "@/lib/plan-constants";
+import { planFromUsage } from "@/lib/plan-usage";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -31,7 +33,10 @@ const QUOTA_LABELS = {
  * Counts one use of an AI feature against the signed-in user's daily limit (enforced in
  * the database) and throws a friendly error when the limit is reached.
  */
-async function useAiQuota(supabase: SupabaseClient<Database>, feature: keyof typeof QUOTA_LABELS) {
+async function chargeAiQuota(
+  supabase: SupabaseClient<Database>,
+  feature: keyof typeof QUOTA_LABELS,
+) {
   const { data, error } = await supabase.rpc("consume_ai_quota", { _feature: feature });
   if (error) {
     console.error("[ai-quota]", error.message);
@@ -41,6 +46,36 @@ async function useAiQuota(supabase: SupabaseClient<Database>, feature: keyof typ
     throw new Error(
       `You've reached today's limit for ${QUOTA_LABELS[feature]}. It resets at midnight (UTC).`,
     );
+  }
+}
+
+/**
+ * Counts one AI summary against the student's plan: Free has a few per week, Pro has the
+ * daily fair-use limit. Throws PRO_REQUIRED when a Free student has used theirs.
+ */
+async function chargeSummaryQuota(supabase: SupabaseClient<Database>, userId: string) {
+  const { data, error } = await supabase.rpc("consume_summary_quota");
+  if (error) {
+    // Plans not set up in the database yet: Free = 3 a week, counted from the usage records.
+    if (error.code === "PGRST202" || error.code === "42883") {
+      const plan = await planFromUsage(supabase, userId);
+      if (plan.plan === "free" && plan.summariesUsedThisWeek >= plan.freeSummariesPerWeek) {
+        throw new Error(
+          `${PRO_REQUIRED} You've used this week's free AI summaries. Join Pro for unlimited summaries.`,
+        );
+      }
+      return chargeAiQuota(supabase, "summary");
+    }
+    console.error("[summary-quota]", error.message);
+    throw new Error("Could not check your AI usage. Please try again.");
+  }
+  if (data === "upgrade") {
+    throw new Error(
+      `${PRO_REQUIRED} You've used this week's free AI summaries. Join Pro for unlimited summaries.`,
+    );
+  }
+  if (data !== "ok") {
+    throw new Error("You've reached today's limit for AI summaries. It resets at midnight (UTC).");
   }
 }
 
@@ -118,7 +153,7 @@ export const summarizeMyNotes = createServerFn({ method: "POST" })
 
     const text = noteToPlainText(note?.content ?? "");
     if (!note || !text) throw new Error("Write and save some notes first.");
-    await useAiQuota(supabase, "summary");
+    await chargeSummaryQuota(supabase, userId);
 
     const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText, Output } = await import("ai");
@@ -132,6 +167,7 @@ export const summarizeMyNotes = createServerFn({ method: "POST" })
     try {
       const result = await generateText({
         model: resolveTextModel(),
+        maxRetries: 1,
         output: Output.object({ schema }),
         system:
           "You turn one student's raw class notes into a comprehensive, well-organised study summary. " +
@@ -171,7 +207,7 @@ export const transcribeHandwriting = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => TranscribeInput.parse(input))
   .handler(async ({ data, context }) => {
-    await useAiQuota(context.supabase, "handwriting");
+    await chargeAiQuota(context.supabase, "handwriting");
     const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText } = await import("ai");
     const model = resolveTextModel();
@@ -217,7 +253,7 @@ export const transcribeAudioChunk = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AudioChunkInput.parse(input))
   .handler(async ({ data, context }) => {
-    await useAiQuota(context.supabase, "audio");
+    await chargeAiQuota(context.supabase, "audio");
     const base64 = data.wavDataUrl.slice("data:audio/wav;base64,".length);
 
     // Prefer Whisper (purpose-built speech-to-text) when a key is configured.
@@ -305,7 +341,7 @@ export const slideOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => SlideOverviewInput.parse(input))
   .handler(async ({ data, context }) => {
-    await useAiQuota(context.supabase, "slide_overview");
+    await chargeAiQuota(context.supabase, "slide_overview");
     const { resolveTextModel } = await import("./ai-gateway.server");
     const { generateText } = await import("ai");
     const result = await generateText({

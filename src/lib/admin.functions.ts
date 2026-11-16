@@ -784,3 +784,134 @@ export const updateRegistrationSettings = createServerFn({ method: "POST" })
     await scope.audit(`registration.${data.kind}.${data.action}`, data.value);
     return { ok: true };
   });
+
+/** Pro plan: open upgrade requests and current Pro members (within the admin's university). */
+export const getProPlans = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin, memberIds } = await adminScope(context as never);
+    const members = await memberIds();
+    const [{ data: requests, error: reqError }, { data: plans, error: planError }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("pro_requests")
+          .select("id, user_id, created_at")
+          .eq("status", "pending")
+          .order("created_at", { ascending: true })
+          .limit(200),
+        supabaseAdmin
+          .from("user_plans")
+          .select("user_id, updated_at")
+          .eq("plan", "pro")
+          .order("updated_at", { ascending: false })
+          .limit(500),
+      ]);
+    if (reqError) throw new Error(reqError.message);
+    if (planError) throw new Error(planError.message);
+    const inScope = (id: string) => !members || members.has(id);
+    const ids = [
+      ...new Set([...(requests ?? []), ...(plans ?? [])].map((r) => r.user_id).filter(inScope)),
+    ];
+    const { data: profiles } = ids.length
+      ? await supabaseAdmin.from("profiles").select("id, full_name").in("id", ids)
+      : { data: [] as { id: string; full_name: string | null }[] };
+    const nameOf = new Map((profiles ?? []).map((p) => [p.id, p.full_name ?? ""]));
+    const emails = new Map<string, string>();
+    await Promise.all(
+      ids.map(async (id) => {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+        emails.set(id, u?.user?.email ?? "");
+      }),
+    );
+    const person = (id: string) => ({ name: nameOf.get(id) ?? "", email: emails.get(id) ?? "" });
+    return {
+      requests: (requests ?? [])
+        .filter((r) => inScope(r.user_id))
+        .map((r) => ({
+          id: r.id,
+          userId: r.user_id,
+          createdAt: r.created_at,
+          ...person(r.user_id),
+        })),
+      pro: (plans ?? [])
+        .filter((r) => inScope(r.user_id))
+        .map((r) => ({ userId: r.user_id, since: r.updated_at, ...person(r.user_id) })),
+    };
+  });
+
+/** Approve or decline a student's request for Pro. */
+export const handleProRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; approve: boolean }) => {
+    if (typeof d?.id !== "string" || !/^[0-9a-f-]{36}$/i.test(d.id)) throw new Error("Bad request");
+    return { id: d.id, approve: Boolean(d.approve) };
+  })
+  .handler(async ({ data, context }) => {
+    const scope = await adminScope(context as never);
+    const { supabaseAdmin } = scope;
+    const { data: req, error } = await supabaseAdmin
+      .from("pro_requests")
+      .select("id, user_id, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!req || req.status !== "pending") throw new Error("This request was already handled.");
+    const members = await scope.memberIds();
+    if (members && !members.has(req.user_id))
+      throw new Error("This account belongs to another university.");
+    const now = new Date().toISOString();
+    if (data.approve) {
+      const { error: planError } = await supabaseAdmin
+        .from("user_plans")
+        .upsert({ user_id: req.user_id, plan: "pro", updated_at: now, updated_by: context.userId });
+      if (planError) throw new Error(planError.message);
+    }
+    const { error: updError } = await supabaseAdmin
+      .from("pro_requests")
+      .update({
+        status: data.approve ? "approved" : "declined",
+        handled_at: now,
+        handled_by: context.userId,
+      })
+      .eq("id", req.id);
+    if (updError) throw new Error(updError.message);
+    await scope.audit(
+      data.approve ? "plan.pro_approve" : "plan.pro_decline",
+      await scope.emailOf(req.user_id),
+    );
+    return { ok: true };
+  });
+
+/** Switch an account between Free and Pro directly. */
+export const setUserPlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; plan: "free" | "pro" }) => {
+    if (typeof d?.userId !== "string" || !/^[0-9a-f-]{36}$/i.test(d.userId))
+      throw new Error("Bad request");
+    if (d.plan !== "free" && d.plan !== "pro") throw new Error("Bad request");
+    return { userId: d.userId, plan: d.plan };
+  })
+  .handler(async ({ data, context }) => {
+    const scope = await adminScope(context as never);
+    const members = await scope.memberIds();
+    if (members && !members.has(data.userId))
+      throw new Error("This account belongs to another university.");
+    const now = new Date().toISOString();
+    const { error } = await scope.supabaseAdmin.from("user_plans").upsert({
+      user_id: data.userId,
+      plan: data.plan,
+      updated_at: now,
+      updated_by: context.userId,
+    });
+    if (error) throw new Error(error.message);
+    if (data.plan === "pro") {
+      // Granting Pro also closes any open request.
+      await scope.supabaseAdmin
+        .from("pro_requests")
+        .update({ status: "approved", handled_at: now, handled_by: context.userId })
+        .eq("user_id", data.userId)
+        .eq("status", "pending");
+    }
+    await scope.audit(`plan.set_${data.plan}`, await scope.emailOf(data.userId));
+    return { ok: true };
+  });

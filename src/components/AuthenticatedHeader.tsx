@@ -5,15 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useRoles } from "@/hooks/useRoles";
 import {
+  Crown,
   GraduationCap,
   Home,
-  LogOut,
-  ShieldCheck,
-  User,
-  University,
-  MessageSquarePlus,
-  Menu,
   Info,
+  LogOut,
+  Menu,
+  MessageSquarePlus,
+  ShieldCheck,
+  University,
+  User,
 } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
@@ -65,6 +66,11 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
         <Link to="/about" onClick={() => setMenuOpen(false)}>
           <Info className="mr-2 h-4 w-4" /> About
+        </Link>
+      </Button>
+      <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
+        <Link to="/plans" onClick={() => setMenuOpen(false)}>
+          <Crown className="mr-2 h-4 w-4" /> Plans
         </Link>
       </Button>
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">

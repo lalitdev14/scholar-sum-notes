@@ -36,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { ProPlansAdmin } from "@/components/ProPlansAdmin";
 import { AnnouncementsAdmin } from "@/components/AnnouncementsAdmin";
 import { ContactMessagesAdmin } from "@/components/ContactMessagesAdmin";
 import { AdminAuditLog } from "@/components/AdminAuditLog";
@@ -316,6 +317,7 @@ function AdminPanel() {
 
         <ContactMessagesAdmin />
         <AnnouncementsAdmin />
+        <ProPlansAdmin />
 
         <section className="surface-paper mt-10 rounded-xl p-6" aria-labelledby="signup-heading">
           <h2 id="signup-heading" className="text-2xl">
