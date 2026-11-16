@@ -180,7 +180,11 @@ function MyNotesPage() {
   // Keep ?tool=pdf in the address bar while PDF Studio is open (shareable, survives reload).
   const setSel = (s: Sel) => {
     setSelState(s);
-    void navigate({ search: s.kind === "pdf" ? { tool: "pdf" } : {}, replace: true });
+    void navigate({
+      search: s.kind === "pdf" ? { tool: "pdf" } : {},
+      replace: true,
+      resetScroll: false,
+    });
   };
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
