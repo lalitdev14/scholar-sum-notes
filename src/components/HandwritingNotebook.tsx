@@ -21,6 +21,7 @@ import {
   Highlighter,
   Maximize2,
   Pen,
+  Layers,
   Presentation,
   Redo2,
   Save,
@@ -34,7 +35,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { captureCurrentSlide } from "@/lib/slide-capture";
+import { captureAllSlides, captureCurrentSlide, slideCount } from "@/lib/slide-capture";
 import { Input } from "@/components/ui/input";
 
 /* ------------------------------------------------------------------ model */
@@ -374,6 +375,8 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const [flip, setFlip] = useState<{ dir: 1 | -1; n: number } | null>(null);
   const frameRef = useRef(0);
   const [fullscreen, setFullscreen] = useState(false);
+  /** Progress while "Write on all slides" renders the deck. */
+  const [allSlides, setAllSlides] = useState<{ done: number; total: number } | null>(null);
   const [slidesOpen, setSlidesOpen] = useState(false);
 
   const updatePage = useCallback(
@@ -929,6 +932,41 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     toast.success("Added the current slide as a page. Write on it!");
   }
 
+  /** Adds every slide of the open deck as its own page, in order. */
+  async function writeOnAllSlides() {
+    const total = slideCount();
+    if (!total) {
+      toast.error("Open a PDF slide deck on the Slides side first.");
+      return;
+    }
+    if (total > 40 && !window.confirm(`Add all ${total} slides as pages?`)) return;
+    setAllSlides({ done: 0, total });
+    try {
+      const imgs = await captureAllSlides((done) => setAllSlides({ done, total }));
+      if (!imgs.length) throw new Error("no slides");
+      const added = imgs.map((img) => ({
+        ...blankPage(page.paper),
+        background: img,
+        backgroundPath: null,
+        dirty: true,
+      }));
+      setPages((all) => {
+        // Replace an untouched empty page instead of keeping a blank in front.
+        const base = all.length === 1 && !hasContent(all[0]!) ? [] : all;
+        setIndex(base.length);
+        return [...base, ...added];
+      });
+      setFlip((f) => ({ dir: 1, n: (f?.n ?? 0) + 1 }));
+      toast.success(
+        `Added all ${imgs.length} slides as pages. Write on them, swipe to turn the page.`,
+      );
+    } catch {
+      toast.error("Could not load the slides. Try again.");
+    } finally {
+      setAllSlides(null);
+    }
+  }
+
   async function rendered(p: Page = page, i: number = index): Promise<RenderedPage> {
     return {
       savedId: p.savedId,
@@ -1381,74 +1419,109 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
             fullscreen ? "flex min-w-0 flex-1 flex-col gap-3 overflow-hidden pr-2" : "contents"
           }
         >
-          {/* Pages + actions */}
-          <div className="flex w-full flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="h-8 w-8"
-                onClick={() => turnPage(-1)}
-                disabled={index === 0}
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="min-w-[5rem] text-center text-sm tabular-nums text-muted-foreground">
-                Page {index + 1} / {pages.length}
-              </span>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="h-8 w-8"
-                onClick={() => turnPage(1)}
-                disabled={index >= pages.length - 1}
-                aria-label="Next page"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button type="button" size="sm" variant="outline" onClick={() => addPage()}>
-              <FilePlus2 className="mr-1.5 h-4 w-4" /> New page
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => void writeOnSlide()}>
-              <Presentation className="mr-1.5 h-4 w-4" /> Write on slide
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              onClick={deletePage}
-              aria-label="Remove page from notebook"
-              title="Remove page from notebook"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <div className="ml-auto flex items-center gap-2">
+          {/* Pages + actions. When the bar is narrow (e.g. slides open beside the page) the
+              page buttons show just their icons so everything stays on one row. */}
+          <div className="@container w-full">
+            <div className="flex w-full flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8"
+                  onClick={() => turnPage(-1)}
+                  disabled={index === 0}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-[5rem] text-center text-sm tabular-nums text-muted-foreground">
+                  Page {index + 1} / {pages.length}
+                </span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8"
+                  onClick={() => turnPage(1)}
+                  disabled={index >= pages.length - 1}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
-                disabled={
-                  saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)
-                }
-                onClick={() => void save()}
+                onClick={() => addPage()}
+                aria-label="New page"
+                title="New page"
               >
-                <Save className="mr-1.5 h-4 w-4" />
-                {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save page"}
+                <FilePlus2 className="h-4 w-4 @min-[58rem]:mr-1.5" />
+                <span className="hidden @min-[58rem]:inline">New page</span>
               </Button>
               <Button
                 type="button"
                 size="sm"
-                disabled={isEmpty || converting}
-                onClick={() => void convert()}
+                variant="outline"
+                onClick={() => void writeOnSlide()}
+                aria-label="Write on slide"
+                title="Write on the current slide"
               >
-                <Sparkles className="mr-1.5 h-4 w-4" />
-                {converting ? "Converting…" : "Convert to text"}
+                <Presentation className="h-4 w-4 @min-[58rem]:mr-1.5" />
+                <span className="hidden @min-[58rem]:inline">Write on slide</span>
               </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void writeOnAllSlides()}
+                disabled={Boolean(allSlides)}
+                aria-label="Write on all slides"
+                title="Write on all slides: adds every slide of the open deck as its own page"
+              >
+                <Layers className={cn("h-4 w-4", allSlides ? "mr-1.5" : "@min-[58rem]:mr-1.5")} />
+                {allSlides ? (
+                  `${allSlides.done}/${allSlides.total}…`
+                ) : (
+                  <span className="hidden @min-[58rem]:inline">Write on all slides</span>
+                )}
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={deletePage}
+                aria-label="Remove page from notebook"
+                title="Remove page from notebook"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={
+                    saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)
+                  }
+                  onClick={() => void save()}
+                >
+                  <Save className="mr-1.5 h-4 w-4" />
+                  {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save page"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isEmpty || converting}
+                  onClick={() => void convert()}
+                >
+                  <Sparkles className="mr-1.5 h-4 w-4" />
+                  {converting ? "Converting…" : "Convert to text"}
+                </Button>
+              </div>
             </div>
           </div>
 
