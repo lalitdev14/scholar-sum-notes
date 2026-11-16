@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -10,7 +10,10 @@ import {
   Eye,
   FileText,
   Folder,
+  FileStack,
   FolderOpen,
+  Maximize2,
+  Minimize2,
   Mic,
   Search,
   Sparkles,
@@ -28,6 +31,9 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/notes")({
   staticData: { sitemap: false },
+  // ?tool=pdf opens PDF Studio straight away.
+  validateSearch: (s: Record<string, unknown>): { tool?: "pdf" } =>
+    s["tool"] === "pdf" ? { tool: "pdf" } : {},
   head: () => ({ meta: [{ title: "My notes — LectureLoop" }] }),
   component: MyNotesPage,
 });
@@ -63,6 +69,7 @@ type Notebook = { id: string; title: string; pages: Page[]; updatedAt: string };
 /** What's selected in the tree. */
 type Sel =
   | { kind: "all" }
+  | { kind: "pdf" }
   | { kind: "class"; classId: string }
   | { kind: "typed"; classId: string }
   | { kind: "summary"; classId: string }
@@ -165,7 +172,20 @@ function MyNotesPage() {
     });
   }, [data]);
 
-  const [sel, setSel] = useState<Sel>({ kind: "all" });
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [sel, setSelState] = useState<Sel>(
+    search.tool === "pdf" ? { kind: "pdf" } : { kind: "all" },
+  );
+  // Keep ?tool=pdf in the address bar while PDF Studio is open (shareable, survives reload).
+  const setSel = (s: Sel) => {
+    setSelState(s);
+    void navigate({
+      search: s.kind === "pdf" ? { tool: "pdf" } : {},
+      replace: true,
+      resetScroll: false,
+    });
+  };
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
@@ -352,6 +372,19 @@ function MyNotesPage() {
                 </li>
               )}
             </ul>
+            <p className="mt-3 border-t border-border px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Tools
+            </p>
+            <ul role="tree" aria-label="Tools">
+              <TreeRow
+                depth={0}
+                icon={<FileStack className="h-4 w-4 text-red-600" />}
+                label="PDF Studio"
+                meta="merge · split · convert"
+                selected={sel.kind === "pdf"}
+                onClick={() => choose({ kind: "pdf" })}
+              />
+            </ul>
           </nav>
 
           {/* Viewer */}
@@ -361,11 +394,14 @@ function MyNotesPage() {
             aria-live="polite"
             data-testid="notes-viewer"
           >
-            {sel.kind === "all" || !subject ? (
+            {sel.kind === "pdf" ? (
+              <PdfStudio onBack={() => setSel({ kind: "all" })} />
+            ) : sel.kind === "all" || !subject ? (
               <Overview
                 library={library}
                 loading={isPending}
                 onOpen={(id) => choose({ kind: "class", classId: id })}
+                onPdf={() => choose({ kind: "pdf" })}
               />
             ) : (
               <>
@@ -540,6 +576,40 @@ function Breadcrumb({ items }: { items: { label: string; onClick?: () => void }[
 }
 
 function Overview({
+  library,
+  loading,
+  onOpen,
+  onPdf,
+}: {
+  library: Subject[];
+  loading: boolean;
+  onOpen: (id: string) => void;
+  onPdf: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <SubjectFolders library={library} loading={loading} onOpen={onOpen} />
+      <button
+        type="button"
+        onClick={onPdf}
+        className="flex w-full items-center gap-4 rounded-xl border border-red-200 bg-red-50/60 p-4 text-left transition-colors hover:bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+        data-testid="pdf-studio-card"
+      >
+        <FileStack className="h-8 w-8 shrink-0 text-red-600" />
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">PDF Studio</span>
+          <span className="block text-sm text-muted-foreground">
+            Merge, split, compress, convert, edit and sign PDFs, and turn Word, Excel, PowerPoint or
+            images into PDFs.
+          </span>
+        </span>
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
+function SubjectFolders({
   library,
   loading,
   onOpen,
@@ -904,5 +974,84 @@ function TranscriptView({
         )}
       </div>
     </article>
+  );
+}
+
+/** PDF Studio (pdfstudioapp.vercel.app), embedded. It processes files on its own server. */
+const PDF_STUDIO_URL = "https://pdfstudioapp.vercel.app";
+
+function PdfStudio({ onBack }: { onBack: () => void }) {
+  const [full, setFull] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (!full) return;
+    const html = document.documentElement;
+    const prev = html.style.overflow;
+    html.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      html.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [full]);
+  return (
+    <div
+      className={cn("flex flex-col", full && "fixed inset-0 z-50 bg-background p-3 sm:p-4")}
+      data-testid="pdf-studio"
+    >
+      {!full && (
+        <Breadcrumb items={[{ label: "My notes", onClick: onBack }, { label: "PDF Studio" }]} />
+      )}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-2xl">
+            <FileStack className="h-5 w-5 text-red-600" /> PDF Studio
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Merge, split, compress, convert, edit and sign PDFs. PDF Studio is a separate app: files
+            you add are processed on its server and deleted automatically.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setFull((f) => !f)}>
+            {full ? (
+              <Minimize2 className="mr-1.5 h-4 w-4" />
+            ) : (
+              <Maximize2 className="mr-1.5 h-4 w-4" />
+            )}
+            {full ? "Exit full screen" : "Full screen"}
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <a href={PDF_STUDIO_URL} target="_blank" rel="noreferrer noopener">
+              <ExternalLink className="mr-1.5 h-4 w-4" /> Open in new tab
+            </a>
+          </Button>
+        </div>
+      </div>
+      <div
+        className={cn(
+          "relative mt-4 overflow-hidden rounded-xl border border-border bg-white shadow-sm",
+          full ? "min-h-0 flex-1" : "h-[calc(100vh-14rem)] min-h-[34rem]",
+        )}
+      >
+        {!loaded && (
+          <p className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">
+            Opening PDF Studio…
+          </p>
+        )}
+        <iframe
+          src={PDF_STUDIO_URL}
+          title="PDF Studio"
+          className="relative h-full w-full"
+          onLoad={() => setLoaded(true)}
+          // Its own origin: scripts and storage work, downloads, file pickers and sign-in
+          // pop-ups are allowed, and it can't navigate LectureLoop itself.
+          sandbox="allow-scripts allow-same-origin allow-downloads allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-storage-access-by-user-activation"
+          allow="clipboard-write; fullscreen"
+          referrerPolicy="no-referrer"
+        />
+      </div>
+    </div>
   );
 }
