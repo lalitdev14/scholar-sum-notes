@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useRoles } from "@/hooks/useRoles";
 import {
   Crown,
+  FolderOpen,
   GraduationCap,
   Home,
   Info,
@@ -61,6 +62,11 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
         <Link to="/" onClick={() => setMenuOpen(false)}>
           <Home className="mr-2 h-4 w-4" /> Home
+        </Link>
+      </Button>
+      <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
+        <Link to="/notes" onClick={() => setMenuOpen(false)}>
+          <FolderOpen className="mr-2 h-4 w-4" /> My notes
         </Link>
       </Button>
       <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
