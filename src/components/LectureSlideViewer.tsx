@@ -7,9 +7,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Maximize2,
   Sparkles,
   Trash2,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { cn, friendlyError } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
@@ -49,6 +52,8 @@ export function LectureSlideViewer({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
+  /** Zoom on top of "fit to the box" (1 = whole slide visible). */
+  const [zoom, setZoom] = useState(1);
   const pdfDocRef = useRef<{
     getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }>;
     numPages: number;
@@ -194,6 +199,62 @@ export function LectureSlideViewer({
     };
   }, [url]);
   const getOverview = useServerFn(slideOverview);
+
+  // Zoom keeps the same spot of the deck in view.
+  const zoomTo = (next: number) => {
+    const z = Math.min(SLIDE_MAX_ZOOM, Math.max(SLIDE_MIN_ZOOM, Math.round(next * 100) / 100));
+    const el = isPdf ? pdfScrollRef.current : frameRef.current;
+    if (el) {
+      const fy = (el.scrollTop + el.clientHeight / 2) / Math.max(1, el.scrollHeight);
+      const fx = (el.scrollLeft + el.clientWidth / 2) / Math.max(1, el.scrollWidth);
+      requestAnimationFrame(() => {
+        el.scrollTop = fy * el.scrollHeight - el.clientHeight / 2;
+        el.scrollLeft = fx * el.scrollWidth - el.clientWidth / 2;
+      });
+    }
+    setZoom(z);
+  };
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const zoomToRef = useRef(zoomTo);
+  zoomToRef.current = zoomTo;
+  // ⌘/Ctrl + scroll (and trackpad pinch) and two-finger pinch on a touch screen.
+  useEffect(() => {
+    const els = [pdfScrollRef.current, frameRef.current].filter(Boolean) as HTMLElement[];
+    let pinch: { d: number; z: number } | null = null;
+    const dist = (t: TouchList) =>
+      Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY);
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      zoomToRef.current(zoomRef.current * Math.exp(-e.deltaY * 0.01));
+    };
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) pinch = { d: dist(e.touches), z: zoomRef.current };
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault();
+      zoomToRef.current((pinch.z * dist(e.touches)) / pinch.d);
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinch = null;
+    };
+    for (const el of els) {
+      el.addEventListener("wheel", onWheel, { passive: false });
+      el.addEventListener("touchstart", onStart, { passive: true });
+      el.addEventListener("touchmove", onMove, { passive: false });
+      el.addEventListener("touchend", onEnd);
+    }
+    return () => {
+      for (const el of els) {
+        el.removeEventListener("wheel", onWheel);
+        el.removeEventListener("touchstart", onStart);
+        el.removeEventListener("touchmove", onMove);
+        el.removeEventListener("touchend", onEnd);
+      }
+    };
+  }, [url, loading]);
 
   useEffect(() => {
     if (loading || error) return;
@@ -437,36 +498,99 @@ export function LectureSlideViewer({
           <div
             aria-label={`Lecture slides: ${fileName}`}
             ref={pdfScrollRef}
-            className="h-full w-full overflow-y-auto overscroll-contain p-3"
+            className="h-full w-full overflow-auto overscroll-contain p-3"
           >
             {pdfReady > 0 &&
               pdfDocRef.current &&
               Array.from({ length: pdfDocRef.current.numPages }, (_, i) => (
-                <PdfPage key={`${pdfReady}-${i}`} doc={pdfDocRef.current!} n={i + 1} box={pdfBox} />
+                <PdfPage
+                  key={`${pdfReady}-${i}`}
+                  doc={pdfDocRef.current!}
+                  n={i + 1}
+                  box={pdfBox}
+                  zoom={zoom}
+                />
               ))}
           </div>
         )}
         <div
           ref={frameRef}
-          className="absolute inset-0 grid place-items-center p-3"
+          className={cn(
+            "absolute inset-0 overflow-auto p-3",
+            zoom <= 1 && "grid place-items-center",
+          )}
           hidden={contentType === "application/pdf" || !!error}
         >
           <div
             className="overflow-hidden rounded-md bg-background shadow-sm"
-            style={{ width: 960 * scale, height: 540 * scale }}
+            style={{ width: 960 * scale * zoom, height: 540 * scale * zoom }}
           >
             <div
               ref={hostRef}
               style={{
                 width: 960,
                 height: 540,
-                transform: `scale(${scale})`,
+                transform: `scale(${scale * zoom})`,
                 transformOrigin: "top left",
               }}
               className="[&_img]:max-w-none"
             />
           </div>
         </div>
+        {ready && (
+          <div
+            className="absolute bottom-2 left-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-background/90 p-0.5 shadow-sm backdrop-blur"
+            role="group"
+            aria-label="Slide zoom"
+          >
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => zoomTo(zoom / 1.25)}
+              disabled={zoom <= SLIDE_MIN_ZOOM}
+              aria-label="Zoom out of slides"
+              title="Zoom out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <button
+              type="button"
+              onClick={() => zoomTo(1)}
+              className="min-w-[3.25rem] rounded px-1 text-xs font-medium tabular-nums hover:bg-muted"
+              title="Fit slides"
+              aria-label={`Slide zoom ${Math.round(zoom * 100)}%, fit`}
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => zoomTo(zoom * 1.25)}
+              disabled={zoom >= SLIDE_MAX_ZOOM}
+              aria-label="Zoom in on slides"
+              title="Zoom in (or pinch / ⌘ + scroll)"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            {zoom !== 1 && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={() => zoomTo(1)}
+                aria-label="Fit slides"
+                title="Fit slides"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
         {ready && overviewOpen && (
           <div
             role="dialog"
@@ -705,14 +829,19 @@ type PdfDocLike = { getPage: (n: number) => Promise<unknown> };
  * One PDF page, sized to fit the viewer box (whole page visible, never stretched) and
  * re-rendered at the new size (debounced) whenever the viewer is resized, so it stays sharp.
  */
+const SLIDE_MIN_ZOOM = 0.5;
+const SLIDE_MAX_ZOOM = 4;
+
 function PdfPage({
   doc,
   n,
   box,
+  zoom = 1,
 }: {
   doc: PdfDocLike;
   n: number;
   box: { w: number; h: number } | null;
+  zoom?: number;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -720,7 +849,7 @@ function PdfPage({
   const [aspect, setAspect] = useState(9 / 16); // height / width
 
   // Fit the page inside the box: limited by the width, or by the height for tall pages.
-  const width = box ? Math.max(120, Math.floor(Math.min(box.w, box.h / aspect))) : null;
+  const width = box ? Math.max(120, Math.floor(Math.min(box.w, box.h / aspect) * zoom)) : null;
   const [renderWidth, setRenderWidth] = useState<number | null>(null);
   useEffect(() => {
     if (!width) return;
@@ -758,7 +887,9 @@ function PdfPage({
           setAspect(ratio); // re-runs with the right size
           return;
         }
-        const scale = (renderWidth / base.width) * Math.min(window.devicePixelRatio || 1, 2);
+        // Sharp on retina, but capped so a zoomed-in page stays within iPad canvas limits.
+        const px = Math.min(renderWidth * Math.min(window.devicePixelRatio || 1, 2), 4096);
+        const scale = px / base.width;
         const viewport = page.getViewport({ scale });
         // Render off-screen first so the old image stays visible until the new one is ready.
         const off = document.createElement("canvas");
@@ -784,7 +915,10 @@ function PdfPage({
     <div
       ref={wrapRef}
       data-page={n}
-      className="mx-auto mb-3 max-w-full overflow-hidden rounded-md bg-background shadow-sm last:mb-0"
+      className={cn(
+        "mx-auto mb-3 overflow-hidden rounded-md bg-background shadow-sm last:mb-0",
+        zoom <= 1 && "max-w-full",
+      )}
       style={{ width: width ?? "100%", aspectRatio: `${1 / aspect}` }}
     >
       <canvas ref={canvasRef} className="block h-full w-full" aria-label={`Page ${n}`} />

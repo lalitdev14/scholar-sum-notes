@@ -23,6 +23,7 @@ import type { ExportFormat, ExportPart } from "@/lib/export-notes";
 import { renderNote } from "@/components/SummaryMarkdown";
 import { escapeHtml, noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NotebookViewer } from "@/components/NotebookViewer";
 import {
   HandwritingNotebook,
   type NotebookHandle,
@@ -39,6 +40,7 @@ import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import {
   ArrowLeft,
   Download,
+  Eye,
   FileText,
   FileType,
   FileUp,
@@ -69,6 +71,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+/** Largest slide deck students can upload (matches the storage bucket limit). */
+const MAX_SLIDE_BYTES = 50 * 1024 * 1024;
 
 export const Route = createFileRoute("/_authenticated/class/$classId")({
   staticData: { sitemap: false },
@@ -155,8 +160,10 @@ function ClassPage() {
       toast.error("Choose a PDF or PowerPoint (.pptx) file.");
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error("The file must be smaller than 20 MB.");
+    if (file.size > MAX_SLIDE_BYTES) {
+      toast.error(
+        `This file is ${(file.size / 1024 / 1024).toFixed(0)} MB. Slides can be up to 50 MB. Try "Reduce file size" when exporting the PDF.`,
+      );
       return;
     }
     setUploadingSlides(true);
@@ -492,6 +499,12 @@ function ClassPage() {
     backgroundPath: row.background_path,
     background: await backgroundDataUrl(row.background_path),
   });
+
+  /** The saved notebook open in the read-only viewer (and the page to start at). */
+  const [viewing, setViewing] = useState<{ key: string; index: number } | null>(null);
+  const viewingGroup = viewing
+    ? savedNotebooks.find((g) => (g.id ?? "loose") === viewing.key)
+    : undefined;
 
   /** Opens a whole saved notebook in the Handwrite tab, optionally at a given page. */
   async function openSavedNotebook(group: SavedNotebook, startIndex = 0) {
@@ -1042,6 +1055,24 @@ function ClassPage() {
                     <p className="text-xs uppercase tracking-widest text-muted-foreground">
                       Saved notebooks
                     </p>
+                    <NotebookViewer
+                      open={Boolean(viewingGroup)}
+                      onOpenChange={(o) => !o && setViewing(null)}
+                      title={viewingGroup?.title ?? ""}
+                      pages={(viewingGroup?.pages ?? []).map((r) => ({ id: r.id, url: r.url }))}
+                      startIndex={viewing?.index ?? 0}
+                      onDownload={
+                        viewingGroup ? () => void downloadSavedNotebook(viewingGroup) : undefined
+                      }
+                      onEdit={(i) => {
+                        const g = viewingGroup;
+                        setViewing(null);
+                        if (!g) return;
+                        if (g.id) void openSavedNotebook(g, i);
+                        else if (g.pages[i] && Array.isArray(g.pages[i]!.strokes))
+                          void openSavedPage(g.pages[i]!);
+                      }}
+                    />
                     {savedNotebooks.length > 0 ? (
                       <ul className="mt-3 space-y-3" data-testid="saved-notebooks">
                         {savedNotebooks.map((nb) => (
@@ -1057,12 +1088,22 @@ function ClassPage() {
                                   {new Date(nb.updatedAt).toLocaleString()}
                                 </p>
                               </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setViewing({ key: nb.id ?? "loose", index: 0 })}
+                                aria-label={`View ${nb.title}`}
+                                title="View the pages (no editing)"
+                              >
+                                <Eye className="mr-1.5 h-3.5 w-3.5" /> View
+                              </Button>
                               {nb.id && (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => void openSavedNotebook(nb)}
                                   aria-label={`Open ${nb.title}`}
+                                  title="Open to keep writing"
                                 >
                                   <Pencil className="mr-1.5 h-3.5 w-3.5" /> Open
                                 </Button>
@@ -1093,7 +1134,12 @@ function ClassPage() {
                                   key={page.id}
                                   className="w-28 shrink-0 overflow-hidden rounded-md border border-border/60 bg-white"
                                 >
-                                  <a href={page.url ?? undefined} target="_blank" rel="noreferrer">
+                                  <button
+                                    type="button"
+                                    className="block w-full"
+                                    onClick={() => setViewing({ key: nb.id ?? "loose", index: i })}
+                                    aria-label={`View page ${i + 1} of ${nb.title}`}
+                                  >
                                     {page.url && (
                                       <img
                                         src={page.url}
@@ -1102,7 +1148,7 @@ function ClassPage() {
                                         className="h-20 w-full object-cover object-top"
                                       />
                                     )}
-                                  </a>
+                                  </button>
                                   <div className="flex items-center px-1 py-0.5">
                                     <span className="flex-1 text-[0.625rem] text-muted-foreground">
                                       Page {i + 1}
