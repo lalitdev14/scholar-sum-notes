@@ -70,6 +70,11 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   );
 }
 
+const SIGNED_IN_HINT =
+  "try{if(Object.keys(localStorage).some(function(k){return /^sb-.+-auth-token$/.test(k)})){" +
+  "var d=document.documentElement;d.setAttribute('data-signed-in','');" +
+  "setTimeout(function(){d.removeAttribute('data-signed-in')},3000)}}catch(e){}";
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   staticData: { sitemap: false },
   head: () => ({
@@ -113,9 +118,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* Signed in (saved session): hide the public home page until the app takes over, so
+            students don't see it flash. Shown anyway after 3 s if the scripts never load. */}
+        <script dangerouslySetInnerHTML={{ __html: SIGNED_IN_HINT }} />
+        <style>{"html[data-signed-in] [data-public-home]{visibility:hidden}"}</style>
       </head>
       <body>
         {children}
