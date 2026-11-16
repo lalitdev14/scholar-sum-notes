@@ -6,11 +6,13 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 import {
   ChevronLeft,
   ChevronRight,
   Eraser,
+  Expand,
   FilePlus2,
   Hand,
   Highlighter,
@@ -19,6 +21,7 @@ import {
   Presentation,
   Redo2,
   Save,
+  Shrink,
   Sparkles,
   Trash2,
   Undo2,
@@ -252,10 +255,12 @@ type Props = {
   onConvert: (page: RenderedPage) => Promise<SavedPageResult | null>;
   /** Saves the page to the class. Returns the save result or null on failure. */
   onSave: (page: RenderedPage) => Promise<SavedPageResult | null>;
+  /** Slide viewer shown in the sidebar of full-screen mode. */
+  slidesPanel?: ReactNode;
 };
 
 export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function HandwritingNotebook(
-  { classId, converting = false, onConvert, onSave },
+  { classId, converting = false, onConvert, onSave, slidesPanel },
   ref,
 ) {
   const draftKey = `lectureloop:notebook:${classId}`;
@@ -283,6 +288,8 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
   const panRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const frameRef = useRef(0);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [slidesOpen, setSlidesOpen] = useState(false);
 
   const updatePage = useCallback(
     (fn: (p: Page) => Page) =>
@@ -734,12 +741,59 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  /* ---------------- full screen */
+  function enterFullscreen() {
+    setFullscreen(true);
+    // Also hide the browser's own bars where supported (the whole document, so messages
+    // and dialogs stay visible). The overlay works without it (e.g. iPad Safari).
+    const root = document.documentElement;
+    if (!document.fullscreenElement && root.requestFullscreen) {
+      root.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
+    }
+  }
+  function exitFullscreen() {
+    setFullscreen(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }
+  useEffect(() => {
+    if (!fullscreen) return;
+    const html = document.documentElement;
+    const prevOverflow = html.style.overflow;
+    html.style.overflow = "hidden"; // no page scrolling behind the overlay
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") exitFullscreen();
+    };
+    // Leaving the browser's full screen (Esc, gesture) also leaves full-screen writing.
+    let wasNative = Boolean(document.fullscreenElement);
+    const onChange = () => {
+      if (document.fullscreenElement) wasNative = true;
+      else if (wasNative) setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => {
+      html.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("fullscreenchange", onChange);
+    };
+  }, [fullscreen]);
+
   const colors = tool === "highlighter" ? HIGHLIGHT : INK;
   const activeColor = tool === "highlighter" ? hlColor : inkColor;
   const isEmpty = !page.strokes.length;
 
   return (
-    <div className="flex flex-col gap-3" data-testid="notebook">
+    <div
+      className={cn(
+        "flex flex-col gap-3",
+        fullscreen && "fixed inset-0 z-50 bg-background p-3 sm:p-4",
+      )}
+      data-testid="notebook"
+      data-fullscreen={fullscreen || undefined}
+      role={fullscreen ? "dialog" : undefined}
+      aria-modal={fullscreen || undefined}
+      aria-label={fullscreen ? "Full-screen handwriting" : undefined}
+    >
       {/* Tools */}
       <div
         className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background p-1.5"
@@ -854,155 +908,237 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
             </option>
           ))}
         </select>
-      </div>
-
-      {/* Page */}
-      <div ref={wrapRef} className="relative w-full">
-        <canvas
-          ref={canvasRef}
-          onPointerDown={onDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={onUp}
-          onLostPointerCapture={onUp}
-          className={cn(
-            "block w-full touch-none rounded-lg border border-border bg-white shadow-sm",
-            tool === "eraser"
-              ? "cursor-cell"
-              : tool === "hand"
-                ? "cursor-grab active:cursor-grabbing"
-                : "cursor-crosshair",
-          )}
-          style={{ aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
-          aria-label={`Handwriting page ${index + 1} of ${pages.length}`}
-        />
-        {page.dirty && page.savedId && (
-          <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-            Unsaved changes
-          </span>
-        )}
-        <div
-          className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-lg border border-border bg-background/90 p-0.5 shadow-sm backdrop-blur"
-          role="group"
-          aria-label="Zoom"
-        >
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7"
-            onClick={() => zoomBy(1 / 1.25)}
-            disabled={zoomPct <= MIN_ZOOM * 100}
-            aria-label="Zoom out"
-            title="Zoom out"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <button
-            type="button"
-            onClick={fitPage}
-            className="min-w-[3.25rem] rounded px-1 text-xs font-medium tabular-nums hover:bg-muted"
-            title="Reset to 100%"
-            aria-label={`Zoom ${zoomPct}%, reset`}
-          >
-            {zoomPct}%
-          </button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7"
-            onClick={() => zoomBy(1.25)}
-            disabled={zoomPct >= MAX_ZOOM * 100}
-            aria-label="Zoom in"
-            title="Zoom in (or pinch / ⌘ + scroll)"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7"
-            onClick={fitPage}
-            disabled={zoomPct === 100 && viewRef.current.x === 0 && viewRef.current.y === 0}
-            aria-label="Fit page"
-            title="Fit page"
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Pages + actions */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="h-8 w-8"
-            onClick={() => setIndex((i) => Math.max(0, i - 1))}
-            disabled={index === 0}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="min-w-[5rem] text-center text-sm tabular-nums text-muted-foreground">
-            Page {index + 1} / {pages.length}
-          </span>
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="h-8 w-8"
-            onClick={() => setIndex((i) => Math.min(pages.length - 1, i + 1))}
-            disabled={index >= pages.length - 1}
-            aria-label="Next page"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <Button type="button" size="sm" variant="outline" onClick={() => addPage()}>
-          <FilePlus2 className="mr-1.5 h-4 w-4" /> New page
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => void writeOnSlide()}>
-          <Presentation className="mr-1.5 h-4 w-4" /> Write on slide
-        </Button>
         <Button
           type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-          onClick={deletePage}
-          aria-label="Remove page from notebook"
-          title="Remove page from notebook"
+          size="sm"
+          variant={fullscreen ? "default" : "outline"}
+          onClick={fullscreen ? exitFullscreen : enterFullscreen}
+          aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+          title={fullscreen ? "Exit full screen (Esc)" : "Write in full screen"}
+          className="gap-1.5"
         >
-          <Trash2 className="h-4 w-4" />
+          {fullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+          <span className="hidden sm:inline">{fullscreen ? "Exit" : "Full screen"}</span>
         </Button>
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)}
-            onClick={() => void save()}
-          >
-            <Save className="mr-1.5 h-4 w-4" />
-            {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save page"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isEmpty || converting}
-            onClick={() => void convert()}
-          >
-            <Sparkles className="mr-1.5 h-4 w-4" />
-            {converting ? "Converting…" : "Convert to text"}
-          </Button>
-        </div>
       </div>
-      <p className="text-xs text-muted-foreground">
+
+      {/* Full screen: page column + slides sidebar. Inline: these wrappers do nothing. */}
+      <div className={fullscreen ? "relative flex min-h-0 flex-1" : "contents"}>
+        <div
+          className={
+            fullscreen
+              ? "flex min-w-0 flex-1 flex-col items-center gap-3 overflow-auto pr-2"
+              : "contents"
+          }
+        >
+          {/* Page */}
+          <div
+            ref={wrapRef}
+            className="relative w-full"
+            style={
+              fullscreen
+                ? { maxWidth: `min(100%, calc((100dvh - 9rem) * ${PAGE_W / PAGE_H}))` }
+                : undefined
+            }
+          >
+            <canvas
+              ref={canvasRef}
+              onPointerDown={onDown}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+              onLostPointerCapture={onUp}
+              className={cn(
+                "block w-full touch-none rounded-lg border border-border bg-white shadow-sm",
+                tool === "eraser"
+                  ? "cursor-cell"
+                  : tool === "hand"
+                    ? "cursor-grab active:cursor-grabbing"
+                    : "cursor-crosshair",
+              )}
+              style={{ aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
+              aria-label={`Handwriting page ${index + 1} of ${pages.length}`}
+            />
+            {page.dirty && page.savedId && (
+              <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                Unsaved changes
+              </span>
+            )}
+            <div
+              className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-lg border border-border bg-background/90 p-0.5 shadow-sm backdrop-blur"
+              role="group"
+              aria-label="Zoom"
+            >
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={() => zoomBy(1 / 1.25)}
+                disabled={zoomPct <= MIN_ZOOM * 100}
+                aria-label="Zoom out"
+                title="Zoom out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <button
+                type="button"
+                onClick={fitPage}
+                className="min-w-[3.25rem] rounded px-1 text-xs font-medium tabular-nums hover:bg-muted"
+                title="Reset to 100%"
+                aria-label={`Zoom ${zoomPct}%, reset`}
+              >
+                {zoomPct}%
+              </button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={() => zoomBy(1.25)}
+                disabled={zoomPct >= MAX_ZOOM * 100}
+                aria-label="Zoom in"
+                title="Zoom in (or pinch / ⌘ + scroll)"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={fitPage}
+                disabled={zoomPct === 100 && viewRef.current.x === 0 && viewRef.current.y === 0}
+                aria-label="Fit page"
+                title="Fit page"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Pages + actions */}
+          <div
+            className="flex w-full flex-wrap items-center gap-2"
+            style={
+              fullscreen
+                ? { maxWidth: `min(100%, calc((100dvh - 9rem) * ${PAGE_W / PAGE_H}))` }
+                : undefined
+            }
+          >
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                onClick={() => setIndex((i) => Math.max(0, i - 1))}
+                disabled={index === 0}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-[5rem] text-center text-sm tabular-nums text-muted-foreground">
+                Page {index + 1} / {pages.length}
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-8 w-8"
+                onClick={() => setIndex((i) => Math.min(pages.length - 1, i + 1))}
+                disabled={index >= pages.length - 1}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={() => addPage()}>
+              <FilePlus2 className="mr-1.5 h-4 w-4" /> New page
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => void writeOnSlide()}>
+              <Presentation className="mr-1.5 h-4 w-4" /> Write on slide
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={deletePage}
+              aria-label="Remove page from notebook"
+              title="Remove page from notebook"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={
+                  saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)
+                }
+                onClick={() => void save()}
+              >
+                <Save className="mr-1.5 h-4 w-4" />
+                {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save page"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={isEmpty || converting}
+                onClick={() => void convert()}
+              >
+                <Sparkles className="mr-1.5 h-4 w-4" />
+                {converting ? "Converting…" : "Convert to text"}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {fullscreen && (
+          <>
+            {/* Click the bar to show the slides; click it again to hide them. */}
+            <button
+              type="button"
+              onClick={() => setSlidesOpen((o) => !o)}
+              aria-expanded={slidesOpen}
+              aria-controls="notebook-slides"
+              aria-label={slidesOpen ? "Hide slides" : "Show slides"}
+              title={slidesOpen ? "Hide slides" : "Show slides"}
+              className={cn(
+                "flex w-9 shrink-0 flex-col items-center justify-center gap-2 border border-border bg-muted/70 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                slidesOpen ? "rounded-none border-r-0" : "rounded-lg",
+              )}
+            >
+              {slidesOpen ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+              <span className="tracking-wide" style={{ writingMode: "vertical-rl" }}>
+                Slides
+              </span>
+              <Presentation className="h-4 w-4" />
+            </button>
+            {slidesOpen && (
+              <aside
+                id="notebook-slides"
+                aria-label="Lecture slides"
+                className="flex w-[42%] min-w-[18rem] max-w-[48rem] shrink-0 flex-col overflow-hidden rounded-r-lg border border-border bg-background p-3 max-lg:absolute max-lg:inset-y-0 max-lg:right-9 max-lg:z-10 max-lg:w-[85%] max-lg:shadow-xl"
+              >
+                {slidesPanel ?? (
+                  <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">
+                    Add lecture slides on the Slides side to see them here.
+                  </p>
+                )}
+              </aside>
+            )}
+          </>
+        )}
+      </div>
+
+      <p className={cn("text-xs text-muted-foreground", fullscreen && "hidden")}>
         Write with an Apple Pencil or stylus (pressure-sensitive; your palm is ignored once the
         pencil is used), a mouse or a trackpad. Pinch or ⌘/Ctrl + scroll to zoom; scroll or use Move
         to get around a zoomed page. Pages are kept on this device until you save them. "Convert to

@@ -860,6 +860,44 @@ function ClassPage() {
                       converting={converting}
                       onConvert={handleConvert}
                       onSave={handleSavePage}
+                      slidesPanel={
+                        activeSlides ? (
+                          <div className="flex min-h-0 flex-1 flex-col gap-2">
+                            {lectureSlides && lectureSlides.length > 1 && (
+                              <div
+                                className="flex shrink-0 gap-1 overflow-x-auto rounded-lg bg-muted p-1 [scrollbar-width:none]"
+                                role="tablist"
+                                aria-label="Slide decks"
+                              >
+                                {lectureSlides.map((item) => (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={item.id === activeSlides.id}
+                                    onClick={() => setSelectedSlideId(item.id)}
+                                    className={cn(
+                                      "max-w-[12rem] shrink-0 truncate rounded-md px-2.5 py-1 text-xs font-medium",
+                                      item.id === activeSlides.id
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground",
+                                    )}
+                                  >
+                                    {item.title || item.file_name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <LectureSlideViewer
+                              key={`fullscreen-${activeSlides.id}`}
+                              slideId={activeSlides.id}
+                              filePath={activeSlides.file_path}
+                              fileName={activeSlides.file_name}
+                              contentType={activeSlides.content_type}
+                            />
+                          </div>
+                        ) : undefined
+                      }
                     />
                   </div>
 

@@ -354,7 +354,7 @@ export function LectureSlideViewer({
   currentPageRef.current = Math.max(1, Math.floor(currentNumber));
   useEffect(() => {
     if (!isPdf || !pdfReady) return;
-    registerSlideCapture(async () => {
+    return registerSlideCapture(async () => {
       const doc = pdfDocRef.current as unknown as {
         getPage: (n: number) => Promise<{
           getViewport: (o: { scale: number }) => { width: number; height: number };
@@ -371,7 +371,6 @@ export function LectureSlideViewer({
       await page.render({ canvas, canvasContext: canvas.getContext("2d"), viewport }).promise;
       return canvas.toDataURL("image/png");
     });
-    return () => registerSlideCapture(null);
   }, [isPdf, pdfReady]);
 
   function goTo(n: number) {
