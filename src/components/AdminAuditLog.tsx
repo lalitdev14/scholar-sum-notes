@@ -13,6 +13,9 @@ const ACTION_LABELS: Record<string, string> = {
   "class.delete": "Deleted class",
   "classes.delete": "Deleted classes",
   "classes.import": "Imported classes",
+  "classes.trash": "Deleted class (restorable)",
+  "classes.restore": "Restored class",
+  "classes.purge": "Permanently deleted class",
   "registration.domain.add": "Allowed domain",
   "registration.domain.remove": "Removed domain",
   "registration.email.add": "Allowed email",
@@ -29,6 +32,7 @@ const SENSITIVE = new Set([
   "account.delete",
   "role.grant",
   "role.revoke",
+  "classes.purge",
 ]);
 
 /** Read-only record of admin actions (written by the server and database triggers). */
