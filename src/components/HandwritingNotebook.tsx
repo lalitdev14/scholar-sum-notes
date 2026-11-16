@@ -12,7 +12,9 @@ import {
   ChevronRight,
   Eraser,
   FilePlus2,
+  Hand,
   Highlighter,
+  Maximize2,
   Pen,
   Presentation,
   Redo2,
@@ -20,6 +22,8 @@ import {
   Sparkles,
   Trash2,
   Undo2,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,7 +37,7 @@ export const PAGE_W = 1000;
 export const PAGE_H = 700;
 
 export type Paper = "blank" | "lined" | "grid" | "dotted";
-type Tool = "pen" | "highlighter" | "eraser";
+type Tool = "pen" | "highlighter" | "eraser" | "hand";
 
 /** One ink stroke. `pts` is a flat list of x, y, pressure (page units, pressure 0..1). */
 export type Stroke = { tool: "pen" | "highlighter"; color: string; size: number; pts: number[] };
@@ -86,6 +90,22 @@ const PAPERS: [Paper, string][] = [
   ["grid", "Grid"],
   ["dotted", "Dotted"],
 ];
+
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 4;
+
+/** Visible part of the page: zoom factor and the top-left corner in page units. */
+type View = { z: number; x: number; y: number };
+
+/** Keeps the view inside the page when zoomed in, and centres the page when zoomed out. */
+function clampView(v: View): View {
+  const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.z));
+  const vw = PAGE_W / z;
+  const vh = PAGE_H / z;
+  const x = vw >= PAGE_W ? (PAGE_W - vw) / 2 : Math.min(Math.max(v.x, 0), PAGE_W - vw);
+  const y = vh >= PAGE_H ? (PAGE_H - vh) / 2 : Math.min(Math.max(v.y, 0), PAGE_H - vh);
+  return { z, x, y };
+}
 
 const newKey = () => Math.random().toString(36).slice(2, 10);
 const blankPage = (paper: Paper = "lined"): Page => ({
@@ -257,6 +277,12 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const erasingRef = useRef(false);
   const penSeenRef = useRef(false);
   const scaleRef = useRef(1);
+  const viewRef = useRef<View>({ z: 1, x: 0, y: 0 });
+  const [zoomPct, setZoomPct] = useState(100);
+  const touchesRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
+  const panRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  const frameRef = useRef(0);
 
   const updatePage = useCallback(
     (fn: (p: Page) => Page) =>
@@ -305,18 +331,25 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     cacheRef.current = cache;
     cache.width = canvas.width;
     cache.height = canvas.height;
+    if (page.background && bgImgRef.current?.src !== page.background) {
+      bgImgRef.current = { src: page.background, img: await loadImage(page.background) };
+    }
     const ctx = cache.getContext("2d")!;
+    const v = viewRef.current;
+    const k = (cache.width / PAGE_W) * v.z;
+    // Desk colour around the page (visible when zoomed out).
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cache.width, cache.height);
-    const s = cache.width / PAGE_W;
-    ctx.setTransform(s, 0, 0, s, 0, 0);
-    if (page.background) {
-      if (bgImgRef.current?.src !== page.background) {
-        bgImgRef.current = { src: page.background, img: await loadImage(page.background) };
-      }
-      drawBackground(ctx, bgImgRef.current.img);
-    } else drawPaper(ctx, page.paper);
+    ctx.fillStyle = "#eceef2";
+    ctx.fillRect(0, 0, cache.width, cache.height);
+    ctx.setTransform(k, 0, 0, k, -v.x * k, -v.y * k);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, PAGE_W, PAGE_H);
+    ctx.clip();
+    if (page.background && bgImgRef.current) drawBackground(ctx, bgImgRef.current.img);
+    else drawPaper(ctx, page.paper);
     for (const st of page.strokes) drawStroke(ctx, st);
+    ctx.restore();
   }, [page.background, page.paper, page.strokes]);
 
   const paint = useCallback(() => {
@@ -326,9 +359,10 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     const ctx = canvas.getContext("2d")!;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(cache, 0, 0);
-    if (drawingRef.current) {
-      const s = canvas.width / PAGE_W;
-      ctx.setTransform(s, 0, 0, s, 0, 0);
+    if (drawingRef.current?.color) {
+      const v = viewRef.current;
+      const k = (canvas.width / PAGE_W) * v.z;
+      ctx.setTransform(k, 0, 0, k, -v.x * k, -v.y * k);
       drawStroke(ctx, drawingRef.current);
     }
   }, []);
@@ -339,6 +373,54 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   useEffect(() => {
     redrawRef.current();
   }, [rebuildCache, paint]);
+
+  /* ---------------- zoom */
+  const setView = (next: View) => {
+    viewRef.current = clampView(next);
+    setZoomPct(Math.round(viewRef.current.z * 100));
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(() => redrawRef.current());
+  };
+  /** Zooms by `factor`, keeping the page point (cx, cy) under the same spot on screen. */
+  const zoomAt = (factor: number, cx: number, cy: number) => {
+    const v = viewRef.current;
+    const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.z * factor));
+    setView({ z, x: cx - (cx - v.x) * (v.z / z), y: cy - (cy - v.y) * (v.z / z) });
+  };
+  const zoomBy = (factor: number) => {
+    const v = viewRef.current;
+    zoomAt(factor, v.x + PAGE_W / (2 * v.z), v.y + PAGE_H / (2 * v.z));
+  };
+  const fitPage = () => setView({ z: 1, x: 0, y: 0 });
+  /** Page units per screen pixel at the current zoom. */
+  const unitsPerPx = () => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    return PAGE_W / rect.width / viewRef.current.z;
+  };
+  const panBy = (dxPx: number, dyPx: number) => {
+    const v = viewRef.current;
+    const u = unitsPerPx();
+    setView({ ...v, x: v.x - dxPx * u, y: v.y - dyPx * u });
+  };
+
+  // Trackpad pinch / Ctrl+scroll zooms at the cursor; scrolling pans while zoomed in.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const [cx, cy] = toPage(e);
+        zoomAt(Math.exp(-e.deltaY * 0.01), cx, cy);
+      } else if (viewRef.current.z > 1.001) {
+        e.preventDefault();
+        panBy(-e.deltaX, -e.deltaY);
+      }
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Size the canvas to its box (crisp on retina) when the panel is resized.
   useEffect(() => {
@@ -363,16 +445,18 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   }, []);
 
   /* ---------------- input */
+  /** Screen point → page units, through the current zoom. */
   const toPage = (e: { clientX: number; clientY: number }) => {
     const rect = canvasRef.current!.getBoundingClientRect();
+    const v = viewRef.current;
     return [
-      ((e.clientX - rect.left) / rect.width) * PAGE_W,
-      ((e.clientY - rect.top) / rect.height) * PAGE_H,
+      ((e.clientX - rect.left) / rect.width) * (PAGE_W / v.z) + v.x,
+      ((e.clientY - rect.top) / rect.height) * (PAGE_H / v.z) + v.y,
     ] as const;
   };
 
   const eraseAt = (x: number, y: number) => {
-    const r = 14;
+    const r = 14 / Math.max(viewRef.current.z, 1);
     const hit = (s: Stroke) => {
       for (let i = 0; i < s.pts.length; i += 3) {
         const dx = s.pts[i]! - x;
@@ -393,10 +477,34 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   };
 
   function onDown(e: ReactPointerEvent<HTMLCanvasElement>) {
+    if (e.pointerType === "touch") {
+      touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touchesRef.current.size === 2) {
+        // Two fingers: pinch to zoom / drag to pan. Drop any stroke the first finger began.
+        drawingRef.current = null;
+        panRef.current = null;
+        const [a, b] = [...touchesRef.current.values()] as [
+          { x: number; y: number },
+          { x: number; y: number },
+        ];
+        pinchRef.current = {
+          dist: Math.hypot(a.x - b.x, a.y - b.y),
+          midX: (a.x + b.x) / 2,
+          midY: (a.y + b.y) / 2,
+        };
+        paint();
+        return;
+      }
+      if (touchesRef.current.size > 2) return;
+    }
     if (e.pointerType === "pen") penSeenRef.current = true;
-    // Palm rejection: once a stylus is used, fingers don't draw.
-    if (e.pointerType === "touch" && penSeenRef.current) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    // Palm rejection: once a stylus is used, a finger pans instead of drawing.
+    // The hand tool always pans.
+    if ((e.pointerType === "touch" && penSeenRef.current) || tool === "hand") {
+      panRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+      return;
+    }
     const [x, y] = toPage(e);
     const eraser = tool === "eraser" || e.buttons === 32;
     if (eraser) {
@@ -414,6 +522,30 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   }
 
   function onMove(e: ReactPointerEvent<HTMLCanvasElement>) {
+    if (e.pointerType === "touch" && touchesRef.current.has(e.pointerId)) {
+      touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const prev = pinchRef.current;
+      if (prev && touchesRef.current.size >= 2) {
+        const [a, b] = [...touchesRef.current.values()] as [
+          { x: number; y: number },
+          { x: number; y: number },
+        ];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const midX = (a.x + b.x) / 2;
+        const midY = (a.y + b.y) / 2;
+        const [cx, cy] = toPage({ clientX: midX, clientY: midY });
+        if (prev.dist > 0) zoomAt(dist / prev.dist, cx, cy);
+        panBy(midX - prev.midX, midY - prev.midY);
+        pinchRef.current = { dist, midX, midY };
+        return;
+      }
+    }
+    const pan = panRef.current;
+    if (pan && pan.id === e.pointerId) {
+      panBy(e.clientX - pan.x, e.clientY - pan.y);
+      panRef.current = { id: pan.id, x: e.clientX, y: e.clientY };
+      return;
+    }
     const d = drawingRef.current;
     if (!d) return;
     e.preventDefault();
@@ -436,7 +568,12 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     paint();
   }
 
-  function onUp() {
+  function onUp(e?: ReactPointerEvent<HTMLCanvasElement>) {
+    if (e) {
+      touchesRef.current.delete(e.pointerId);
+      if (touchesRef.current.size < 2) pinchRef.current = null;
+      if (panRef.current?.id === e.pointerId) panRef.current = null;
+    }
     const d = drawingRef.current;
     drawingRef.current = null;
     erasingRef.current = false;
@@ -614,6 +751,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
             ["pen", Pen, "Pen"],
             ["highlighter", Highlighter, "Highlighter"],
             ["eraser", Eraser, "Eraser"],
+            ["hand", Hand, "Move"],
           ] as const
         ).map(([t, Icon, label]) => (
           <Button
@@ -630,7 +768,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
           </Button>
         ))}
         <span className="mx-1 h-6 w-px bg-border" aria-hidden />
-        {tool !== "eraser" && (
+        {(tool === "pen" || tool === "highlighter") && (
           <>
             <div className="flex items-center gap-1" role="radiogroup" aria-label="Colour">
               {colors.map((c) => (
@@ -729,7 +867,11 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
           onLostPointerCapture={onUp}
           className={cn(
             "block w-full touch-none rounded-lg border border-border bg-white shadow-sm",
-            tool === "eraser" ? "cursor-cell" : "cursor-crosshair",
+            tool === "eraser"
+              ? "cursor-cell"
+              : tool === "hand"
+                ? "cursor-grab active:cursor-grabbing"
+                : "cursor-crosshair",
           )}
           style={{ aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
           aria-label={`Handwriting page ${index + 1} of ${pages.length}`}
@@ -739,6 +881,57 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
             Unsaved changes
           </span>
         )}
+        <div
+          className="absolute bottom-2 right-2 flex items-center gap-0.5 rounded-lg border border-border bg-background/90 p-0.5 shadow-sm backdrop-blur"
+          role="group"
+          aria-label="Zoom"
+        >
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            onClick={() => zoomBy(1 / 1.25)}
+            disabled={zoomPct <= MIN_ZOOM * 100}
+            aria-label="Zoom out"
+            title="Zoom out"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <button
+            type="button"
+            onClick={fitPage}
+            className="min-w-[3.25rem] rounded px-1 text-xs font-medium tabular-nums hover:bg-muted"
+            title="Reset to 100%"
+            aria-label={`Zoom ${zoomPct}%, reset`}
+          >
+            {zoomPct}%
+          </button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            onClick={() => zoomBy(1.25)}
+            disabled={zoomPct >= MAX_ZOOM * 100}
+            aria-label="Zoom in"
+            title="Zoom in (or pinch / ⌘ + scroll)"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            onClick={fitPage}
+            disabled={zoomPct === 100 && viewRef.current.x === 0 && viewRef.current.y === 0}
+            aria-label="Fit page"
+            title="Fit page"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Pages + actions */}
@@ -811,8 +1004,9 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       </div>
       <p className="text-xs text-muted-foreground">
         Write with an Apple Pencil or stylus (pressure-sensitive; your palm is ignored once the
-        pencil is used), a mouse or a trackpad. Pages are kept on this device until you save them.
-        "Convert to text" adds the page to your typed notes.
+        pencil is used), a mouse or a trackpad. Pinch or ⌘/Ctrl + scroll to zoom; scroll or use Move
+        to get around a zoomed page. Pages are kept on this device until you save them. "Convert to
+        text" adds the page to your typed notes.
       </p>
     </div>
   );
