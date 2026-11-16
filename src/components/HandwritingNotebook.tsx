@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  BookOpen,
   BookPlus,
   ChevronLeft,
   ChevronRight,
@@ -22,6 +21,7 @@ import {
   Maximize2,
   Pen,
   Layers,
+  MoreHorizontal,
   Presentation,
   Redo2,
   Save,
@@ -37,6 +37,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { captureAllSlides, captureCurrentSlide, slideCount } from "@/lib/slide-capture";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /* ------------------------------------------------------------------ model */
 
@@ -45,6 +52,7 @@ export const PAGE_W = 1000;
 /** Default page length; pages grow longer as you write near the bottom. */
 export const PAGE_H = 700;
 const PEN_SEEN_KEY = "lectureloop:pen-seen";
+const SLIDES_WIDTH_KEY = "lectureloop:fullscreen-slides-width";
 const MAX_PAGE_H = 8000;
 /** Grow a page when ink comes this close to the bottom, by this much. */
 const GROW_MARGIN = 140;
@@ -378,6 +386,17 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   /** Progress while "Write on all slides" renders the deck. */
   const [allSlides, setAllSlides] = useState<{ done: number; total: number } | null>(null);
   const [slidesOpen, setSlidesOpen] = useState(false);
+  /** Full screen: the slides panel's share of the width (dragged with the divider). */
+  const [slidesFrac, setSlidesFrac] = useState<number | null>(() => {
+    try {
+      const v = Number(localStorage.getItem(SLIDES_WIDTH_KEY));
+      return v > 0.15 && v < 0.85 ? v : null;
+    } catch {
+      return null;
+    }
+  });
+  const splitRef = useRef<HTMLDivElement>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const updatePage = useCallback(
     (fn: (p: Page) => Page) =>
@@ -1203,7 +1222,8 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     html.style.overflow = "hidden"; // no page scrolling behind the overlay
     html.style.overscrollBehavior = "none"; // no pull-to-refresh / bounce while writing
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") exitFullscreen();
+      // Esc closes an open menu first (it marks the event handled), then full screen.
+      if (e.key === "Escape" && !e.defaultPrevented) exitFullscreen();
     };
     // Leaving the browser's full screen (Esc, gesture) also leaves full-screen writing.
     let wasNative = Boolean(document.fullscreenElement);
@@ -1224,6 +1244,82 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   const colors = tool === "highlighter" ? HIGHLIGHT : INK;
   const activeColor = tool === "highlighter" ? hlColor : inkColor;
   const isEmpty = !page.strokes.length;
+  /** Drag the divider between the page and the slides (full screen). */
+  function setSlidesWidth(frac: number) {
+    const f = Math.min(0.85, Math.max(0.2, frac));
+    setSlidesFrac(f);
+    try {
+      localStorage.setItem(SLIDES_WIDTH_KEY, f.toFixed(3));
+    } catch {
+      /* private mode */
+    }
+  }
+  function onSplitDown(e: ReactPointerEvent<HTMLDivElement>) {
+    const box = splitRef.current?.getBoundingClientRect();
+    if (!box) return;
+    e.preventDefault();
+    const el = e.currentTarget;
+    el.setPointerCapture(e.pointerId);
+    // The handle is the panel's left edge: the panel spans from the pointer to its right edge.
+    const right = el.parentElement?.getBoundingClientRect().right ?? box.right;
+    const move = (ev: PointerEvent) => setSlidesWidth((right - ev.clientX) / box.width);
+    const up = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  }
+
+  const colorRadios = () => (
+    <div className="flex items-center gap-1" role="radiogroup" aria-label="Colour">
+      {colors.map((c) => (
+        <button
+          key={c}
+          type="button"
+          role="radio"
+          aria-checked={activeColor === c}
+          aria-label={`Colour ${c}`}
+          onClick={() => (tool === "highlighter" ? setHlColor(c) : setInkColor(c))}
+          className={cn(
+            "h-6 w-6 rounded-full border border-black/10 transition-transform",
+            activeColor === c && "scale-110 ring-2 ring-primary ring-offset-2",
+          )}
+          style={{ backgroundColor: c }}
+        />
+      ))}
+    </div>
+  );
+  const sizeRadios = () => (
+    <div className="flex items-center gap-0.5" role="radiogroup" aria-label="Thickness">
+      {[0, 1, 2].map((i) => (
+        <button
+          key={i}
+          type="button"
+          role="radio"
+          aria-checked={sizeIdx === i}
+          aria-label={["Thin", "Medium", "Thick"][i]}
+          onClick={() => setSizeIdx(i)}
+          className={cn(
+            "grid h-8 w-8 place-items-center rounded-md hover:bg-muted",
+            sizeIdx === i && "bg-muted",
+          )}
+        >
+          <span
+            className="rounded-full"
+            style={{
+              width: 4 + i * 4,
+              height: 4 + i * 4,
+              backgroundColor: activeColor,
+              opacity: tool === "highlighter" ? 0.6 : 1,
+            }}
+          />
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div
@@ -1239,292 +1335,309 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
       aria-modal={fullscreen || undefined}
       aria-label={fullscreen ? "Full-screen handwriting" : undefined}
     >
-      {/* Notebook: title + whole-notebook actions */}
-      <div className="flex flex-wrap items-center gap-2">
-        <BookOpen className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value.slice(0, 200))}
-          onBlur={() => {
-            if (pages.some((p) => p.savedId) && title.trim())
-              onRenameNotebook?.(notebookId, title.trim());
-          }}
-          aria-label="Notebook title"
-          className="h-8 min-w-0 flex-1 sm:max-w-xs"
-        />
-        <span className="text-xs text-muted-foreground">
-          {pages.length} page{pages.length === 1 ? "" : "s"}
-          {unsavedPages.length ? ` · ${unsavedPages.length} unsaved` : ""}
-        </span>
-        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+      {/* One toolbar. Labels show only when there's room; everything else is in "More". */}
+      <div className="@container">
+        <div
+          className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-background p-1.5"
+          role="toolbar"
+          aria-label="Handwriting tools"
+        >
           <Button
             type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => void saveAll()}
-            disabled={savingAll || !unsavedPages.length}
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => turnPage(-1)}
+            disabled={index === 0}
+            aria-label="Previous page"
           >
-            <Save className="mr-1.5 h-4 w-4" />
-            {savingAll ? "Saving…" : "Save all"}
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="min-w-[3.25rem] text-center text-sm tabular-nums text-muted-foreground">
+            <span className="sr-only @min-[44rem]:not-sr-only">Page </span>
+            {index + 1} / {pages.length}
+          </span>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={() => turnPage(1)}
+            disabled={index >= pages.length - 1}
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <span className="mx-0.5 h-6 w-px bg-border" aria-hidden />
+          {(
+            [
+              ["pen", Pen, "Pen"],
+              ["highlighter", Highlighter, "Highlighter"],
+              ["eraser", Eraser, "Eraser"],
+              ["hand", Hand, "Move"],
+            ] as const
+          ).map(([t, Icon, label]) => (
+            <Button
+              key={t}
+              type="button"
+              size="sm"
+              variant={tool === t ? "default" : "ghost"}
+              aria-pressed={tool === t}
+              aria-label={label}
+              title={label}
+              onClick={() => setTool(t)}
+              className="h-8 gap-1.5 px-2"
+            >
+              <Icon className="h-4 w-4" />
+              <span className="hidden @min-[62rem]:inline">{label}</span>
+            </Button>
+          ))}
+          {(tool === "pen" || tool === "highlighter") && (
+            <>
+              <span className="mx-0.5 h-6 w-px bg-border" aria-hidden />
+              {/* Wide bar: colours inline. Narrow bar: one swatch that opens them. */}
+              <div className="hidden items-center gap-1 @min-[62rem]:flex">{colorRadios()}</div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="grid h-8 w-8 place-items-center rounded-md hover:bg-muted @min-[62rem]:hidden"
+                    aria-label="Colour and thickness"
+                    title="Colour and thickness"
+                  >
+                    <span
+                      className="rounded-full ring-2 ring-border ring-offset-1"
+                      style={{
+                        width: 10 + sizeIdx * 4,
+                        height: 10 + sizeIdx * 4,
+                        backgroundColor: activeColor,
+                      }}
+                    />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto space-y-3 p-3" align="start">
+                  <div className="flex items-center gap-1.5">{colorRadios()}</div>
+                  <div className="flex items-center gap-1">{sizeRadios()}</div>
+                </PopoverContent>
+              </Popover>
+              <div className="hidden items-center gap-0.5 @min-[62rem]:flex">{sizeRadios()}</div>
+            </>
+          )}
+          <span className="mx-0.5 h-6 w-px bg-border" aria-hidden />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={undo}
+            disabled={!page.undo.length}
+            aria-label="Undo"
+            title="Undo (⌘Z)"
+          >
+            <Undo2 className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => void downloadPdf()}
-            disabled={exportingPdf}
-            title="Download every page of this notebook as one PDF"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={redo}
+            disabled={!page.redo.length}
+            aria-label="Redo"
+            title="Redo (⇧⌘Z)"
           >
-            <FileDown className="mr-1.5 h-4 w-4" />
-            {exportingPdf ? "Making PDF…" : "PDF"}
+            <Redo2 className="h-4 w-4" />
           </Button>
-          <Button type="button" size="sm" variant="outline" onClick={() => void newNotebook()}>
-            <BookPlus className="mr-1.5 h-4 w-4" /> New notebook
-          </Button>
+
+          <div className="ml-auto flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5 px-2"
+                  aria-label="Add page"
+                  title="Add a page"
+                  disabled={Boolean(allSlides)}
+                >
+                  <FilePlus2 className="h-4 w-4" />
+                  {allSlides ? (
+                    <span className="tabular-nums">
+                      {allSlides.done}/{allSlides.total}
+                    </span>
+                  ) : (
+                    <span className="hidden @min-[44rem]:inline">Add page</span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem onSelect={() => addPage()}>
+                  <FilePlus2 className="h-4 w-4" /> New page
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void writeOnSlide()}>
+                  <Presentation className="h-4 w-4" /> Write on slide
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void writeOnAllSlides()}>
+                  <Layers className="h-4 w-4" /> Write on all slides
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="relative h-8 gap-1.5 px-2"
+              disabled={saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)}
+              onClick={() => void save()}
+              aria-label="Save page"
+              title={page.savedId && !page.dirty ? "Saved" : "Save this page"}
+            >
+              <Save className="h-4 w-4" />
+              <span className="hidden @min-[44rem]:inline">
+                {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save"}
+              </span>
+              {hasContent(page) && (page.dirty || !page.savedId) && (
+                <span
+                  className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500"
+                  aria-hidden
+                />
+              )}
+            </Button>
+            <Popover open={moreOpen} onOpenChange={setMoreOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8"
+                  aria-label="More options"
+                  title="Notebook, PDF, paper, convert…"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-2">
+                <div className="px-1 pb-2">
+                  <label className="text-xs font-medium text-muted-foreground" htmlFor="nb-title">
+                    Notebook
+                  </label>
+                  <Input
+                    id="nb-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value.slice(0, 200))}
+                    onBlur={() => {
+                      if (pages.some((p) => p.savedId) && title.trim())
+                        onRenameNotebook?.(notebookId, title.trim());
+                    }}
+                    aria-label="Notebook title"
+                    className="mt-1 h-8"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {pages.length} page{pages.length === 1 ? "" : "s"}
+                    {unsavedPages.length ? ` · ${unsavedPages.length} unsaved` : ""}
+                  </p>
+                </div>
+                <div className="grid gap-0.5 border-t border-border pt-2">
+                  {(
+                    [
+                      [
+                        Save,
+                        savingAll ? "Saving…" : "Save all",
+                        "Save all",
+                        () => void saveAll(),
+                        savingAll || !unsavedPages.length,
+                      ],
+                      [
+                        FileDown,
+                        exportingPdf ? "Making PDF…" : "Download PDF",
+                        "PDF",
+                        () => void downloadPdf(),
+                        exportingPdf,
+                      ],
+                      [
+                        Sparkles,
+                        converting ? "Converting…" : "Convert to text",
+                        "Convert to text",
+                        () => void convert(),
+                        isEmpty || converting,
+                      ],
+                      [BookPlus, "New notebook", "New notebook", () => void newNotebook(), false],
+                    ] as const
+                  ).map(([Icon, text, name, run, off]) => (
+                    <Button
+                      key={name}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start gap-2"
+                      onClick={() => {
+                        setMoreOpen(false);
+                        run();
+                      }}
+                      disabled={off}
+                      aria-label={name}
+                    >
+                      <Icon className="h-4 w-4" /> {text}
+                    </Button>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center gap-2 border-t border-border px-1 pt-2">
+                  <select
+                    value={page.paper}
+                    onChange={(e) => setPaper(e.target.value as Paper)}
+                    disabled={Boolean(page.background)}
+                    aria-label="Paper"
+                    className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    {PAPERS.map(([v, l]) => (
+                      <option key={v} value={v}>
+                        {l} paper
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      deletePage();
+                    }}
+                    aria-label="Remove page from notebook"
+                    title="Remove this page from the notebook"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button
+              type="button"
+              size="sm"
+              variant={fullscreen ? "default" : "outline"}
+              onClick={fullscreen ? exitFullscreen : enterFullscreen}
+              aria-label={fullscreen ? "Exit full screen" : "Full screen"}
+              title={fullscreen ? "Exit full screen (Esc)" : "Write in full screen"}
+              className="h-8 gap-1.5 px-2"
+            >
+              {fullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+              <span className="hidden @min-[44rem]:inline">
+                {fullscreen ? "Exit" : "Full screen"}
+              </span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Tools */}
-      <div
-        className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background p-1.5"
-        role="toolbar"
-        aria-label="Handwriting tools"
-      >
-        {(
-          [
-            ["pen", Pen, "Pen"],
-            ["highlighter", Highlighter, "Highlighter"],
-            ["eraser", Eraser, "Eraser"],
-            ["hand", Hand, "Move"],
-          ] as const
-        ).map(([t, Icon, label]) => (
-          <Button
-            key={t}
-            type="button"
-            size="sm"
-            variant={tool === t ? "default" : "ghost"}
-            aria-pressed={tool === t}
-            onClick={() => setTool(t)}
-            className="gap-1.5"
-          >
-            <Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{label}</span>
-          </Button>
-        ))}
-        <span className="mx-1 h-6 w-px bg-border" aria-hidden />
-        {(tool === "pen" || tool === "highlighter") && (
-          <>
-            <div className="flex items-center gap-1" role="radiogroup" aria-label="Colour">
-              {colors.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  role="radio"
-                  aria-checked={activeColor === c}
-                  aria-label={`Colour ${c}`}
-                  onClick={() => (tool === "highlighter" ? setHlColor(c) : setInkColor(c))}
-                  className={cn(
-                    "h-6 w-6 rounded-full border border-black/10 transition-transform",
-                    activeColor === c && "scale-110 ring-2 ring-primary ring-offset-2",
-                  )}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-            <span className="mx-1 h-6 w-px bg-border" aria-hidden />
-            <div className="flex items-center gap-0.5" role="radiogroup" aria-label="Thickness">
-              {[0, 1, 2].map((i) => (
-                <button
-                  key={i}
-                  type="button"
-                  role="radio"
-                  aria-checked={sizeIdx === i}
-                  aria-label={["Thin", "Medium", "Thick"][i]}
-                  onClick={() => setSizeIdx(i)}
-                  className={cn(
-                    "grid h-8 w-8 place-items-center rounded-md hover:bg-muted",
-                    sizeIdx === i && "bg-muted",
-                  )}
-                >
-                  <span
-                    className="rounded-full"
-                    style={{
-                      width: 4 + i * 4,
-                      height: 4 + i * 4,
-                      backgroundColor: activeColor,
-                      opacity: tool === "highlighter" ? 0.6 : 1,
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-            <span className="mx-1 h-6 w-px bg-border" aria-hidden />
-          </>
-        )}
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          onClick={undo}
-          disabled={!page.undo.length}
-          aria-label="Undo"
-          title="Undo (⌘Z)"
-        >
-          <Undo2 className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          onClick={redo}
-          disabled={!page.redo.length}
-          aria-label="Redo"
-          title="Redo (⇧⌘Z)"
-        >
-          <Redo2 className="h-4 w-4" />
-        </Button>
-        <select
-          value={page.paper}
-          onChange={(e) => setPaper(e.target.value as Paper)}
-          disabled={Boolean(page.background)}
-          aria-label="Paper"
-          className="ml-auto h-8 rounded-md border border-input bg-background px-2 text-sm"
-        >
-          {PAPERS.map(([v, l]) => (
-            <option key={v} value={v}>
-              {l} paper
-            </option>
-          ))}
-        </select>
-        <Button
-          type="button"
-          size="sm"
-          variant={fullscreen ? "default" : "outline"}
-          onClick={fullscreen ? exitFullscreen : enterFullscreen}
-          aria-label={fullscreen ? "Exit full screen" : "Full screen"}
-          title={fullscreen ? "Exit full screen (Esc)" : "Write in full screen"}
-          className="gap-1.5"
-        >
-          {fullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
-          <span className="hidden sm:inline">{fullscreen ? "Exit" : "Full screen"}</span>
-        </Button>
-      </div>
-
       {/* Full screen: page column + slides sidebar. Inline: these wrappers do nothing. */}
-      <div className={fullscreen ? "relative flex min-h-0 flex-1" : "contents"}>
+      <div ref={splitRef} className={fullscreen ? "relative flex min-h-0 flex-1" : "contents"}>
         <div
           className={
             fullscreen ? "flex min-w-0 flex-1 flex-col gap-3 overflow-hidden pr-2" : "contents"
           }
         >
-          {/* Pages + actions. When the bar is narrow (e.g. slides open beside the page) the
-              page buttons show just their icons so everything stays on one row. */}
-          <div className="@container w-full">
-            <div className="flex w-full flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  className="h-8 w-8"
-                  onClick={() => turnPage(-1)}
-                  disabled={index === 0}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="min-w-[5rem] text-center text-sm tabular-nums text-muted-foreground">
-                  Page {index + 1} / {pages.length}
-                </span>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  className="h-8 w-8"
-                  onClick={() => turnPage(1)}
-                  disabled={index >= pages.length - 1}
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => addPage()}
-                aria-label="New page"
-                title="New page"
-              >
-                <FilePlus2 className="h-4 w-4 @min-[58rem]:mr-1.5" />
-                <span className="hidden @min-[58rem]:inline">New page</span>
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void writeOnSlide()}
-                aria-label="Write on slide"
-                title="Write on the current slide"
-              >
-                <Presentation className="h-4 w-4 @min-[58rem]:mr-1.5" />
-                <span className="hidden @min-[58rem]:inline">Write on slide</span>
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void writeOnAllSlides()}
-                disabled={Boolean(allSlides)}
-                aria-label="Write on all slides"
-                title="Write on all slides: adds every slide of the open deck as its own page"
-              >
-                <Layers className={cn("h-4 w-4", allSlides ? "mr-1.5" : "@min-[58rem]:mr-1.5")} />
-                {allSlides ? (
-                  `${allSlides.done}/${allSlides.total}…`
-                ) : (
-                  <span className="hidden @min-[58rem]:inline">Write on all slides</span>
-                )}
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={deletePage}
-                aria-label="Remove page from notebook"
-                title="Remove page from notebook"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-              <div className="ml-auto flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={
-                    saving || (isEmpty && !page.background) || (!page.dirty && !!page.savedId)
-                  }
-                  onClick={() => void save()}
-                >
-                  <Save className="mr-1.5 h-4 w-4" />
-                  {saving ? "Saving…" : page.savedId && !page.dirty ? "Saved" : "Save page"}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={isEmpty || converting}
-                  onClick={() => void convert()}
-                >
-                  <Sparkles className="mr-1.5 h-4 w-4" />
-                  {converting ? "Converting…" : "Convert to text"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
           {/* Page */}
           <div ref={wrapRef} className={cn("relative w-full", fullscreen && "min-h-0 flex-1")}>
             <canvas
@@ -1646,8 +1759,27 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
               <aside
                 id="notebook-slides"
                 aria-label="Lecture slides"
-                className="flex w-[42%] min-w-[18rem] max-w-[48rem] shrink-0 flex-col overflow-hidden rounded-r-lg border border-border bg-background p-3 max-lg:absolute max-lg:inset-y-0 max-lg:right-9 max-lg:z-10 max-lg:w-[85%] max-lg:shadow-xl"
+                style={slidesFrac ? { width: `${slidesFrac * 100}%` } : undefined}
+                className="relative flex w-[42%] min-w-[15rem] shrink-0 flex-col overflow-hidden rounded-r-lg border border-border bg-background p-3 pl-5 max-lg:absolute max-lg:inset-y-0 max-lg:right-9 max-lg:z-10 max-lg:w-[85%] max-lg:shadow-xl"
               >
+                {/* Drag to give the page or the slides more room (arrow keys work too). */}
+                <div
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Resize slides panel"
+                  aria-valuenow={Math.round((slidesFrac ?? 0.42) * 100)}
+                  aria-valuemin={20}
+                  aria-valuemax={85}
+                  tabIndex={0}
+                  onPointerDown={onSplitDown}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowLeft") setSlidesWidth((slidesFrac ?? 0.42) + 0.03);
+                    if (e.key === "ArrowRight") setSlidesWidth((slidesFrac ?? 0.42) - 0.03);
+                  }}
+                  className="group absolute inset-y-0 left-0 z-10 flex w-4 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none"
+                >
+                  <span className="flex h-14 w-1.5 items-center justify-center rounded-full bg-border transition-colors group-hover:bg-primary/60 group-focus-visible:bg-primary group-active:bg-primary" />
+                </div>
                 {slidesPanel ?? (
                   <p className="m-auto max-w-xs text-center text-sm text-muted-foreground">
                     Add lecture slides on the Slides side to see them here.
