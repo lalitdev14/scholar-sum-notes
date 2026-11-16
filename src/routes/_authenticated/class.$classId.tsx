@@ -24,6 +24,8 @@ import { renderNote } from "@/components/SummaryMarkdown";
 import { escapeHtml, noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotebookViewer } from "@/components/NotebookViewer";
+import { UpgradeDialog } from "@/components/UpgradeDialog";
+import { PRO_REQUIRED, freeSummariesLeft, usePlan } from "@/lib/plan";
 import { LAST_CLASS_KEY } from "@/components/WelcomeHome";
 import {
   HandwritingNotebook,
@@ -111,6 +113,9 @@ function ClassPage() {
   const queryClient = useQueryClient();
   const save = useServerFn(saveNote);
   const summarize = useServerFn(summarizeMyNotes);
+  const { data: myPlan, refetch: refetchPlan } = usePlan();
+  const summariesLeft = freeSummariesLeft(myPlan);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const transcribe = useServerFn(transcribeHandwriting);
   const transcribeAudio = useServerFn(transcribeAudioChunk);
   const transcriptionSetupFn = useServerFn(getTranscriptionSetup);
@@ -744,11 +749,20 @@ function ClassPage() {
     }
   }
 
-  async function handleSummarize() {
+  /** "Summarize my notes": Free students first see the upgrade page (Pro or Free). */
+  function handleSummarize() {
     if (!noteToPlainText(content)) {
       toast.error("Write some notes first.");
       return;
     }
+    if (summariesLeft !== null) {
+      setUpgradeOpen(true);
+      return;
+    }
+    void runSummarize();
+  }
+
+  async function runSummarize() {
     setSummarizing(true);
     try {
       await handleSave();
@@ -758,8 +772,14 @@ function ClassPage() {
       setRightView("summary");
       queryClient.invalidateQueries({ queryKey: ["my-note", classId] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      void refetchPlan();
     } catch (err) {
-      toast.error(friendlyError(err, "Could not summarize your notes"));
+      if (err instanceof Error && err.message.includes(PRO_REQUIRED)) {
+        void refetchPlan();
+        setUpgradeOpen(true);
+      } else {
+        toast.error(friendlyError(err, "Could not summarize your notes"));
+      }
     } finally {
       setSummarizing(false);
     }
@@ -869,10 +889,34 @@ function ClassPage() {
               </p>
             </div>
           </div>
-          <Button size="sm" onClick={handleSummarize} disabled={summarizing}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            {summarizing ? "Summarizing…" : "Summarize my notes"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handleSummarize}
+              disabled={summarizing}
+              title={
+                summariesLeft === null
+                  ? undefined
+                  : `${summariesLeft} of ${myPlan?.freeSummariesPerWeek ?? 3} free AI summaries left this week`
+              }
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              {summarizing ? "Summarizing…" : "Summarize my notes"}
+              {summariesLeft !== null && !summarizing && (
+                <span
+                  className="ml-2 rounded-full bg-white/20 px-1.5 text-[0.7rem] tabular-nums"
+                  data-testid="summaries-left"
+                >
+                  {summariesLeft === 0 ? "Pro" : `${summariesLeft} left`}
+                </span>
+              )}
+            </Button>
+            <UpgradeDialog
+              open={upgradeOpen}
+              onOpenChange={setUpgradeOpen}
+              onContinueFree={() => void runSummarize()}
+            />
+          </div>
         </div>
 
         <div className="mt-3 grid gap-6 lg:grid-cols-2">

@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      pro_requests: {
+        Row: {
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_plans: {
+        Row: {
+          plan: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          plan?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          plan?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -676,6 +724,8 @@ export type Database = {
     Functions: {
       can_register: { Args: { _email: string }; Returns: boolean }
       consume_ai_quota: { Args: { _feature: string }; Returns: boolean }
+      consume_summary_quota: { Args: never; Returns: string }
+      my_plan: { Args: never; Returns: Json }
       current_university_id: { Args: never; Returns: string }
       has_role: {
         Args: {
