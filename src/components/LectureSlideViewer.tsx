@@ -16,6 +16,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { slideOverview } from "@/lib/notes.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
+import { registerSlideCapture } from "@/lib/slide-capture";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -347,6 +348,31 @@ export function LectureSlideViewer({
     const el = pdfScrollRef.current?.querySelector<HTMLElement>(`[data-page="${pdfJump}"]`);
     if (el && pdfScrollRef.current) pdfScrollRef.current.scrollTop = el.offsetTop;
   }, [pdfJump, jumpTick, pdfReady]);
+
+  // "Write on slide" in the handwriting notebook renders the current PDF page as an image.
+  const currentPageRef = useRef(1);
+  currentPageRef.current = Math.max(1, Math.floor(currentNumber));
+  useEffect(() => {
+    if (!isPdf || !pdfReady) return;
+    registerSlideCapture(async () => {
+      const doc = pdfDocRef.current as unknown as {
+        getPage: (n: number) => Promise<{
+          getViewport: (o: { scale: number }) => { width: number; height: number };
+          render: (o: object) => { promise: Promise<void> };
+        }>;
+      } | null;
+      if (!doc) return null;
+      const page = await doc.getPage(currentPageRef.current);
+      const base = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: 1400 / base.width });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      await page.render({ canvas, canvasContext: canvas.getContext("2d"), viewport }).promise;
+      return canvas.toDataURL("image/png");
+    });
+    return () => registerSlideCapture(null);
+  }, [isPdf, pdfReady]);
 
   function goTo(n: number) {
     if (isPdf) {
