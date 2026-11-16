@@ -255,6 +255,22 @@ function ClassPage() {
       const userId = userData.user?.id;
       if (!userId) throw new Error("You're signed out. Sign in again to save.");
       const toBlob = async (url: string) => (await fetch(url)).blob();
+      const toPngBlob = async (url: string): Promise<Blob> => {
+        const blob = await toBlob(url);
+        if (blob.type === "image/png") return blob;
+        const bmp = await createImageBitmap(blob);
+        const c = document.createElement("canvas");
+        c.width = bmp.width;
+        c.height = bmp.height;
+        c.getContext("2d")!.drawImage(bmp, 0, 0);
+        bmp.close();
+        return new Promise<Blob>((res, rej) =>
+          c.toBlob(
+            (b) => (b ? res(b) : rej(new Error("Could not prepare the slide."))),
+            "image/png",
+          ),
+        );
+      };
       const stamp = Date.now();
       const imagePath = page.imagePath ?? `${userId}/${classId}/${stamp}.png`;
       const { error: uploadError } = await supabase.storage
@@ -268,9 +284,10 @@ function ClassPage() {
       let backgroundPath = page.backgroundPath ?? null;
       if (!backgroundPath && page.backgroundDataUrl) {
         backgroundPath = `${userId}/${classId}/${stamp}-slide.png`;
+        // Slides from "Write on all slides" are kept as light JPEGs; storage takes PNG only.
         const { error: bgError } = await supabase.storage
           .from("handwriting")
-          .upload(backgroundPath, await toBlob(page.backgroundDataUrl), {
+          .upload(backgroundPath, await toPngBlob(page.backgroundDataUrl), {
             contentType: "image/png",
           });
         if (bgError) throw bgError;

@@ -354,22 +354,36 @@ export function LectureSlideViewer({
   currentPageRef.current = Math.max(1, Math.floor(currentNumber));
   useEffect(() => {
     if (!isPdf || !pdfReady) return;
-    return registerSlideCapture(async () => {
-      const doc = pdfDocRef.current as unknown as {
+    const doc = () =>
+      pdfDocRef.current as unknown as {
+        numPages: number;
         getPage: (n: number) => Promise<{
           getViewport: (o: { scale: number }) => { width: number; height: number };
           render: (o: object) => { promise: Promise<void> };
         }>;
       } | null;
-      if (!doc) return null;
-      const page = await doc.getPage(currentPageRef.current);
-      const base = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: 1400 / base.width });
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      await page.render({ canvas, canvasContext: canvas.getContext("2d"), viewport }).promise;
-      return canvas.toDataURL("image/png");
+    return registerSlideCapture({
+      count: () => doc()?.numPages ?? 0,
+      current: () => currentPageRef.current,
+      capture: async (n, opts) => {
+        const d = doc();
+        if (!d || n < 1 || n > d.numPages) return null;
+        const page = await d.getPage(n);
+        const base = page.getViewport({ scale: 1 });
+        const viewport = page.getViewport({ scale: 1400 / base.width });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        ctx.fillStyle = "#fff"; // JPEG has no transparency
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+        const type = opts?.type ?? "image/png";
+        const url = canvas.toDataURL(type, type === "image/jpeg" ? 0.85 : undefined);
+        canvas.width = canvas.height = 0; // free the bitmap right away (iPad memory)
+        return url;
+      },
     });
   }, [isPdf, pdfReady]);
 
