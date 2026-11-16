@@ -1,0 +1,92 @@
+name: Restore deleted notes
+
+# Brings back typed notes that are in a nightly backup but missing from production.
+# 1. Run with "apply" off (the default): the run summary lists deleted notes it found.
+# 2. Run again with "apply" on and the note ids to restore.
+# It never overwrites a note that has text. Logs show class names and note ids only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_date:
+        description: "Backup date (YYYY-MM-DD, UTC). Empty = latest."
+        required: false
+        default: ""
+      class:
+        description: "Only this class (code or name). Empty = all classes."
+        required: false
+        default: ""
+      note_ids:
+        description: "Note ids to restore (comma-separated, from the dry run)."
+        required: false
+        default: ""
+      apply:
+        description: "Restore them (off = dry run, changes nothing)."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restore-notes
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROD_DB_URL: ${{ secrets.PROD_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      BACKUP_SUPABASE_URL: ${{ secrets.BACKUP_SUPABASE_URL }}
+      BACKUP_SUPABASE_SERVICE_KEY: ${{ secrets.BACKUP_SUPABASE_SERVICE_KEY }}
+      BACKUP_DATE: ${{ inputs.backup_date }}
+      CLASS_FILTER: ${{ inputs.class }}
+      NOTE_IDS: ${{ inputs.note_ids }}
+      APPLY: ${{ inputs.apply }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client >/dev/null
+          psql --version
+
+      - name: Download and decrypt the backup
+        run: |
+          set -euo pipefail
+          URL="${BACKUP_SUPABASE_URL%/}"; KEY="$BACKUP_SUPABASE_SERVICE_KEY"
+          AUTH=(-H "apikey: $KEY")
+          if [[ "$KEY" != sb_secret_* ]]; then AUTH+=(-H "Authorization: Bearer $KEY"); fi
+          NAME=$(curl -sS --fail-with-body "${AUTH[@]}" -X POST "$URL/storage/v1/object/list/db-backups" \
+            -H "Content-Type: application/json" \
+            -d '{"prefix":"","limit":1000,"sortBy":{"column":"name","order":"desc"}}' \
+            | python3 -c "
+          import sys, json, os
+          want = os.environ.get('BACKUP_DATE', '').strip()
+          names = sorted((o['name'] for o in json.load(sys.stdin) if o['name'].startswith('lectureloop-db-')), reverse=True)
+          pick = [n for n in names if not want or n.startswith('lectureloop-db-' + want)]
+          print(pick[0] if pick else '')")
+          [ -n "$NAME" ] || { echo "::error::No backup found${BACKUP_DATE:+ for $BACKUP_DATE}"; exit 1; }
+          echo "Using $NAME"
+          curl -sS --fail-with-body "${AUTH[@]}" "$URL/storage/v1/object/db-backups/$NAME" -o backup.gpg
+          mkdir -p work
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 -d backup.gpg 3<<<"$BACKUP_PASSPHRASE" \
+            | tar -C work -xzf -
+          rm backup.gpg
+          echo "DATA_SQL=$(find work -name data.sql | head -1)" >> "$GITHUB_ENV"
+
+      - name: Find (and restore) deleted notes
+        run: |
+          set -euo pipefail
+          ARGS=("$DATA_SQL")
+          [ -n "$CLASS_FILTER" ] && ARGS+=(--class "$CLASS_FILTER")
+          [ -n "$NOTE_IDS" ] && ARGS+=(--ids "$NOTE_IDS")
+          [ "$APPLY" = "true" ] && ARGS+=(--apply)
+          python3 scripts/backup/restore-notes.py "${ARGS[@]}"
+
+      - name: Remove the decrypted backup
+        if: always()
+        run: rm -rf work backup.gpg
