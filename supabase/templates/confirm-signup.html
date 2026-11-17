@@ -5,7 +5,7 @@
     <div style="padding:28px 24px">
       <h1 style="margin:0 0 12px;font-size:22px">Confirm your account</h1>
       <p style="margin:0 0 20px;line-height:1.6;color:#4b4558">Thanks for signing up. Tap the button to confirm your NYU email and start taking notes.</p>
-      <p style="margin:0 0 24px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#57068c;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Confirm my account</a></p>
+      <p style="margin:0 0 24px"><a href="{{ .SiteURL }}/confirm-email?token_hash={{ .TokenHash }}&amp;type=email" style="display:inline-block;background:#57068c;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Confirm my account</a></p>
       <p style="margin:0;font-size:13px;line-height:1.6;color:#6b657a">If you didn't create a LectureLoop account, you can ignore this email.</p>
     </div>
     <div style="padding:14px 24px;border-top:1px solid #e3e0ea;font-size:12px;color:#8a8499">LectureLoop is an independent student project, not affiliated with NYU.</div>

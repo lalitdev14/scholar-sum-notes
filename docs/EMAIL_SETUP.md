@@ -36,11 +36,17 @@ example to 100 per hour) now that your own provider sends them.
 - **Reset Password**: subject `Reset your LectureLoop password`; body = the contents of
   `supabase/templates/reset-password.html`.
 
+The template links open LectureLoop's own pages (`/confirm-email`, `/reset-password`) with a
+one-time code that is used only when the student presses the button. Mail scanners (common at
+universities) open links to check them; with Supabase's default `{{ .ConfirmationURL }}` links
+that uses up the code and the student sees "link expired". So always paste these templates, and
+make sure **Site URL** below is `https://lectureloop.org` (the templates use `{{ .SiteURL }}`).
+
 ## 4. Allow the password-reset page
 **Authentication → URL Configuration**:
 - Site URL: `https://lectureloop.org`
-- Redirect URLs: add `https://lectureloop.org/reset-password` (and `https://lectureloop.org/**`
-  if it isn't listed).
+- Redirect URLs: add `https://lectureloop.org/reset-password` and `https://lectureloop.org/confirm-email`
+  (or `https://lectureloop.org/**`).
 
 ## 5. Test
 1. lectureloop.org → Sign in → **Forgot password?** → enter your email. The branded email from

@@ -14,25 +14,43 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
 });
 
-/** Opened from the password-reset email: the link signs the student in for this one step. */
+type Mode = "checking" | "form" | "expired";
+
+/**
+ * Opened from the password-reset email. The email links here with a one-time code
+ * (?token_hash=…&type=recovery) that is used only when the student presses Save, so mail
+ * scanners that open links can't use it up. Older links that sign in straight away still work.
+ */
 function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [ready, setReady] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<Mode>("checking");
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // The Supabase client reads the link and starts a short recovery session.
+    const params = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const th = params.get("token_hash");
+    if (th && params.get("type") === "recovery") {
+      setTokenHash(th);
+      setMode("form");
+      return;
+    }
+    if (hash.get("error") || hash.get("error_code")) {
+      setMode("expired");
+      return;
+    }
+    // Older links: the Supabase client reads the link and starts a recovery session.
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) setReady(true);
+      if (session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) setMode("form");
     });
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
+      if (data.session) setMode("form");
     });
-    // No session after a few seconds: the link expired or was already used.
-    const t = setTimeout(() => setReady((r) => r ?? false), 4000);
+    const t = setTimeout(() => setMode((m) => (m === "checking" ? "expired" : m)), 4000);
     return () => {
       sub.subscription.unsubscribe();
       clearTimeout(t);
@@ -50,18 +68,33 @@ function ResetPasswordPage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setSaving(false);
-    if (error) {
-      toast.error(
-        /should be different/i.test(error.message)
-          ? "Choose a password that's different from your old one."
-          : "Could not change your password. Request a new link and try again.",
-      );
-      return;
+    try {
+      if (tokenHash) {
+        // Use the one-time code now (signs in for this step).
+        const { error } = await supabase.auth.verifyOtp({
+          type: "recovery",
+          token_hash: tokenHash,
+        });
+        if (error) {
+          setMode("expired");
+          return;
+        }
+        setTokenHash(null);
+      }
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        toast.error(
+          /should be different/i.test(error.message)
+            ? "Choose a password that's different from your old one."
+            : "Could not change your password. Request a new link and try again.",
+        );
+        return;
+      }
+      toast.success("Password changed. You're signed in.");
+      void navigate({ to: "/" });
+    } finally {
+      setSaving(false);
     }
-    toast.success("Password changed. You're signed in.");
-    void navigate({ to: "/" });
   }
 
   return (
@@ -77,15 +110,10 @@ function ResetPasswordPage() {
           </Link>
           <div className="surface-paper rounded-xl p-8">
             <h1 className="text-3xl">Choose a new password</h1>
-            {ready === null ? (
+            {mode === "checking" ? (
               <p className="mt-4 text-sm text-muted-foreground">Checking your link…</p>
-            ) : ready === false ? (
-              <div className="mt-4 space-y-4 text-sm text-muted-foreground" role="alert">
-                <p>This link has expired or was already used. Reset links work once.</p>
-                <Button asChild className="w-full">
-                  <Link to="/auth">Request a new link</Link>
-                </Button>
-              </div>
+            ) : mode === "expired" ? (
+              <SendNewLink />
             ) : (
               <form onSubmit={save} className="mt-6 space-y-4">
                 <div className="space-y-2">
@@ -135,5 +163,61 @@ function ResetPasswordPage() {
       </main>
       <SiteFooter />
     </div>
+  );
+}
+
+/** Expired link: ask for the email again right here. */
+function SendNewLink() {
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    setSending(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin + "/reset-password",
+    });
+    setSending(false);
+    if (error) {
+      toast.error(
+        /rate limit|after \d+ seconds/i.test(error.message)
+          ? "Please wait a minute before asking for another email."
+          : "Could not send the email. Please try again.",
+      );
+      return;
+    }
+    setSent(true);
+  }
+
+  if (sent)
+    return (
+      <p className="mt-4 text-sm text-muted-foreground" role="status">
+        If an account exists for <strong className="text-foreground">{email}</strong>, a new link is
+        on its way. Use the newest email: each new link cancels the earlier ones.
+      </p>
+    );
+  return (
+    <form onSubmit={send} className="mt-4 space-y-4" role="alert">
+      <p className="text-sm text-muted-foreground">
+        This link has expired or was already used. Reset links work once, and asking for a new one
+        cancels the earlier ones. Enter your email for a fresh link.
+      </p>
+      <div className="space-y-2">
+        <Label htmlFor="resend-email">Email</Label>
+        <Input
+          id="resend-email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="netid@nyu.edu"
+          required
+        />
+      </div>
+      <Button type="submit" className="w-full" disabled={sending}>
+        {sending ? "Sending…" : "Send a new link"}
+      </Button>
+    </form>
   );
 }

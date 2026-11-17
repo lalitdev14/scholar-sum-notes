@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -42,6 +43,11 @@ const AboutRoute = AboutRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
+  id: '/confirm-email',
+  path: '/confirm-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/confirm-email': typeof ConfirmEmailRoute
   '/contact': typeof ContactRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/confirm-email': typeof ConfirmEmailRoute
   '/contact': typeof ContactRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/confirm-email': typeof ConfirmEmailRoute
   '/contact': typeof ContactRoute
   '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/confirm-email'
     | '/contact'
     | '/plans'
     | '/privacy'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/confirm-email'
     | '/contact'
     | '/plans'
     | '/privacy'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/auth'
+    | '/confirm-email'
     | '/contact'
     | '/plans'
     | '/privacy'
@@ -208,6 +220,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  ConfirmEmailRoute: typeof ConfirmEmailRoute
   ContactRoute: typeof ContactRoute
   PlansRoute: typeof PlansRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirm-email': {
+      id: '/confirm-email'
+      path: '/confirm-email'
+      fullPath: '/confirm-email'
+      preLoaderRoute: typeof ConfirmEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -350,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  ConfirmEmailRoute: ConfirmEmailRoute,
   ContactRoute: ContactRoute,
   PlansRoute: PlansRoute,
   PrivacyRoute: PrivacyRoute,
