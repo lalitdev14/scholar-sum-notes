@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 const RESEND_AFTER_S = 120;
 
 /**
- * "Check your inbox" after sending a sign-up or reset email. Explains that it can take a few
- * minutes (new senders are held by university mail filters) and only lets the student ask
+ * "Check your inbox" after sending a sign-up or reset email. Points to Spam and the other
+ * inbox tabs, and only lets the student ask
  * again after a pause, since each new email cancels the previous link.
  */
 export function EmailSentNotice({
@@ -62,7 +62,6 @@ export function EmailSentNotice({
         </span>
       </p>
       <ul className="list-disc space-y-1 pl-5">
-        <li>It can take up to 5 minutes to arrive.</li>
         <li>Check Spam and the Updates or Promotions tabs too.</li>
         <li>Each new email cancels the earlier link, so wait for this one before asking again.</li>
       </ul>
