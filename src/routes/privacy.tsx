@@ -1,12 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { GraduationCap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
-import { CONTACT_EMAIL, SiteFooter } from "@/components/SiteFooter";
-import { Button } from "@/components/ui/button";
+import { CONTACT_EMAIL } from "@/components/SiteFooter";
+import { LegalPage, type LegalSection } from "@/components/LegalPage";
 
-const LAST_UPDATED = "November 12, 2026";
+const LAST_UPDATED = "November 17, 2026";
 
 export const Route = createFileRoute("/privacy")({
   staticData: { sitemap: true },
@@ -24,7 +20,7 @@ export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
 });
 
-const sections: { id: string; title: string; body: string[] }[] = [
+const sections: LegalSection[] = [
   {
     id: "collect",
     title: "What we collect",
@@ -34,6 +30,7 @@ const sections: { id: string; title: string; body: string[] }[] = [
       "Contact messages: if you use the contact form, we keep your name, email and message so we can reply.",
       "Lecture audio: when you use the Transcribe tab we store only the resulting text. Audio recordings are never saved.",
       "Class activity: the classes you join or create, and your role (student or admin).",
+      "Plan and usage: whether you are on the Free or Pro plan, and how many AI features you used each day, so we can apply the plan limits.",
       "On your device: your browser keeps small preferences (such as the notes/slides split) and an unsaved transcript draft, so a reload doesn't lose a lecture. These stay in your browser.",
     ],
   },
@@ -59,6 +56,8 @@ const sections: { id: string; title: string; body: string[] }[] = [
     title: "Service providers",
     body: [
       "We use service providers to operate the app, and they process data only to provide their service: Supabase (database, sign-in and file storage), Vercel (web hosting), Google Gemini (summaries, handwriting, slide overviews and AI transcription) and, when enabled, Groq (Whisper speech-to-text for AI transcription).",
+      "We send account emails (sign-up confirmation and password reset) through an email delivery service, which receives only your email address and the message.",
+      "PDF Studio, the PDF tool shown inside My notes, is a separate app (pdfstudioapp.vercel.app). Files you add there are sent to PDF Studio's own server for processing and, as PDF Studio states, deleted automatically. LectureLoop does not send your notes to PDF Studio.",
       "In Live transcription mode, speech recognition is performed by your browser's built-in service (for example Google in Chrome, or Apple in Safari) under that browser's privacy terms.",
     ],
   },
@@ -96,71 +95,24 @@ const sections: { id: string; title: string; body: string[] }[] = [
 ];
 
 function PrivacyPage() {
-  const [signedIn, setSignedIn] = useState(false);
-  useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session)));
-  }, []);
-
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {signedIn ? (
-        <AuthenticatedHeader />
-      ) : (
-        <header className="mx-auto flex w-full max-w-[100rem] items-center justify-between px-4 py-6 sm:px-6 lg:px-10 xl:px-16">
-          <Link to="/" className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            <span className="font-display text-xl">LectureLoop</span>
+    <LegalPage
+      title="Privacy Policy"
+      updated={LAST_UPDATED}
+      sections={sections}
+      intro={
+        <p>
+          LectureLoop is a personal class-notes app for NYU students: you take your own notes next
+          to the lecture slides and get an AI summary of what you wrote. This page explains what
+          information we collect, how we use it, and the choices you have. LectureLoop is an
+          independent student project and is not affiliated with or endorsed by New York University.
+          See also our{" "}
+          <Link to="/terms" className="underline">
+            Terms of Use
           </Link>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/auth">Sign in</Link>
-          </Button>
-        </header>
-      )}
-
-      <main className="mx-auto w-full max-w-[100rem] px-4 py-10 sm:px-6 sm:py-14 lg:px-10 xl:px-16">
-        <div className="grid gap-8 lg:grid-cols-[14rem_minmax(0,48rem)]">
-          {/* Contents: sticky on desktop */}
-          <nav aria-label="On this page" className="hidden lg:block">
-            <div className="sticky top-6">
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                On this page
-              </p>
-              <ul className="mt-3 space-y-2 text-sm">
-                {sections.map((s) => (
-                  <li key={s.id}>
-                    <a href={`#${s.id}`} className="text-muted-foreground hover:text-foreground">
-                      {s.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </nav>
-
-          <article className="surface-paper rounded-2xl p-6 sm:p-10">
-            <h1 className="text-4xl">Privacy Policy</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Last updated {LAST_UPDATED}</p>
-            <p className="mt-6 text-muted-foreground">
-              LectureLoop is a personal class-notes app for NYU students: you take your own notes
-              next to the lecture slides and get an AI summary of what you wrote. This page explains
-              what information we collect, how we use it, and the choices you have.
-            </p>
-
-            {sections.map((section) => (
-              <section key={section.id} id={section.id} className="mt-10 scroll-mt-6">
-                <h2 className="text-2xl">{section.title}</h2>
-                <div className="mt-3 space-y-3 leading-relaxed text-muted-foreground">
-                  {section.body.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </article>
-        </div>
-      </main>
-
-      <SiteFooter />
-    </div>
+          .
+        </p>
+      }
+    />
   );
 }

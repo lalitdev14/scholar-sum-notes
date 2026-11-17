@@ -7,7 +7,8 @@ export const CONTACT_EMAIL = "lalit.dev.jakher@nyu.edu";
 const NYU_VIOLET = "#57068c";
 
 /**
- * Slim one-line footer in the university's colour (the same as the header): © and links.
+ * Slim one-line footer in the university's colour (the same as the header): ©, the
+ * not-affiliated notice (LectureLoop uses NYU's name and colours) and links.
  * Uses the shared page container so it lines up with the header logo.
  */
 export function SiteFooter() {
@@ -17,10 +18,16 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto text-white" style={{ backgroundColor: color }}>
       <div className="mx-auto flex max-w-[100rem] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 text-xs sm:px-6 lg:px-10 xl:px-16">
-        <span className="opacity-80">© {new Date().getFullYear()} LectureLoop</span>
+        <span className="opacity-80">
+          © {new Date().getFullYear()} LectureLoop · Independent student project, not affiliated
+          with NYU
+        </span>
         <nav aria-label="Footer" className="flex items-center gap-4">
           <Link to="/privacy" className="opacity-80 transition-opacity hover:opacity-100">
             Privacy
+          </Link>
+          <Link to="/terms" className="opacity-80 transition-opacity hover:opacity-100">
+            Terms
           </Link>
           <Link to="/contact" className="opacity-80 transition-opacity hover:opacity-100">
             Contact
