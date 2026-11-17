@@ -85,6 +85,17 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // Supabase answers "success" with no identities when the email already has an
+        // account (and sends nothing). Say so, instead of waiting for an email that won't come.
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          setMode("signin");
+          setPassword("");
+          toast.error(
+            'This email already has a LectureLoop account. Sign in, or use "Forgot password?" if you don\'t remember the password.',
+            { duration: 8000 },
+          );
+          return;
+        }
         if (!data.session) {
           setSignupSent(true);
           return;
