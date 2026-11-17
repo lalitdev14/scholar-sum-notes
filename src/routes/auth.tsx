@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff, GraduationCap } from "lucide-react";
+import { EmailSentNotice } from "@/components/EmailSentNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/auth")({
@@ -37,6 +38,8 @@ function AuthPage() {
   /** "Forgot password?": asks for the email and sends a reset link. */
   const [resetting, setResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  /** After sign-up: "check your inbox" with a delayed "Send again". */
+  const [signupSent, setSignupSent] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
@@ -83,7 +86,7 @@ function AuthPage() {
         });
         if (error) throw error;
         if (!data.session) {
-          toast.success("Check your NYU inbox and click the link to confirm your account.");
+          setSignupSent(true);
           return;
         }
       } else {
@@ -142,16 +145,21 @@ function AuthPage() {
             <div className="surface-paper rounded-xl p-8">
               <h1 className="text-3xl">Reset your password</h1>
               {resetSent ? (
-                <div className="mt-4 space-y-4 text-sm text-muted-foreground" role="status">
-                  <p>
-                    If an account exists for <strong className="text-foreground">{email}</strong>,
-                    we've sent a link to reset the password. Check your inbox (and your spam
-                    folder). The link works once.
-                  </p>
+                <div>
+                  <EmailSentNotice
+                    email={email}
+                    what="a link to reset your password"
+                    onResend={async () => {
+                      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                        redirectTo: window.location.origin + "/reset-password",
+                      });
+                      if (error) throw error;
+                    }}
+                  />
                   <Button
                     type="button"
-                    variant="outline"
-                    className="w-full"
+                    variant="link"
+                    className="mt-2 h-auto w-full p-0 text-sm"
                     onClick={() => {
                       setResetting(false);
                       setResetSent(false);
@@ -191,6 +199,21 @@ function AuthPage() {
                   </Button>
                 </form>
               )}
+            </div>
+          ) : signupSent ? (
+            <div className="surface-paper rounded-xl p-8">
+              <h1 className="text-3xl">Confirm your email</h1>
+              <EmailSentNotice
+                email={email}
+                what="a link to confirm your account"
+                onResend={async () => {
+                  const { error } = await supabase.auth.resend({
+                    type: "signup",
+                    email: email.trim(),
+                  });
+                  if (error) throw error;
+                }}
+              />
             </div>
           ) : (
             <div className="surface-paper rounded-xl p-8">

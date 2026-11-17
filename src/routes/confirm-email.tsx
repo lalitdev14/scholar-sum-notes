@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmailSentNotice } from "@/components/EmailSentNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/confirm-email")({
@@ -113,10 +114,14 @@ function ResendConfirmation() {
 
   if (sent)
     return (
-      <p className="mt-4 text-sm text-muted-foreground" role="status">
-        A new confirmation link is on its way to{" "}
-        <strong className="text-foreground">{email}</strong>. Use the newest email.
-      </p>
+      <EmailSentNotice
+        email={email}
+        what="a new link to confirm your account"
+        onResend={async () => {
+          const { error } = await supabase.auth.resend({ type: "signup", email: email.trim() });
+          if (error) throw error;
+        }}
+      />
     );
   return (
     <form onSubmit={send} className="mt-4 space-y-4" role="alert">
