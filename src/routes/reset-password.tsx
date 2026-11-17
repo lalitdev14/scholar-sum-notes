@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmailSentNotice } from "@/components/EmailSentNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export const Route = createFileRoute("/reset-password")({
@@ -143,7 +144,7 @@ function ResetPasswordPage() {
                   <p className="text-xs text-muted-foreground">At least 8 characters.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Type it again</Label>
+                  <Label htmlFor="confirm-password">Confirm password</Label>
                   <Input
                     id="confirm-password"
                     type={show ? "text" : "password"}
@@ -154,7 +155,7 @@ function ResetPasswordPage() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={saving}>
-                  {saving ? "Saving…" : "Save new password"}
+                  {saving ? "Updating…" : "Update password"}
                 </Button>
               </form>
             )}
@@ -192,10 +193,16 @@ function SendNewLink() {
 
   if (sent)
     return (
-      <p className="mt-4 text-sm text-muted-foreground" role="status">
-        If an account exists for <strong className="text-foreground">{email}</strong>, a new link is
-        on its way. Use the newest email: each new link cancels the earlier ones.
-      </p>
+      <EmailSentNotice
+        email={email}
+        what="a new link to reset your password"
+        onResend={async () => {
+          const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+            redirectTo: window.location.origin + "/reset-password",
+          });
+          if (error) throw error;
+        }}
+      />
     );
   return (
     <form onSubmit={send} className="mt-4 space-y-4" role="alert">
