@@ -431,6 +431,21 @@ export const purgeClasses = createServerFn({ method: "POST" })
     for (let i = 0; i < pagePaths.length; i += 100) {
       await supabaseAdmin.storage.from("handwriting").remove(pagePaths.slice(i, i + 100));
     }
+    // Saved lecture recordings live at lecture-audio/<user>/<class>/…
+    const { data: audioOwners } = await supabaseAdmin
+      .from("audio_transcripts")
+      .select("user_id, class_id")
+      .in("class_id", ids);
+    const folders = [...new Set((audioOwners ?? []).map((r) => `${r.user_id}/${r.class_id}`))];
+    for (const folder of folders) {
+      const { data: files } = await supabaseAdmin.storage
+        .from("lecture-audio")
+        .list(folder, { limit: 1000 });
+      if (files?.length)
+        await supabaseAdmin.storage
+          .from("lecture-audio")
+          .remove(files.map((f: { name: string }) => `${folder}/${f.name}`));
+    }
 
     const { error: notesError } = await supabaseAdmin.from("notes").delete().in("class_id", ids);
     if (notesError) throw new Error(notesError.message);
@@ -684,7 +699,11 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
     // Uploaded files first (storage is not covered by database cascades).
     const files =
       (await removeUserFiles(supabaseAdmin, "lecture-slides", data.userId)) +
-      (await removeUserFiles(supabaseAdmin, "handwriting", data.userId));
+      (await removeUserFiles(supabaseAdmin, "handwriting", data.userId)) +
+      // Lecture recordings (skipped if audio storage was never set up).
+      (await removeUserFiles(supabaseAdmin, "lecture-audio", data.userId).catch((e: Error) =>
+        /not found/i.test(e.message) ? 0 : Promise.reject(e),
+      ));
 
     // notes.user_id has no foreign key to auth.users, so delete notes explicitly.
     const { error: notesError } = await supabaseAdmin

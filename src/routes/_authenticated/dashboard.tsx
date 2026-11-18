@@ -189,6 +189,15 @@ function Dashboard() {
             .eq("user_id", userId);
           if (error) throw error;
         }
+        // Saved lecture recordings for this class (if audio storage is set up).
+        const audioFiles = await supabase.storage
+          .from("lecture-audio")
+          .list(`${userId}/${classId}`, { limit: 1000 });
+        if (audioFiles.data?.length) {
+          await supabase.storage
+            .from("lecture-audio")
+            .remove(audioFiles.data.map((f) => `${userId}/${classId}/${f.name}`));
+        }
         const { error: transcriptsError } = await supabase
           .from("audio_transcripts")
           .delete()

@@ -24,6 +24,7 @@ import { renderNote } from "@/components/SummaryMarkdown";
 import { escapeHtml, noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotebookViewer } from "@/components/NotebookViewer";
+import { AUDIO_BUCKET, audioPath, listAudioIds } from "@/lib/lecture-audio";
 import { UpgradeDialog } from "@/components/UpgradeDialog";
 import { PRO_REQUIRED, freeSummariesLeft, usePlan } from "@/lib/plan";
 import { LAST_CLASS_KEY } from "@/components/WelcomeHome";
@@ -578,29 +579,61 @@ function ClassPage() {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as Recording[];
+      // Which transcripts have a saved recording (null: audio storage isn't set up yet).
+      const withAudio = await listAudioIds(userData.user!.id, classId);
+      setAudioAvailable(withAudio !== null);
+      return (data ?? []).map((r) => ({
+        ...r,
+        audioPath: withAudio?.get(r.id) ?? null,
+      })) as Recording[];
     },
   });
+  const [audioAvailable, setAudioAvailable] = useState(false);
 
   async function saveRecording(rec: {
     title: string;
     transcript: string;
     durationSeconds: number;
+    audio?: Blob;
   }): Promise<boolean> {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) throw new Error("You're signed out. Sign in again to save.");
-      const { error } = await supabase.from("audio_transcripts").insert({
-        class_id: classId,
-        user_id: userId,
-        title: rec.title.slice(0, 200),
-        transcript: rec.transcript,
-        duration_seconds: rec.durationSeconds,
-      });
+      const { data: row, error } = await supabase
+        .from("audio_transcripts")
+        .insert({
+          class_id: classId,
+          user_id: userId,
+          title: rec.title.slice(0, 200),
+          transcript: rec.transcript,
+          duration_seconds: rec.durationSeconds,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      let audioSaved = false;
+      if (rec.audio) {
+        const type = rec.audio.type.split(";")[0] || "audio/webm";
+        const { error: upError } = await supabase.storage
+          .from(AUDIO_BUCKET)
+          // Plain type (no ";codecs=…"), which the storage type check accepts.
+          .upload(audioPath(userId, classId, row.id, type), new Blob([rec.audio], { type }), {
+            contentType: type,
+          });
+        if (upError) {
+          console.error("[saveRecording:audio]", upError.message);
+          toast.error(
+            /exceeded|too large|maximum/i.test(upError.message)
+              ? "The transcript is saved, but the recording was too long to save (limit about 3 hours)."
+              : "The transcript is saved, but the audio recording couldn't be saved.",
+          );
+        } else audioSaved = true;
+      }
       await queryClient.invalidateQueries({ queryKey: ["recordings", classId] });
-      toast.success("Transcript saved to this class");
+      toast.success(
+        audioSaved ? "Transcript and audio saved to this class" : "Transcript saved to this class",
+      );
       return true;
     } catch (err) {
       console.error("[saveRecording]", err);
@@ -610,6 +643,7 @@ function ClassPage() {
   }
 
   async function deleteRecording(rec: Recording) {
+    if (rec.audioPath) await supabase.storage.from(AUDIO_BUCKET).remove([rec.audioPath]);
     const { error } = await supabase.from("audio_transcripts").delete().eq("id", rec.id);
     if (error) {
       toast.error("Could not delete the transcript.");
@@ -1251,6 +1285,7 @@ function ClassPage() {
                     </p>
                     <RecordingsList
                       recordings={recordings}
+                      audioName={(r) => r.title}
                       onExport={(r, f) => void exportRecording(r, f)}
                       onAddToNotes={addRecordingToNotes}
                       onDelete={deleteRecording}
@@ -1269,6 +1304,7 @@ function ClassPage() {
                     defaultTitle={`${klass?.code ? `${klass.code} ` : ""}lecture – ${new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`}
                     transcribeChunk={async (args) => (await transcribeAudio({ data: args })).text}
                     onSave={saveRecording}
+                    audioAvailable={audioAvailable}
                     onRecordingChange={setIsRecording}
                     whisperAvailable={transcriptionSetup?.whisper ?? false}
                   />
@@ -1278,6 +1314,7 @@ function ClassPage() {
                     </p>
                     <RecordingsList
                       recordings={recordings}
+                      audioName={(r) => r.title}
                       onExport={(r, f) => void exportRecording(r, f)}
                       onAddToNotes={addRecordingToNotes}
                       onDelete={deleteRecording}

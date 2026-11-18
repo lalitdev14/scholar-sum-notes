@@ -27,6 +27,8 @@ import { SafeNoteHtml } from "@/components/SafeNoteHtml";
 import { renderNote } from "@/components/SummaryMarkdown";
 import { NotebookViewer } from "@/components/NotebookViewer";
 import { noteToPlainText } from "@/lib/note-format";
+import { listAudioIds, audioUrl } from "@/lib/lecture-audio";
+import { AudioPlayer } from "@/components/AudioPlayer";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/notes")({
@@ -936,6 +938,14 @@ function TranscriptView({
   subject: Subject;
   openClass: ReactNode;
 }) {
+  const { data: audio } = useQuery({
+    queryKey: ["transcript-audio", t.id],
+    queryFn: async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const ids = userData.user ? await listAudioIds(userData.user.id, t.class_id) : null;
+      return ids?.get(t.id) ?? null;
+    },
+  });
   const { data: text, isPending } = useQuery({
     queryKey: ["transcript-text", t.id],
     queryFn: async () => {
@@ -963,6 +973,30 @@ function TranscriptView({
         </Button>
         {openClass}
       </Header>
+      {audio && (
+        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid="transcript-audio">
+          <div className="min-w-0 flex-1">
+            <AudioPlayer path={audio} />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const ext = audio.split(".").pop() ?? "webm";
+              const name = (t.title || "lecture").replace(/[^\w.-]+/g, "-").replace(/-+/g, "-");
+              const url = await audioUrl(audio, `${name}.${ext}`);
+              if (url) {
+                const a = document.createElement("a");
+                a.href = url;
+                a.rel = "noopener";
+                a.click();
+              }
+            }}
+          >
+            <Download className="mr-1.5 h-4 w-4" /> Audio
+          </Button>
+        </div>
+      )}
       <div
         className="surface-paper prose-notes mt-4 rounded-xl px-6 py-5 text-sm"
         data-testid="transcript-text"

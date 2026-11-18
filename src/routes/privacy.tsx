@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { CONTACT_EMAIL } from "@/components/SiteFooter";
 import { LegalPage, type LegalSection } from "@/components/LegalPage";
 
-const LAST_UPDATED = "November 17, 2026";
+const LAST_UPDATED = "November 18, 2026";
 
 export const Route = createFileRoute("/privacy")({
   staticData: { sitemap: true },
@@ -28,7 +28,7 @@ const sections: LegalSection[] = [
       "Account details: your name, your NYU email address (@nyu.edu or @stern.nyu.edu) and your university. If you sign in with Google, we receive your name, email address and profile picture from Google. If you use a password, it is stored only as a secure hash.",
       "Content you create: class notes, handwritten pages (the images and their text), lecture slides you upload, slide bookmarks and comments, lecture transcripts, your AI summaries, and feedback you send us.",
       "Contact messages: if you use the contact form, we keep your name, email and message so we can reply.",
-      "Lecture audio: when you use the Transcribe tab we store only the resulting text. Audio recordings are never saved.",
+      'Lecture audio: when you use the Transcribe tab we store the resulting text. The audio itself is saved only if you turn on "Save the audio recording too" for that recording; it is kept in your private storage, and deleting the transcript deletes the audio.',
       "Class activity: the classes you join or create, and your role (student or admin).",
       "Plan and usage: whether you are on the Free or Pro plan, and how many AI features you used each day, so we can apply the plan limits.",
       "On your device: your browser keeps small preferences (such as the notes/slides split) and an unsaved transcript draft, so a reload doesn't lose a lecture. These stay in your browser.",
