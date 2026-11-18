@@ -73,6 +73,10 @@ const MAX_CHUNK_SECONDS = 20;
 const PAUSE_RMS = 0.012;
 const TARGET_RATE = 16000;
 
+/** One recording can run at most 40 minutes; it then stops and saves by itself. */
+export const MAX_RECORDING_SECONDS = 40 * 60;
+const WARN_AT_SECONDS = MAX_RECORDING_SECONDS - 5 * 60;
+
 // Minimal typing for the (still prefixed in some browsers) Web Speech API.
 type SpeechResultList = ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
 type SpeechRecognitionLike = {
@@ -267,6 +271,25 @@ export function AudioTranscriber({
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [status]);
+
+  // 40-minute limit: a warning 5 minutes before, then stop and save automatically.
+  const limitHandled = useRef(false);
+  useEffect(() => {
+    if (status !== "recording") return;
+    if (seconds === WARN_AT_SECONDS)
+      toast.info("5 minutes left in this recording. Recordings stop and save at 40 minutes.");
+    if (seconds >= MAX_RECORDING_SECONDS && !limitHandled.current) {
+      limitHandled.current = true;
+      toast.info(
+        "Reached the 40-minute limit, so the recording was saved. Start a new one to keep going.",
+        {
+          duration: 10000,
+        },
+      );
+      void finish();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seconds, status]);
 
   // Warn before leaving with an unsaved recording.
   useEffect(() => {
@@ -557,6 +580,7 @@ export function AudioTranscriber({
   }
 
   function reset() {
+    limitHandled.current = false;
     discardRecorder();
     setAudioLost(false);
     textRef.current = "";
@@ -589,7 +613,16 @@ export function AudioTranscriber({
           </Button>
         )}
         {status === "paused" && (
-          <Button onClick={() => void start()} className="gap-2">
+          <Button
+            onClick={() => void start()}
+            className="gap-2"
+            disabled={seconds >= MAX_RECORDING_SECONDS}
+            title={
+              seconds >= MAX_RECORDING_SECONDS
+                ? "This recording reached the 40-minute limit. Save it and start a new one."
+                : undefined
+            }
+          >
             <Play className="h-4 w-4" /> Resume
           </Button>
         )}
@@ -632,7 +665,13 @@ export function AudioTranscriber({
                 : status === "saving"
                   ? "Saving"
                   : "Ready"}{" "}
-            · {formatDuration(seconds)}
+            ·{" "}
+            <span
+              className={cn(seconds >= WARN_AT_SECONDS && "font-medium text-amber-600")}
+              data-testid="recording-timer"
+            >
+              {formatDuration(seconds)} / {formatDuration(MAX_RECORDING_SECONDS)}
+            </span>
           </span>
         </div>
       </div>
@@ -699,7 +738,7 @@ export function AudioTranscriber({
           <span id="save-audio-help" className="text-xs text-muted-foreground">
             {audioLost && saveAudio
               ? "The audio from before the page reloaded couldn't be kept; only the transcript will be saved."
-              : "About 15 MB an hour, private to you. Ask your professor before recording a lecture."}
+              : "Private to you. Ask your professor before recording a lecture."}
           </span>
         </div>
       )}
