@@ -49,6 +49,7 @@ import {
   FileType,
   FileUp,
   Lock,
+  PenLine,
   Pencil,
   Save,
   Sparkles,
@@ -822,6 +823,9 @@ function ClassPage() {
   const mySummary = myNote?.summary?.trim() ? myNote.summary : "";
   const keyPoints = Array.isArray(myNote?.key_points) ? (myNote.key_points as string[]) : [];
   const hasNotes = Boolean(noteToPlainText(content));
+  /** The handwriting notebook has pages with ink (enables Export → Handwriting). */
+  const [notebookHasInk, setNotebookHasInk] = useState(false);
+  const canExportHandwriting = notebookHasInk || savedNotebooks.length > 0;
   // The summary is out of date when the notes were saved (or edited) after it was generated.
   const summaryStale = Boolean(
     mySummary &&
@@ -974,7 +978,7 @@ function ClassPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={exporting || (!hasNotes && !mySummary)}
+                        disabled={exporting || (!hasNotes && !mySummary && !canExportHandwriting)}
                       >
                         <Download className="mr-2 h-4 w-4" />
                         {exporting ? "Exporting…" : "Export"}
@@ -1017,6 +1021,31 @@ function ClassPage() {
                           Press "Summarize my notes" to export a summary.
                         </p>
                       )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+                        <PenLine className="h-3.5 w-3.5" />
+                        Handwriting (PDF)
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        disabled={!notebookHasInk}
+                        onSelect={() => void notebookRef.current?.downloadPdf()}
+                      >
+                        Current notebook
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={!savedNotebooks.length}
+                        onSelect={() => {
+                          const latest = savedNotebooks[0];
+                          if (latest) void downloadSavedNotebook(latest);
+                        }}
+                      >
+                        Latest saved notebook
+                        {savedNotebooks[0] ? (
+                          <span className="ml-auto max-w-[8rem] truncate pl-2 text-xs text-muted-foreground">
+                            {savedNotebooks[0].title}
+                          </span>
+                        ) : null}
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <Button variant="outline" size="sm" onClick={handleSave} disabled={saving}>
@@ -1091,6 +1120,7 @@ function ClassPage() {
                   <div className="mt-3">
                     <HandwritingNotebook
                       ref={notebookRef}
+                      onHasContentChange={setNotebookHasInk}
                       classId={classId}
                       converting={converting}
                       onConvert={handleConvert}
