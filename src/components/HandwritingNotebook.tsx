@@ -122,6 +122,8 @@ export type NotebookHandle = {
     backgroundPath: string | null;
     background: string | null;
   }) => void;
+  /** Downloads every page with ink as one PDF (same as the ⋯ menu's Download PDF). */
+  downloadPdf: () => Promise<void>;
 };
 
 const INK = ["#141414", "#1d4ed8", "#dc2626", "#15803d", "#57068c", "#ea580c"];
@@ -309,6 +311,8 @@ type Props = {
   defaultTitle?: string;
   /** Slide viewer shown in the sidebar of full-screen mode. */
   slidesPanel?: ReactNode;
+  /** Told whether the open notebook has any ink or slide pages (e.g. to enable Export). */
+  onHasContentChange?: (hasContent: boolean) => void;
 };
 
 export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function HandwritingNotebook(
@@ -320,6 +324,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     onRenameNotebook,
     defaultTitle = "Notebook",
     slidesPanel,
+    onHasContentChange,
   },
   ref,
 ) {
@@ -1101,7 +1106,11 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
     applySaved(await onConvert(await rendered()), key);
   }
 
+  const anyContent = pages.some(hasContent);
+  useEffect(() => onHasContentChange?.(anyContent), [anyContent, onHasContentChange]);
+
   useImperativeHandle(ref, () => ({
+    downloadPdf,
     openNotebook: (nb) => {
       void (async () => {
         if (nb.id === notebookId && pages.some((p) => p.savedId)) {
