@@ -8,6 +8,7 @@ import {
   saveNote,
   summarizeMyNotes,
   transcribeAudioChunk,
+  organizeTranscriptPart,
   transcribeHandwriting,
 } from "@/lib/notes.functions";
 import { AudioTranscriber } from "@/components/AudioTranscriber";
@@ -21,7 +22,14 @@ import { Badge } from "@/components/ui/badge";
 import { NoteEditor, noteContentExtensions } from "@/components/NoteEditor";
 import type { ExportFormat, ExportPart } from "@/lib/export-notes";
 import { renderNote } from "@/components/SummaryMarkdown";
-import { escapeHtml, noteToPlainText, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
+import {
+  escapeHtml,
+  noteToPlainText,
+  plainTextToHtml,
+  toEditorHtml,
+  transcriptToHtml,
+} from "@/lib/note-format";
+import { refineTranscript, type RefineProgress } from "@/lib/refine-transcript";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotebookViewer } from "@/components/NotebookViewer";
 import { AUDIO_BUCKET, audioPath, listAudioIds } from "@/lib/lecture-audio";
@@ -120,6 +128,7 @@ function ClassPage() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const transcribe = useServerFn(transcribeHandwriting);
   const transcribeAudio = useServerFn(transcribeAudioChunk);
+  const organizeTranscript = useServerFn(organizeTranscriptPart);
   const transcriptionSetupFn = useServerFn(getTranscriptionSetup);
   const { data: transcriptionSetup } = useQuery({
     queryKey: ["transcription-setup"],
@@ -574,7 +583,8 @@ function ClassPage() {
       const { data: userData } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("audio_transcripts")
-        .select("id, title, transcript, duration_seconds, created_at")
+        // "*" so this still works before the live_transcript column is added.
+        .select("*")
         .eq("class_id", classId)
         .eq("user_id", userData.user!.id)
         .order("created_at", { ascending: false })
@@ -583,10 +593,19 @@ function ClassPage() {
       // Which transcripts have a saved recording (null: audio storage isn't set up yet).
       const withAudio = await listAudioIds(userData.user!.id, classId);
       setAudioAvailable(withAudio !== null);
-      return (data ?? []).map((r) => ({
-        ...r,
-        audioPath: withAudio?.get(r.id) ?? null,
-      })) as Recording[];
+      return (data ?? []).map((r) => {
+        const row = r as typeof r & { live_transcript?: string | null; refined_at?: string | null };
+        return {
+          id: row.id,
+          title: row.title,
+          transcript: row.transcript,
+          duration_seconds: row.duration_seconds,
+          created_at: row.created_at,
+          audioPath: withAudio?.get(row.id) ?? null,
+          liveTranscript: row.live_transcript ?? null,
+          refinedAt: row.refined_at ?? null,
+        };
+      }) as Recording[];
     },
   });
   const [audioAvailable, setAudioAvailable] = useState(false);
@@ -596,6 +615,7 @@ function ClassPage() {
     transcript: string;
     durationSeconds: number;
     audio?: Blob;
+    language?: string;
   }): Promise<boolean> {
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -616,10 +636,11 @@ function ClassPage() {
       let audioSaved = false;
       if (rec.audio) {
         const type = rec.audio.type.split(";")[0] || "audio/webm";
+        const path = audioPath(userId, classId, row.id, type);
         const { error: upError } = await supabase.storage
           .from(AUDIO_BUCKET)
           // Plain type (no ";codecs=…"), which the storage type check accepts.
-          .upload(audioPath(userId, classId, row.id, type), new Blob([rec.audio], { type }), {
+          .upload(path, new Blob([rec.audio], { type }), {
             contentType: type,
           });
         if (upError) {
@@ -629,11 +650,20 @@ function ClassPage() {
               ? "The transcript is saved, but the recording was too long to save (limit about 3 hours)."
               : "The transcript is saved, but the audio recording couldn't be saved.",
           );
-        } else audioSaved = true;
+        } else {
+          audioSaved = true;
+          // Listen to the recording again and correct the live transcript.
+          void improveRecording(
+            { id: row.id, transcript: rec.transcript, audioPath: path, title: rec.title },
+            rec.language,
+          );
+        }
       }
       await queryClient.invalidateQueries({ queryKey: ["recordings", classId] });
       toast.success(
-        audioSaved ? "Transcript and audio saved to this class" : "Transcript saved to this class",
+        audioSaved
+          ? "Transcript and audio saved. Now improving the transcript from the audio…"
+          : "Transcript saved to this class",
       );
       return true;
     } catch (err) {
@@ -641,6 +671,98 @@ function ClassPage() {
       toast.error("Could not save the transcript. It's kept here; try again.");
       return false;
     }
+  }
+
+  // "Improve with audio": progress per transcript id while the AI listens again.
+  const [refining, setRefining] = useState<Record<string, RefineProgress>>({});
+  const refiningRef = useRef(new Set<string>());
+
+  async function improveRecording(
+    rec: Pick<Recording, "id" | "transcript" | "audioPath" | "title" | "liveTranscript">,
+    language?: string,
+  ) {
+    if (!rec.audioPath || refiningRef.current.has(rec.id)) return;
+    refiningRef.current.add(rec.id);
+    const setProgress = (p: RefineProgress | null) =>
+      setRefining((m) => {
+        const next = { ...m };
+        if (p) next[rec.id] = p;
+        else delete next[rec.id];
+        return next;
+      });
+    try {
+      // Always start from the student's own live transcript, also when improving again.
+      const original = rec.liveTranscript ?? rec.transcript;
+      const improved = await refineTranscript({
+        audioPath: rec.audioPath,
+        liveTranscript: original,
+        language,
+        onProgress: setProgress,
+        transcribe: async (args) => (await transcribeAudio({ data: args })).text,
+        organize: async (args) => (await organizeTranscript({ data: args })).text,
+      });
+      const refinedAt = new Date().toISOString();
+      let { error } = await supabase
+        .from("audio_transcripts")
+        .update({
+          transcript: improved.slice(0, 500_000),
+          live_transcript: original,
+          refined_at: refinedAt,
+        } as never)
+        .eq("id", rec.id);
+      if (error && /live_transcript|refined_at|column/i.test(error.message)) {
+        // Database not updated yet: save the improved text (the original can't be kept).
+        ({ error } = await supabase
+          .from("audio_transcripts")
+          .update({ transcript: improved.slice(0, 500_000) })
+          .eq("id", rec.id));
+      }
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ["recordings", classId] });
+      toast.success(`Transcript improved: "${rec.title}"`, {
+        description: "Corrected from the audio and organised by topic.",
+      });
+    } catch (err) {
+      console.error("[improveRecording]", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(
+        msg === "NO_SPEECH"
+          ? "No speech was found in the recording, so the transcript was left as it was."
+          : msg === "AUDIO_MISSING"
+            ? "Could not open the audio recording."
+            : /EncodingError|decode/i.test(msg)
+              ? "This browser can't read the recording. Try “Improve with audio” in Chrome."
+              : /limit for|busy/i.test(msg)
+                ? msg
+                : "Could not improve the transcript. Your live transcript is kept; try “Improve with audio” again.",
+      );
+    } finally {
+      refiningRef.current.delete(rec.id);
+      setProgress(null);
+    }
+  }
+
+  // Leaving the page stops the improvement; ask first.
+  const isRefining = Object.keys(refining).length > 0;
+  useEffect(() => {
+    if (!isRefining) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isRefining]);
+
+  async function restoreLiveTranscript(rec: Recording) {
+    if (!rec.liveTranscript) return;
+    const { error } = await supabase
+      .from("audio_transcripts")
+      .update({ transcript: rec.liveTranscript, live_transcript: null, refined_at: null } as never)
+      .eq("id", rec.id);
+    if (error) {
+      toast.error("Could not switch back to the live transcript.");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["recordings", classId] });
+    toast.success("Switched back to your live transcript");
   }
 
   async function deleteRecording(rec: Recording) {
@@ -659,7 +781,7 @@ function ClassPage() {
       (prev) =>
         (noteToPlainText(prev) ? toEditorHtml(prev) : "") +
         `<h2>${escapeHtml(rec.title)}</h2>` +
-        plainTextToHtml(rec.transcript),
+        transcriptToHtml(rec.transcript),
     );
     toast.success("Transcript added to your notes. Remember to save.");
   }
@@ -1319,6 +1441,9 @@ function ClassPage() {
                       onExport={(r, f) => void exportRecording(r, f)}
                       onAddToNotes={addRecordingToNotes}
                       onDelete={deleteRecording}
+                      onImprove={(r) => void improveRecording(r)}
+                      onRestoreLive={(r) => void restoreLiveTranscript(r)}
+                      refining={refining}
                       emptyText="Transcripts you record in the Transcribe tab are saved here too."
                     />
                   </div>
@@ -1348,6 +1473,9 @@ function ClassPage() {
                       onExport={(r, f) => void exportRecording(r, f)}
                       onAddToNotes={addRecordingToNotes}
                       onDelete={deleteRecording}
+                      onImprove={(r) => void improveRecording(r)}
+                      onRestoreLive={(r) => void restoreLiveTranscript(r)}
+                      refining={refining}
                     />
                   </div>
                 </TabsContent>

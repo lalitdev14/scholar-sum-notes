@@ -1,8 +1,20 @@
 import { useState } from "react";
-import { AudioLines, ChevronDown, Download, FilePlus2, Mic, Trash2 } from "lucide-react";
+import {
+  AudioLines,
+  ChevronDown,
+  Download,
+  FilePlus2,
+  Loader2,
+  Mic,
+  Sparkles,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { TranscriptText } from "@/components/TranscriptText";
 import { audioUrl } from "@/lib/lecture-audio";
+import type { RefineProgress } from "@/lib/refine-transcript";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +43,10 @@ export type Recording = {
   created_at: string;
   /** Saved audio recording, if any. */
   audioPath?: string | null;
+  /** The original live transcript, kept after "Improve with audio". */
+  liveTranscript?: string | null;
+  /** When the transcript was improved from the audio. */
+  refinedAt?: string | null;
 };
 
 export type RecordingExportFormat = "docx" | "pdf" | "txt";
@@ -43,7 +59,20 @@ type Props = {
   emptyText?: string;
   /** File name (without extension) for a downloaded recording. */
   audioName?: (recording: Recording) => string;
+  /** Listen to the saved audio again and correct the transcript. */
+  onImprove?: (recording: Recording) => void;
+  /** Go back to the original live transcript. */
+  onRestoreLive?: (recording: Recording) => void;
+  /** Transcripts being improved right now (by id). */
+  refining?: Record<string, RefineProgress>;
 };
+
+function progressText(p: RefineProgress) {
+  if (p.phase === "loading") return "Opening the recording…";
+  if (p.phase === "listening")
+    return `Listening to the recording… ${p.total ? Math.round((p.done / p.total) * 100) : 0}%`;
+  return `Correcting and organising by topic… ${p.done + 1 > p.total ? p.total : p.done + 1} of ${p.total}`;
+}
 
 export function RecordingsList({
   recordings,
@@ -52,8 +81,12 @@ export function RecordingsList({
   onDelete,
   emptyText,
   audioName,
+  onImprove,
+  onRestoreLive,
+  refining,
 }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [showLive, setShowLive] = useState<Record<string, boolean>>({});
   const [confirm, setConfirm] = useState<Recording | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -70,6 +103,8 @@ export function RecordingsList({
       <ul className="mt-3 flex flex-col gap-2" data-testid="recordings-list">
         {recordings.map((rec) => {
           const open = openId === rec.id;
+          const progress = refining?.[rec.id];
+          const live = showLive[rec.id] && rec.liveTranscript ? rec.liveTranscript : null;
           const words = rec.transcript.trim() ? rec.transcript.trim().split(/\s+/).length : 0;
           return (
             <li key={rec.id} className="rounded-lg border border-border/60 bg-background/60">
@@ -89,6 +124,7 @@ export function RecordingsList({
                       {new Date(rec.created_at).toLocaleString()} ·{" "}
                       {formatDuration(rec.duration_seconds)} · {words.toLocaleString()} words
                       {rec.audioPath ? " · audio" : ""}
+                      {rec.refinedAt ? " · improved" : ""}
                     </span>
                   </span>
                   <ChevronDown
@@ -121,6 +157,20 @@ export function RecordingsList({
                         <AudioLines className="mr-2 h-4 w-4" /> Audio recording
                       </DropdownMenuItem>
                     )}
+                    {rec.audioPath && onImprove && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem disabled={!!progress} onSelect={() => onImprove(rec)}>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          {rec.refinedAt ? "Improve again with audio" : "Improve with audio"}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {rec.liveTranscript && onRestoreLive && (
+                      <DropdownMenuItem disabled={!!progress} onSelect={() => onRestoreLive(rec)}>
+                        <Undo2 className="mr-2 h-4 w-4" /> Use my live transcript
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => onAddToNotes(rec)}>
                       <FilePlus2 className="mr-2 h-4 w-4" /> Add to my notes
@@ -134,15 +184,53 @@ export function RecordingsList({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              {progress && (
+                <p
+                  className="flex items-center gap-2 border-t border-border/60 px-4 py-2 text-xs text-muted-foreground"
+                  role="status"
+                  data-testid="refine-status"
+                >
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {progressText(progress)} Keep this page open.
+                </p>
+              )}
               {open && rec.audioPath && (
                 <div className="border-t border-border/60 px-4 pt-3">
                   <AudioPlayer path={rec.audioPath} />
                 </div>
               )}
+              {open && rec.liveTranscript && (
+                <div
+                  className="flex flex-wrap items-center gap-1 border-t border-border/60 px-4 pt-3 text-xs"
+                  role="group"
+                  aria-label="Transcript version"
+                >
+                  {[
+                    { live: false, label: "Improved from audio" },
+                    { live: true, label: "Live transcript" },
+                  ].map((v) => (
+                    <button
+                      key={v.label}
+                      type="button"
+                      aria-pressed={!!showLive[rec.id] === v.live}
+                      onClick={() => setShowLive((m) => ({ ...m, [rec.id]: v.live }))}
+                      className={cn(
+                        "rounded-full border px-2.5 py-1",
+                        !!showLive[rec.id] === v.live
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border/60 text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               {open && (
-                <p className="max-h-64 overflow-y-auto whitespace-pre-wrap border-t border-border/60 px-4 py-3 text-sm leading-relaxed">
-                  {rec.transcript}
-                </p>
+                <TranscriptText
+                  text={live ?? rec.transcript}
+                  className="max-h-80 overflow-y-auto border-t border-border/60 px-4 py-3 text-sm leading-relaxed [div+&]:border-t-0"
+                />
               )}
             </li>
           );

@@ -6,7 +6,7 @@
  * The docx and pdfmake libraries are loaded on demand to keep the page light.
  */
 import { generateJSON, type JSONContent, type Extensions } from "@tiptap/core";
-import { legacyToHtml, plainTextToHtml, toEditorHtml } from "@/lib/note-format";
+import { legacyToHtml, toEditorHtml, transcriptToHtml } from "@/lib/note-format";
 import type * as Docx from "docx";
 
 export type ExportFormat = "docx" | "pdf";
@@ -35,6 +35,7 @@ function buildSections(input: ExportInput, part: ExportPart): Section[] {
     const paragraphs = (t?.text ?? "")
       .split(/\n+/)
       .flatMap((block) => {
+        if (/^#{1,3}\s+/.test(block.trim())) return [block.trim()]; // topic heading
         const sentences = block.match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) ?? [block];
         const out: string[] = [];
         for (let i = 0; i < sentences.length; i += 5)
@@ -50,7 +51,7 @@ function buildSections(input: ExportInput, part: ExportPart): Section[] {
       .join("\n");
     sections.push({
       title: t?.title || "Lecture transcript",
-      doc: generateJSON(plainTextToHtml(paragraphs) || "<p></p>", input.extensions),
+      doc: generateJSON(transcriptToHtml(paragraphs) || "<p></p>", input.extensions),
     });
     return sections;
   }
