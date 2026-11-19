@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { ChevronDown, Download, FilePlus2, Mic, Trash2 } from "lucide-react";
+import { AudioLines, ChevronDown, Download, FilePlus2, Mic, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { AudioPlayer } from "@/components/AudioPlayer";
+import { audioUrl } from "@/lib/lecture-audio";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,6 +29,8 @@ export type Recording = {
   transcript: string;
   duration_seconds: number;
   created_at: string;
+  /** Saved audio recording, if any. */
+  audioPath?: string | null;
 };
 
 export type RecordingExportFormat = "docx" | "pdf" | "txt";
@@ -36,9 +41,18 @@ type Props = {
   onAddToNotes: (recording: Recording) => void;
   onDelete: (recording: Recording) => Promise<void>;
   emptyText?: string;
+  /** File name (without extension) for a downloaded recording. */
+  audioName?: (recording: Recording) => string;
 };
 
-export function RecordingsList({ recordings, onExport, onAddToNotes, onDelete, emptyText }: Props) {
+export function RecordingsList({
+  recordings,
+  onExport,
+  onAddToNotes,
+  onDelete,
+  emptyText,
+  audioName,
+}: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Recording | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -74,6 +88,7 @@ export function RecordingsList({ recordings, onExport, onAddToNotes, onDelete, e
                     <span className="block text-xs text-muted-foreground">
                       {new Date(rec.created_at).toLocaleString()} ·{" "}
                       {formatDuration(rec.duration_seconds)} · {words.toLocaleString()} words
+                      {rec.audioPath ? " · audio" : ""}
                     </span>
                   </span>
                   <ChevronDown
@@ -97,6 +112,15 @@ export function RecordingsList({ recordings, onExport, onAddToNotes, onDelete, e
                     <DropdownMenuItem onSelect={() => onExport(rec, "txt")}>
                       Plain text (.txt)
                     </DropdownMenuItem>
+                    {rec.audioPath && (
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          void downloadAudio(rec.audioPath!, audioName?.(rec) ?? rec.title)
+                        }
+                      >
+                        <AudioLines className="mr-2 h-4 w-4" /> Audio recording
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={() => onAddToNotes(rec)}>
                       <FilePlus2 className="mr-2 h-4 w-4" /> Add to my notes
@@ -110,6 +134,11 @@ export function RecordingsList({ recordings, onExport, onAddToNotes, onDelete, e
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              {open && rec.audioPath && (
+                <div className="border-t border-border/60 px-4 pt-3">
+                  <AudioPlayer path={rec.audioPath} />
+                </div>
+              )}
               {open && (
                 <p className="max-h-64 overflow-y-auto whitespace-pre-wrap border-t border-border/60 px-4 py-3 text-sm leading-relaxed">
                   {rec.transcript}
@@ -128,7 +157,8 @@ export function RecordingsList({ recordings, onExport, onAddToNotes, onDelete, e
           <AlertDialogHeader>
             <AlertDialogTitle>Delete "{confirm?.title}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              This transcript is permanently deleted. Export it first if you want to keep a copy.
+              This transcript{confirm?.audioPath ? " and its audio recording are" : " is"}{" "}
+              permanently deleted. Export it first if you want to keep a copy.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -155,4 +185,23 @@ export function RecordingsList({ recordings, onExport, onAddToNotes, onDelete, e
       </AlertDialog>
     </>
   );
+}
+
+/** Downloads a saved recording under a readable name (the link sets the file name). */
+async function downloadAudio(path: string, name: string) {
+  const ext = path.split(".").pop() ?? "webm";
+  const safe =
+    name
+      .replace(/[^\w.-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "lecture";
+  const url = await audioUrl(path, `${safe}.${ext}`);
+  if (!url) {
+    toast.error("Could not download the recording.");
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  a.click();
 }

@@ -3,6 +3,7 @@ import { Mic, Pause, Play, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { pickAudioMimeType } from "@/lib/lecture-audio";
 import { cn, formatDuration } from "@/lib/utils";
 
 /**
@@ -16,6 +17,10 @@ import { cn, formatDuration } from "@/lib/utils";
  *
  * The running transcript is kept as a draft in localStorage so a reload or crash
  * doesn't lose a lecture. "Finish & save" hands the text to `onSave`.
+ *
+ * Optionally ("Save the audio recording too") the microphone is also recorded with
+ * MediaRecorder into one compact file (Opus/AAC, ~32 kbps ≈ 15 MB an hour) that is handed to
+ * `onSave` with the transcript. Pausing pauses the file; audio can't survive a page reload.
  */
 
 type Engine = "browser" | "ai";
@@ -35,7 +40,11 @@ type Props = {
     title: string;
     transcript: string;
     durationSeconds: number;
+    /** The recording, when "Save the audio recording too" was on. */
+    audio?: Blob;
   }) => Promise<boolean>;
+  /** Audio storage is set up; shows the "Save the audio recording too" option. */
+  audioAvailable?: boolean;
   /** True when the server has Whisper configured; the AI engine then becomes the default. */
   whisperAvailable?: boolean;
   /** Called with true while the microphone is live. */
@@ -63,6 +72,10 @@ const MIN_CHUNK_SECONDS = 10;
 const MAX_CHUNK_SECONDS = 20;
 const PAUSE_RMS = 0.012;
 const TARGET_RATE = 16000;
+
+/** One recording can run at most 40 minutes; it then stops and saves by itself. */
+export const MAX_RECORDING_SECONDS = 40 * 60;
+const WARN_AT_SECONDS = MAX_RECORDING_SECONDS - 5 * 60;
 
 // Minimal typing for the (still prefixed in some browsers) Web Speech API.
 type SpeechResultList = ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
@@ -158,6 +171,7 @@ export function AudioTranscriber({
   onSave,
   onRecordingChange,
   whisperAvailable = false,
+  audioAvailable = false,
 }: Props) {
   const draftKey = `lectureloop:transcript-draft:${classId}`;
   const browserSupported = useRef(false);
@@ -171,6 +185,13 @@ export function AudioTranscriber({
   const [title, setTitle] = useState("");
   const [pendingChunks, setPendingChunks] = useState(0);
   const [level, setLevel] = useState(0);
+  // "Save the audio recording too" (remembered on this device).
+  const [saveAudio, setSaveAudio] = useState(false);
+  /** The audio from before a reload is gone; only the transcript can be saved for this one. */
+  const [audioLost, setAudioLost] = useState(false);
+  const recorderRef = useRef<{ rec: MediaRecorder; stream: MediaStream; chunks: Blob[] } | null>(
+    null,
+  );
 
   const statusRef = useRef<Status>("idle");
   const textRef = useRef("");
@@ -212,6 +233,7 @@ export function AudioTranscriber({
           setSeconds(draft.seconds ?? 0);
           setTitle(draft.title ?? "");
           setStatusBoth("paused");
+          setAudioLost(true);
           toast.info("Recovered your unsaved transcript. Resume or save it.");
         }
       }
@@ -219,6 +241,14 @@ export function AudioTranscriber({
       /* storage unavailable */
     }
   }, [draftKey]);
+
+  useEffect(() => {
+    try {
+      setSaveAudio(localStorage.getItem("lectureloop:save-audio") === "1");
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
 
   // With Whisper on the server, default to the more accurate AI engine.
   useEffect(() => {
@@ -241,6 +271,25 @@ export function AudioTranscriber({
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [status]);
+
+  // 40-minute limit: a warning 5 minutes before, then stop and save automatically.
+  const limitHandled = useRef(false);
+  useEffect(() => {
+    if (status !== "recording") return;
+    if (seconds === WARN_AT_SECONDS)
+      toast.info("5 minutes left in this recording. Recordings stop and save at 40 minutes.");
+    if (seconds >= MAX_RECORDING_SECONDS && !limitHandled.current) {
+      limitHandled.current = true;
+      toast.info(
+        "Reached the 40-minute limit, so the recording was saved. Start a new one to keep going.",
+        {
+          duration: 10000,
+        },
+      );
+      void finish();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seconds, status]);
 
   // Warn before leaving with an unsaved recording.
   useEffect(() => {
@@ -265,9 +314,68 @@ export function AudioTranscriber({
       statusRef.current = "idle";
       recognitionRef.current?.abort();
       stopAudioCapture();
+      discardRecorder();
     },
     [],
   );
+
+  // ------------------------------------------------------------ audio file (optional)
+
+  const recordAudio = audioAvailable && saveAudio && !audioLost;
+
+  async function startOrResumeRecorder() {
+    const r = recorderRef.current;
+    if (r) {
+      if (r.rec.state === "paused") r.rec.resume();
+      return;
+    }
+    const mime = pickAudioMimeType();
+    if (mime === null)
+      throw new Error("This browser can't record audio. Turn off saving the audio to transcribe.");
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+    });
+    const rec = new MediaRecorder(stream, {
+      ...(mime ? { mimeType: mime } : {}),
+      audioBitsPerSecond: 32000,
+    });
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => {
+      if (e.data.size) chunks.push(e.data);
+    };
+    rec.start(10000); // hand over data every 10 s, so little is lost if something fails
+    recorderRef.current = { rec, stream, chunks };
+  }
+
+  function pauseRecorder() {
+    const r = recorderRef.current;
+    if (r && r.rec.state === "recording") r.rec.pause();
+  }
+
+  /** Stops the recording and returns it as one file (or undefined if nothing was recorded). */
+  async function finishRecorder(): Promise<Blob | undefined> {
+    const r = recorderRef.current;
+    recorderRef.current = null;
+    if (!r) return undefined;
+    if (r.rec.state !== "inactive") {
+      await new Promise<void>((resolve) => {
+        r.rec.onstop = () => resolve();
+        r.rec.stop();
+      });
+    }
+    r.stream.getTracks().forEach((t) => t.stop());
+    const blob = new Blob(r.chunks, { type: r.rec.mimeType || r.chunks[0]?.type || "audio/webm" });
+    return blob.size ? blob : undefined;
+  }
+
+  function discardRecorder() {
+    const r = recorderRef.current;
+    recorderRef.current = null;
+    if (!r) return;
+    r.rec.ondataavailable = null;
+    if (r.rec.state !== "inactive") r.rec.stop();
+    r.stream.getTracks().forEach((t) => t.stop());
+  }
 
   // ------------------------------------------------------------ browser engine
 
@@ -412,6 +520,7 @@ export function AudioTranscriber({
   async function start() {
     try {
       setStatusBoth("recording");
+      if (recordAudio) await startOrResumeRecorder();
       if (engine === "browser") {
         if (!startRecognition())
           throw new Error("Live transcription isn't supported in this browser.");
@@ -438,6 +547,7 @@ export function AudioTranscriber({
 
   function pause() {
     setStatusBoth("paused");
+    pauseRecorder();
     if (engine === "browser") stopRecognition();
     else {
       flushChunk();
@@ -454,19 +564,25 @@ export function AudioTranscriber({
     const transcript = textRef.current.trim();
     if (!transcript) {
       toast.error("Nothing was transcribed yet.");
+      discardRecorder();
       setStatusBoth("idle");
       return;
     }
+    const audio = await finishRecorder();
     const ok = await onSave({
       title: title.trim() || defaultTitle,
       transcript,
       durationSeconds: seconds,
+      ...(audio ? { audio } : {}),
     });
     if (ok) reset();
     else setStatusBoth("paused");
   }
 
   function reset() {
+    limitHandled.current = false;
+    discardRecorder();
+    setAudioLost(false);
     textRef.current = "";
     setText("");
     setInterim("");
@@ -497,7 +613,16 @@ export function AudioTranscriber({
           </Button>
         )}
         {status === "paused" && (
-          <Button onClick={() => void start()} className="gap-2">
+          <Button
+            onClick={() => void start()}
+            className="gap-2"
+            disabled={seconds >= MAX_RECORDING_SECONDS}
+            title={
+              seconds >= MAX_RECORDING_SECONDS
+                ? "This recording reached the 40-minute limit. Save it and start a new one."
+                : undefined
+            }
+          >
             <Play className="h-4 w-4" /> Resume
           </Button>
         )}
@@ -540,7 +665,13 @@ export function AudioTranscriber({
                 : status === "saving"
                   ? "Saving"
                   : "Ready"}{" "}
-            · {formatDuration(seconds)}
+            ·{" "}
+            <span
+              className={cn(seconds >= WARN_AT_SECONDS && "font-medium text-amber-600")}
+              data-testid="recording-timer"
+            >
+              {formatDuration(seconds)} / {formatDuration(MAX_RECORDING_SECONDS)}
+            </span>
           </span>
         </div>
       </div>
@@ -583,6 +714,34 @@ export function AudioTranscriber({
           </option>
         </select>
       </div>
+
+      {audioAvailable && (
+        <div className="flex flex-wrap items-start gap-x-3 gap-y-1 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={saveAudio}
+              disabled={status !== "idle"}
+              onChange={(e) => {
+                setSaveAudio(e.target.checked);
+                try {
+                  localStorage.setItem("lectureloop:save-audio", e.target.checked ? "1" : "0");
+                } catch {
+                  /* storage unavailable */
+                }
+              }}
+              className="h-4 w-4 accent-[var(--color-primary)]"
+              aria-describedby="save-audio-help"
+            />
+            Save the audio recording too
+          </label>
+          <span id="save-audio-help" className="text-xs text-muted-foreground">
+            {audioLost && saveAudio
+              ? "The audio from before the page reloaded couldn't be kept; only the transcript will be saved."
+              : "Private to you. Ask your professor before recording a lecture."}
+          </span>
+        </div>
+      )}
 
       {engine === "ai" && status === "recording" && (
         <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden>
