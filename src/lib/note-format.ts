@@ -92,6 +92,23 @@ export function plainTextToHtml(text: string): string {
     .join("");
 }
 
+/**
+ * A lecture transcript as editor HTML. Improved transcripts mark topics with "## Heading"
+ * lines; those become headings, every other line a paragraph.
+ */
+export function transcriptToHtml(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) =>
+      /^#{1,3}\s+/.test(line)
+        ? `<h3>${escapeHtml(line.replace(/^#{1,3}\s+/, ""))}</h3>`
+        : `<p>${escapeHtml(line)}</p>`,
+    )
+    .join("");
+}
+
 function decodeEntities(text: string): string {
   return text
     .replace(/&nbsp;/g, " ")

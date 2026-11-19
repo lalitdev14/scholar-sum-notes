@@ -28,6 +28,7 @@ import { renderNote } from "@/components/SummaryMarkdown";
 import { NotebookViewer } from "@/components/NotebookViewer";
 import { noteToPlainText } from "@/lib/note-format";
 import { listAudioIds, audioUrl } from "@/lib/lecture-audio";
+import { TranscriptText } from "@/components/TranscriptText";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { cn } from "@/lib/utils";
 
@@ -1004,7 +1005,9 @@ function TranscriptView({
         {isPending ? (
           <span className="text-muted-foreground">Loading…</span>
         ) : (
-          text || <span className="text-muted-foreground">This transcript is empty.</span>
+          (text && <TranscriptText text={text} />) || (
+            <span className="text-muted-foreground">This transcript is empty.</span>
+          )
         )}
       </div>
     </article>

@@ -313,6 +313,61 @@ export const transcribeAudioChunk = createServerFn({ method: "POST" })
     return { text: (result.text ?? "").trim(), engine: "gemini" as const };
   });
 
+const OrganizeTranscriptInput = z.object({
+  // About 5 minutes of lecture per call.
+  heard: z.string().max(20_000),
+  liveHint: z.string().max(20_000).optional().default(""),
+  previousHeading: z.string().max(200).optional(),
+  language: z.string().max(20).optional(),
+});
+
+/**
+ * "Improve with audio", second step: turns one part of a re-transcribed lecture into a clean,
+ * organised transcript. HEARD (from re-listening to the saved audio) is the main source; the
+ * live transcript only fills gaps. Never summarises or adds anything that wasn't said.
+ */
+export const organizeTranscriptPart = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => OrganizeTranscriptInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const heard = data.heard.trim();
+    if (!heard) return { text: "", organized: false };
+    await chargeAiQuota(context.supabase, "audio");
+    const { resolveTextModel } = await import("./ai-gateway.server");
+    const { generateText } = await import("ai");
+    const result = await generateText({
+      model: resolveTextModel(),
+      maxRetries: 1,
+      system:
+        "You clean up the transcript of part of a university lecture. You get HEARD: the words, " +
+        "transcribed by listening to the recording again (the most accurate source), and LIVE: the " +
+        "student's live transcript of roughly the same part (it may start or end a little earlier or " +
+        "later, and has misheard words). Write the full, faithful transcript of HEARD:\n" +
+        "- fix misheard or garbled words and technical terms, using LIVE and the context;\n" +
+        "- where HEARD clearly skipped words that LIVE has, put them back;\n" +
+        "- add punctuation and capitalisation; drop fillers (um, uh), stutters and false starts;\n" +
+        "- split into paragraphs of 3-6 sentences, separated by a blank line;\n" +
+        "- before each new topic, add a short heading line that starts with '## '.\n" +
+        "Do NOT summarise, shorten, reorder, explain or add anything that was not said. Keep the " +
+        "speaker's words and order. Output only the transcript as plain text: no other markdown, " +
+        "no notes, no timestamps, no speaker labels." +
+        (data.language ? ` The lecture is in ${data.language}; keep that language.` : ""),
+      prompt:
+        (data.previousHeading
+          ? `The previous part ended under the heading "${data.previousHeading}". If this part ` +
+            "continues the same topic, start without a heading.\n\n"
+          : "") + `HEARD:\n${heard}\n\nLIVE:\n${data.liveHint.trim() || "(none)"}`,
+    }).catch((err: unknown) => {
+      console.error("[organizeTranscriptPart]", err);
+      throw aiError(err, "Could not improve the transcript. Please try again.");
+    });
+    const text = (result.text ?? "").replace(/^```[a-z]*\n?|\n?```$/g, "").trim();
+    // Guard against a reply that dropped much of the lecture: keep what was heard instead.
+    const words = (t: string) => t.split(/\s+/).filter((w) => !/^#+$/.test(w)).length;
+    if (words(text) < words(heard) * 0.6) return { text: heard, organized: false };
+    return { text, organized: true };
+  });
+
 /** Tells the client which speech-to-text engine the server has (no secrets returned). */
 export const getTranscriptionSetup = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
