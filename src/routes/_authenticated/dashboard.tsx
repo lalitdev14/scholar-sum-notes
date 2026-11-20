@@ -298,7 +298,7 @@ function Dashboard() {
 
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: SOFT_GREY, color: INK }}>
-      <AuthenticatedHeader variant="bold" />
+      <AuthenticatedHeader />
 
       <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 pb-20 pt-12 sm:px-6 sm:pt-16 lg:px-10 xl:px-16">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
