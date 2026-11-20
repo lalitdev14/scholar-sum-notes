@@ -1,23 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  BookOpen,
-  History,
-  LayoutDashboard,
-  NotebookPen,
-  PenLine,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, LayoutGrid, Lock } from "lucide-react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-
-function greeting(now = new Date()) {
-  const h = now.getHours();
-  if (h < 5) return "Burning the midnight oil";
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
-}
+import { pickGreeting, rememberGreeting } from "@/lib/greetings";
 
 type Activity = "typed" | "handwriting" | "opened";
 const ACTIVITY_LABEL: Record<Activity, string> = {
@@ -53,6 +39,9 @@ function timeAgo(iso: string) {
  * dashboard and straight into each of their classes.
  */
 export function WelcomeHome() {
+  // A new greeting each visit, fitting the time of day (kept for this page view).
+  const [greeting] = useState(() => pickGreeting());
+  useEffect(() => rememberGreeting(greeting), [greeting]);
   const { data } = useQuery({
     queryKey: ["welcome-home"],
     queryFn: async () => {
@@ -114,119 +103,174 @@ export function WelcomeHome() {
   const classes = data?.classes ?? [];
   const last = classes[0]?.lastAt ? classes[0] : null;
 
-  return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-20 pt-12 sm:px-6 sm:pt-16">
-      {/* Welcome note */}
-      <section
-        className="surface-paper relative overflow-hidden rounded-2xl p-6 sm:p-10"
-        aria-labelledby="welcome-title"
-      >
-        <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          {new Date().toLocaleDateString(undefined, {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
-        <h1 id="welcome-title" className="mt-3 text-3xl leading-tight sm:text-5xl">
-          {greeting()}
-          {first ? (
-            <>
-              , <span className="italic">{first}</span>
-            </>
-          ) : null}
-          .
-        </h1>
-        <div className="mt-5 max-w-2xl space-y-3 text-base text-muted-foreground sm:text-lg">
-          <p>
-            Welcome to LectureLoop, your own notebook for every class. Type or handwrite your notes
-            right next to the lecture slides, and turn them into a clear summary when it's time to
-            revise.
-          </p>
-          <p>Your notes are private to you.</p>
-        </div>
-      </section>
+  const accent = "var(--uni-primary, #57068c)";
+  // A very dark shade of the university colour for the "continue" card.
+  const deep = "color-mix(in oklab, var(--uni-primary, #57068c) 32%, #0d0a12)";
+  const mono = { fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace' };
+  const steps = [
+    ["01", "Type or handwrite", "Use the Type tab, or the Handwrite tab with a pencil."],
+    ["02", "Write on your slides", "Add page → Write on slide to annotate the lecture."],
+    ["03", "Summarize", "Turn what you wrote into a study summary in one click."],
+  ];
 
-      {/* Continue where you left off: the last class they were in */}
-      {last && (
-        <section
-          className="mt-6 overflow-hidden rounded-2xl border border-primary/25 bg-primary/[0.04] p-5 sm:p-6"
-          aria-labelledby="continue-title"
-          data-testid="continue-card"
-        >
-          <p
-            id="continue-title"
-            className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary"
-          >
-            <History className="h-3.5 w-3.5" /> Continue where you left off
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+  return (
+    <div className="flex-1 bg-[#f7f6f9]">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-10 sm:px-6 sm:pt-14 lg:px-10">
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:gap-12">
+          {/* Welcome note */}
+          <section aria-labelledby="welcome-title" className="min-w-0">
+            <p
+              className="text-xs font-medium uppercase tracking-[0.2em] text-[#6b6874]"
+              style={mono}
+            >
+              {new Date().toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+            <h1
+              id="welcome-title"
+              className="mt-4 text-[2.75rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#17151c] sm:text-6xl"
+            >
+              {greeting.lead}
+              {first ? (
+                <>
+                  ,<br />
+                  <span className="italic" style={{ color: accent }}>
+                    {first}
+                  </span>
+                </>
+              ) : null}
+              {greeting.end}
+            </h1>
+            <p className="mt-6 max-w-[34rem] text-[1.05rem] leading-relaxed text-[#4c4955]">
+              Welcome to LectureLoop, your own notebook for every class. Type or handwrite your
+              notes right next to the lecture slides, and turn them into a clear summary when it's
+              time to revise.
+            </p>
+            <p className="mt-5 flex items-center gap-2 text-sm text-[#77737f]">
+              <Lock className="h-3.5 w-3.5" /> Your notes are private to you.
+            </p>
+          </section>
+
+          {/* Continue where you left off: the last class they were in */}
+          {last ? (
+            <section
+              className="rounded-[1.25rem] p-6 text-white shadow-[0_24px_60px_-28px_rgba(60,10,90,0.65)] sm:p-7"
+              style={{ backgroundColor: deep }}
+              aria-labelledby="continue-title"
+              data-testid="continue-card"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <p
+                  id="continue-title"
+                  className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d9c2f0]"
+                >
+                  Continue where you left off
+                </p>
+                <p
+                  className="shrink-0 text-xs text-white/60"
+                  title={ACTIVITY_LABEL[last.lastWhat ?? "opened"]}
+                >
+                  {capitalize(timeAgo(last.lastAt!))}
+                </p>
+              </div>
+              <p className="mt-5 text-xs text-white/60" style={mono}>
                 {last.code}
               </p>
-              <p className="truncate text-xl font-medium sm:text-2xl">{last.subject}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {[
-                  last.professor,
-                  `${ACTIVITY_LABEL[last.lastWhat ?? "opened"]} ${timeAgo(last.lastAt!)}`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
+              <p className="mt-1 truncate text-[1.75rem] font-bold leading-tight tracking-[-0.02em]">
+                {last.subject}
               </p>
-            </div>
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link to="/class/$classId" params={{ classId: last.id }}>
-                <PenLine className="mr-2 h-4 w-4" /> Continue where you left off
+              {last.professor && <p className="mt-1 text-sm text-white/70">{last.professor}</p>}
+              <Link
+                to="/class/$classId"
+                params={{ classId: last.id }}
+                className="mt-6 flex items-center justify-between rounded-xl bg-white px-5 py-3.5 text-[0.95rem] font-semibold text-[#17151c] transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Open note <ArrowRight className="h-4 w-4" />
               </Link>
-            </Button>
-          </div>
-        </section>
-      )}
+            </section>
+          ) : (
+            <section
+              className="rounded-[1.25rem] p-6 text-white sm:p-7"
+              style={{ backgroundColor: deep }}
+              aria-label="Get started"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d9c2f0]">
+                Get started
+              </p>
+              <p className="mt-4 text-[1.6rem] font-bold leading-tight tracking-[-0.02em]">
+                {data && !classes.length ? "Join your first class" : "Open a class to begin"}
+              </p>
+              <p className="mt-1 text-sm text-white/70">
+                Find your class by name or code on the dashboard.
+              </p>
+              <Link
+                to="/dashboard"
+                className="mt-6 flex items-center justify-between rounded-xl bg-white px-5 py-3.5 text-[0.95rem] font-semibold text-[#17151c] transition hover:bg-white/90"
+              >
+                Find a class <ArrowRight className="h-4 w-4" />
+              </Link>
+            </section>
+          )}
+        </div>
 
-      {/* On to the dashboard: every class, note and summary is there */}
-      <section
-        className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-border/60 p-6 text-center sm:flex-row sm:justify-between sm:text-left"
-        aria-label="Dashboard"
-      >
-        <p className="text-sm text-muted-foreground sm:text-base">
-          {data && !classes.length
-            ? "You haven't joined a class yet. Find your classes on the dashboard."
-            : "All your classes, notes and summaries are on your dashboard."}
-        </p>
-        <Button
-          asChild
-          size="lg"
-          variant={last ? "outline" : "default"}
-          className="w-full sm:w-auto"
+        {/* On to the dashboard */}
+        <Link
+          to="/dashboard"
+          className="group mt-10 flex items-center gap-4 rounded-2xl border border-[#ebe8f0] bg-white p-5 transition hover:border-[#d8d2e2] hover:shadow-[0_10px_30px_-20px_rgba(40,20,60,0.4)] focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{ outlineColor: accent }}
+          aria-label="Go to your dashboard"
         >
-          <Link to="/dashboard">
-            <LayoutDashboard className="mr-2 h-4 w-4" /> Go to your dashboard
-          </Link>
-        </Button>
-      </section>
+          <span
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f1ebf8]"
+            style={{ color: accent }}
+          >
+            <LayoutGrid className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-[#17151c]">Go to your dashboard</span>
+            <span className="block text-sm text-[#77737f]">
+              {data && !classes.length
+                ? "You haven't joined a class yet. Find your classes on the dashboard."
+                : "All your classes, notes and summaries are on your dashboard."}
+            </span>
+          </span>
+          <ArrowRight
+            className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5"
+            style={{ color: accent }}
+          />
+        </Link>
 
-      {/* Quick tips */}
-      <section className="mt-10 grid gap-4 sm:grid-cols-3" aria-label="Tips">
-        {[
-          [
-            NotebookPen,
-            "Type or handwrite",
-            "Use the Type tab, or the Handwrite tab with a pencil.",
-          ],
-          [BookOpen, "Write on your slides", "Add page → Write on slide to annotate the lecture."],
-          [Sparkles, "Summarize", "Turn what you wrote into a study summary in one click."],
-        ].map(([Icon, title, body]) => {
-          const I = Icon as typeof NotebookPen;
-          return (
-            <div key={title as string} className="rounded-xl border border-border/60 p-4">
-              <I className="h-4 w-4 text-accent" />
-              <p className="mt-2 text-sm font-medium">{title as string}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{body as string}</p>
-            </div>
-          );
-        })}
-      </section>
-    </main>
+        {/* How it works */}
+        <section className="mt-10" aria-labelledby="how-title">
+          <h2
+            id="how-title"
+            className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b6874]"
+          >
+            How it works
+          </h2>
+          <ol className="mt-4 grid overflow-hidden rounded-2xl border border-[#ebe8f0] bg-white sm:grid-cols-3">
+            {steps.map(([n, title, body], i) => (
+              <li
+                key={n}
+                className={`p-6 ${i > 0 ? "border-t border-[#ebe8f0] sm:border-l sm:border-t-0" : ""}`}
+              >
+                <span className="text-sm font-medium" style={{ ...mono, color: accent }}>
+                  {n}
+                </span>
+                <p className="mt-3 text-lg font-semibold text-[#17151c]">{title}</p>
+                <p className="mt-1.5 text-[0.95rem] leading-relaxed text-[#5c5965]">{body}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </main>
+    </div>
   );
+}
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
