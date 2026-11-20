@@ -19,16 +19,24 @@ import {
 } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
+import { INK, VIOLET, grotesk } from "@/lib/bold-theme";
 
 type AuthenticatedHeaderProps = {
   trailing?: ReactNode;
+  /** "bold": the landing page look (ink black bar, violet mark) instead of the university colour. */
+  variant?: "university" | "bold";
 };
 
-export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
+export function AuthenticatedHeader({
+  trailing,
+  variant = "university",
+}: AuthenticatedHeaderProps) {
   const navigate = useNavigate();
   const { isAdmin } = useRoles();
   const uniTheme = useUniversityTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const bold = variant === "bold";
+  const barColor = bold ? INK : uniTheme.primary;
 
   const { data: me } = useQuery({
     queryKey: ["my-profile"],
@@ -97,7 +105,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
   return (
     <header
       className="border-b border-black/10"
-      style={{ backgroundColor: uniTheme.primary, color: "#fff" }}
+      style={{ backgroundColor: barColor, color: "#fff" }}
     >
       {/* Same container as every page (max-w-[100rem] px-4 sm:px-6) so the logo lines up with page content. */}
       <div className="mx-auto grid max-w-[100rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between lg:px-10 xl:px-16">
@@ -107,8 +115,20 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
             className="flex min-w-0 items-center gap-2"
             style={{ color: "#fff" }}
           >
-            <GraduationCap className="h-5 w-5 shrink-0" style={{ color: "#fff" }} />
-            <span className="truncate font-display text-lg font-bold sm:text-xl">LectureLoop</span>
+            {bold ? (
+              <span
+                className="h-3 w-3 shrink-0 rounded-[4px]"
+                style={{ backgroundColor: VIOLET }}
+              />
+            ) : (
+              <GraduationCap className="h-5 w-5 shrink-0" style={{ color: "#fff" }} />
+            )}
+            <span
+              className="truncate font-display text-lg font-bold sm:text-xl"
+              style={bold ? grotesk : undefined}
+            >
+              LectureLoop
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">{navLinks}</nav>
@@ -169,7 +189,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
               side="right"
               className="w-[85vw] max-w-xs p-0 [&>button]:text-white [&>button]:opacity-80 [&>button]:hover:opacity-100"
             >
-              <div className="px-5 py-5 text-white" style={{ backgroundColor: uniTheme.primary }}>
+              <div className="px-5 py-5 text-white" style={{ backgroundColor: barColor }}>
                 <p className="font-display text-lg font-bold">LectureLoop</p>
                 {me?.full_name && (
                   <p className="mt-1 truncate text-sm text-white/90">{me.full_name}</p>
@@ -191,7 +211,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
               </div>
               <div
                 className="flex flex-col items-stretch gap-1 p-3 [&_a]:justify-start [&_button]:justify-start"
-                style={{ backgroundColor: uniTheme.primary }}
+                style={{ backgroundColor: barColor }}
               >
                 {navLinks}
                 <Button
@@ -206,7 +226,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
                   <LogOut className="mr-2 h-4 w-4" /> Sign out
                 </Button>
               </div>
-              <div className="h-full" style={{ backgroundColor: uniTheme.primary }} />
+              <div className="h-full" style={{ backgroundColor: barColor }} />
             </SheetContent>
           </Sheet>
         </div>
