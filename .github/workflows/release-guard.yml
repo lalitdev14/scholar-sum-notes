@@ -1,0 +1,28 @@
+# Only preprod is released to main. Label a PR "hotfix" to allow an urgent fix straight to main.
+name: Release guard
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  from-preprod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the source branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HOTFIX: ${{ contains(github.event.pull_request.labels.*.name, 'hotfix') }}
+        run: |
+          if [ "$HEAD_REF" = "preprod" ]; then
+            echo "Release from preprod: OK"
+          elif [ "$HOTFIX" = "true" ]; then
+            echo "Hotfix label set: allowed. Merge main back into preprod afterwards."
+          else
+            echo "::error::PRs into main must come from preprod. Open this PR against preprod, test it on https://lectureloop-preprod.vercel.app, then release preprod to main. For an urgent fix, add the 'hotfix' label."
+            exit 1
+          fi
