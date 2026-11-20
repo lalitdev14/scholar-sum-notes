@@ -1,16 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, AudioLines, FileDown, PenLine } from "lucide-react";
+import { INK, VIOLET, grotesk } from "@/lib/bold-theme";
 
 /**
  * The public landing page (signed-out visitors): bold and modern. High contrast, big tight
  * headings, rounded white blocks on soft grey, electric violet for actions. It has its own
  * fixed palette so it looks the same in light and dark mode.
  */
-
-const INK = "#0d0d12";
-const VIOLET = "#6d4aff";
-
-const grotesk = { fontFamily: '"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif' };
 
 const steps = [
   {

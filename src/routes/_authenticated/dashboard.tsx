@@ -33,6 +33,15 @@ import {
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 import { noteToPlainText } from "@/lib/note-format";
 import { SiteFooter } from "@/components/SiteFooter";
+import {
+  INK,
+  SOFT_GREY,
+  VIOLET,
+  boldBlock,
+  boldOutline,
+  boldPrimary,
+  grotesk,
+} from "@/lib/bold-theme";
 import { cn, friendlyError } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -288,17 +297,28 @@ function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AuthenticatedHeader />
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: SOFT_GREY, color: INK }}>
+      <AuthenticatedHeader variant="bold" />
 
-      <main className="mx-auto w-full max-w-[100rem] px-4 pb-14 pt-10 sm:px-6 lg:px-10 xl:px-16">
+      <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 pb-20 pt-12 sm:px-6 sm:pt-16 lg:px-10 xl:px-16">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="max-w-3xl">
-            <h1 className="text-3xl sm:text-4xl">
-              Welcome back{me?.full_name ? `, ${me.full_name}` : ""}
+            <h1
+              className="text-[2.5rem] font-bold leading-[1] tracking-[-0.035em] text-balance text-[#0d0d12] sm:text-6xl"
+              style={grotesk}
+            >
+              Welcome back
+              {me?.full_name ? (
+                <>
+                  , <span style={{ color: VIOLET }}>{me.full_name.split(" ")[0]}</span>
+                </>
+              ) : null}
+              .
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{uniTheme.name || "Your classes"}</span>
+            <p className="mt-4 text-[0.95rem] text-[#4a4a56]">
+              <span className="font-semibold text-[#0d0d12]">
+                {uniTheme.name || "Your classes"}
+              </span>
               <span className="mx-2 opacity-50">·</span>
               Only your enrolled subjects appear here. Search by name or code to add more.
             </p>
@@ -307,7 +327,7 @@ function Dashboard() {
           <div className="flex flex-wrap gap-2">
             <Dialog open={enrollOpen} onOpenChange={setEnrollOpen}>
               <DialogTrigger asChild>
-                <Button variant="secondary">
+                <Button variant="outline" className={`h-11 px-5 ${boldOutline}`}>
                   <Search className="mr-2 h-4 w-4" /> Enroll in subject
                 </Button>
               </DialogTrigger>
@@ -364,7 +384,7 @@ function Dashboard() {
 
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className={`h-11 px-5 ${boldPrimary}`}>
                   <Plus className="mr-2 h-4 w-4" /> Add class
                 </Button>
               </DialogTrigger>
@@ -424,23 +444,22 @@ function Dashboard() {
           </div>
         </div>
 
-        <section className="mt-10" aria-label="Your classes">
-          <h2 className="flex items-center gap-2 text-xl">
+        <section className="mt-14" aria-label="Your classes">
+          <h2
+            className="flex items-center gap-3 text-3xl font-bold tracking-[-0.03em] text-[#0d0d12]"
+            style={grotesk}
+          >
             Your classes
             {classes && classes.length > 0 && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              <span className="rounded-full bg-[#0d0d12] px-2.5 py-0.5 text-sm font-semibold tracking-normal text-white">
                 {classes.length}
               </span>
             )}
           </h2>
-          <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {isPending &&
               Array.from({ length: 2 }, (_, index) => (
-                <div
-                  key={index}
-                  className="surface-paper space-y-5 rounded-lg p-6"
-                  aria-hidden="true"
-                >
+                <div key={index} className={`${boldBlock} space-y-5 p-6`} aria-hidden="true">
                   <Skeleton className="h-7 w-2/3" />
                   <Skeleton className="h-4 w-1/2" />
                   <Skeleton className="h-16 w-full" />
@@ -448,14 +467,29 @@ function Dashboard() {
                 </div>
               ))}
             {!isPending && classes?.length === 0 && (
-              <div className="surface-paper col-span-full flex flex-col items-center rounded-lg px-6 py-12 text-center">
-                <BookOpen className="h-9 w-9 text-primary" aria-hidden="true" />
-                <h3 className="mt-4 text-2xl">No enrolled subjects yet</h3>
-                <p className="mt-2 max-w-md text-sm text-muted-foreground">
+              <div
+                className={`${boldBlock} col-span-full flex flex-col items-center px-6 py-14 text-center`}
+              >
+                <span
+                  className="grid h-12 w-12 place-items-center rounded-2xl text-white"
+                  style={{ backgroundColor: VIOLET }}
+                >
+                  <BookOpen className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <h3
+                  className="mt-5 text-3xl font-bold tracking-[-0.03em] text-[#0d0d12]"
+                  style={grotesk}
+                >
+                  No enrolled subjects yet
+                </h3>
+                <p className="mt-2 max-w-md text-[0.95rem] text-[#4a4a56]">
                   Find a subject by name or code, then take your own notes and get an AI summary of
                   them.
                 </p>
-                <Button className="mt-6" onClick={() => setEnrollOpen(true)}>
+                <Button
+                  className={`mt-7 h-11 px-6 ${boldPrimary}`}
+                  onClick={() => setEnrollOpen(true)}
+                >
                   <Search className="mr-2 h-4 w-4" />
                   Enroll in subject
                 </Button>
@@ -471,12 +505,17 @@ function Dashboard() {
                   key={klass.id}
                   to="/class/$classId"
                   params={{ classId: klass.id }}
-                  className="surface-paper group flex min-w-0 flex-col rounded-xl p-5 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md"
+                  className={`${boldBlock} group flex min-w-0 flex-col p-6 outline-none transition-[transform,box-shadow] hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(13,13,18,0.45)] focus-visible:ring-2 focus-visible:ring-[#6d4aff]`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <h2 className="truncate text-xl">{klass.subject}</h2>
-                      <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <h2
+                        className="truncate text-xl font-bold tracking-tight text-[#0d0d12]"
+                        style={grotesk}
+                      >
+                        {klass.subject}
+                      </h2>
+                      <p className="mt-1 flex items-center gap-2 text-sm text-[#5d5d6a]">
                         <User className="h-3.5 w-3.5" />
                         {klass.professor}
                       </p>
@@ -484,7 +523,7 @@ function Dashboard() {
                     <div className="flex items-start gap-1">
                       <Badge
                         variant="secondary"
-                        className="max-w-[9rem] truncate"
+                        className="max-w-[9rem] truncate rounded-full bg-[#0d0d12] px-2.5 font-semibold text-white hover:bg-[#0d0d12]"
                         title={klass.code}
                       >
                         {klass.code}
@@ -511,17 +550,17 @@ function Dashboard() {
                     </div>
                   </div>
 
-                  <p className="prose-notes mt-3 line-clamp-3 text-sm text-muted-foreground">
+                  <p className="prose-notes mt-4 line-clamp-3 text-sm leading-relaxed text-[#4a4a56]">
                     {preview || "No notes yet — open the class to start writing."}
                   </p>
 
                   <div className="mt-auto flex items-center justify-between gap-2 pt-4 text-xs">
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium",
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold",
                         note?.summary
-                          ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground",
+                          ? "bg-[#d6ff5c] text-[#0d0d12]"
+                          : "bg-[#f4f4f1] text-[#5d5d6a]",
                       )}
                     >
                       <Sparkles className="h-3.5 w-3.5" />
@@ -531,7 +570,7 @@ function Dashboard() {
                           ? "Notes saved · not summarized"
                           : "No notes yet"}
                     </span>
-                    <span className="inline-flex items-center gap-1 font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+                    <span className="inline-flex items-center gap-1 font-semibold text-[#6d4aff]">
                       Open{" "}
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </span>

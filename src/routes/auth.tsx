@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, GraduationCap } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { EmailSentNotice } from "@/components/EmailSentNotice";
 import { SiteFooter } from "@/components/SiteFooter";
+import { INK, SOFT_GREY, VIOLET, boldOutline, boldPrimary, grotesk } from "@/lib/bold-theme";
 
 export const Route = createFileRoute("/auth")({
   staticData: { sitemap: false },
@@ -141,19 +142,58 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: SOFT_GREY, color: INK }}>
+      <header className="text-white" style={{ backgroundColor: INK }}>
+        <div className="mx-auto flex w-full max-w-[100rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-10 xl:px-16">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="LectureLoop home">
+            <span className="h-3 w-3 rounded-[4px]" style={{ backgroundColor: VIOLET }} />
+            <span className="text-xl font-bold tracking-tight" style={grotesk}>
+              LectureLoop
+            </span>
+          </Link>
           <Link
             to="/"
-            className="mb-8 flex items-center justify-center gap-2 text-muted-foreground"
+            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-white/80 hover:text-white"
           >
-            <GraduationCap className="h-5 w-5" />
-            <span className="font-display text-xl text-foreground">LectureLoop</span>
+            <ArrowLeft className="h-4 w-4" /> Home
           </Link>
-
+        </div>
+      </header>
+      <main className="mx-auto grid w-full max-w-[100rem] flex-1 items-center gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:px-10 xl:px-16">
+        <div className="hidden min-w-0 lg:block">
+          <p
+            className="text-6xl font-bold leading-[0.98] tracking-[-0.035em] text-balance xl:text-7xl"
+            style={grotesk}
+          >
+            {mode === "signup" && !resetting ? (
+              <>
+                Start your <span style={{ color: VIOLET }}>notebook</span> for every class.
+              </>
+            ) : (
+              <>
+                Pick up right where you <span style={{ color: VIOLET }}>left off</span>.
+              </>
+            )}
+          </p>
+          <ul className="mt-8 grid max-w-md gap-3 text-[0.95rem] text-[#4a4a56]">
+            {[
+              "Typed or handwritten notes next to the lecture slides",
+              "Lecture transcripts, corrected from the audio",
+              "A clear AI summary of what you wrote",
+            ].map((t) => (
+              <li key={t} className="flex items-start gap-3">
+                <span
+                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: VIOLET }}
+                />
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none [&_h1]:text-[2rem] [&_h1]:font-bold [&_h1]:tracking-[-0.03em] [&_h1]:text-[#0d0d12] [&_h1]:[font-family:'Space_Grotesk',Inter,sans-serif] [&_input]:h-11 [&_input]:rounded-xl [&_input]:border-[#e2e2dc] [&_input]:bg-[#fafaf8] [&_input:focus-visible]:border-[#6d4aff] [&_input:focus-visible]:ring-[#6d4aff]/30">
           {resetting ? (
-            <div className="surface-paper rounded-xl p-8">
+            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">Reset your password</h1>
               {resetSent ? (
                 <div>
@@ -197,7 +237,7 @@ function AuthPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className={`h-11 w-full ${boldPrimary}`} disabled={loading}>
                     {loading ? "Sending…" : "Send reset link"}
                   </Button>
                   <Button
@@ -212,7 +252,7 @@ function AuthPage() {
               )}
             </div>
           ) : signupSent ? (
-            <div className="surface-paper rounded-xl p-8">
+            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">Confirm your email</h1>
               <EmailSentNotice
                 email={email}
@@ -227,7 +267,7 @@ function AuthPage() {
               />
             </div>
           ) : (
-            <div className="surface-paper rounded-xl p-8">
+            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">{mode === "signin" ? "Welcome back" : "Join your class"}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {mode === "signin"
@@ -308,7 +348,7 @@ function AuthPage() {
                     </p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className={`h-11 w-full ${boldPrimary}`} disabled={loading}>
                   {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
                 </Button>
                 {mode === "signup" && (
@@ -332,7 +372,11 @@ function AuthPage() {
                 <span className="h-px flex-1 bg-border" />
               </div>
 
-              <Button variant="outline" className="w-full" onClick={handleGoogle}>
+              <Button
+                variant="outline"
+                className={`h-11 w-full ${boldOutline}`}
+                onClick={handleGoogle}
+              >
                 <svg aria-hidden="true" viewBox="0 0 48 48" className="mr-2 h-4 w-4">
                   <path
                     fill="#EA4335"
@@ -359,7 +403,7 @@ function AuthPage() {
                 <Button
                   type="button"
                   variant="link"
-                  className="h-auto p-0 font-medium text-foreground underline underline-offset-4"
+                  className="h-auto p-0 font-semibold text-[#6d4aff] underline underline-offset-4"
                   onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
                 >
                   {mode === "signin" ? "Create an account" : "Sign in"}
