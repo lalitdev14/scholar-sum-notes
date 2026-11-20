@@ -1,0 +1,29 @@
+# Typecheck and build every PR before it reaches preprod or main.
+name: Checks
+
+on:
+  pull_request:
+    branches: [preprod, main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Build
+        run: bun run build
+        env:
+          # Public values only (the same ones the browser gets); no secrets needed to build.
+          VITE_SUPABASE_URL: https://ytxsplbzohecawbdskgz.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_yL--fqYz0sHzupmPxc2VhQ_KZe_7o56
+          VITE_SUPABASE_PROJECT_ID: ytxsplbzohecawbdskgz
