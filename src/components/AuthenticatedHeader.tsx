@@ -4,19 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useRoles } from "@/hooks/useRoles";
+import { ChevronDown, GraduationCap, LogOut, Menu, University } from "lucide-react";
 import {
-  Crown,
-  FolderOpen,
-  GraduationCap,
-  Home,
-  Info,
-  LogOut,
-  Menu,
-  MessageSquarePlus,
-  ShieldCheck,
-  University,
-  User,
-} from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ReactNode, useState } from "react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 
@@ -57,42 +53,31 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
       : ((me?.universities as { name?: string } | null)?.name ?? "");
   const isNyu = universityName === "New York University";
 
+  const navItems: { to: string; label: string; exact?: boolean }[] = [
+    { to: "/", label: "Home", exact: true },
+    { to: "/notes", label: "My notes" },
+    { to: "/plans", label: "Plans" },
+    { to: "/about", label: "About" },
+    { to: "/feedback", label: "Feedback" },
+    ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
+  ];
   const navLinks = (
     <>
-      <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
-        <Link to="/" onClick={() => setMenuOpen(false)}>
-          <Home className="mr-2 h-4 w-4" /> Home
+      {navItems.map((item) => (
+        <Link
+          key={item.to}
+          to={item.to}
+          onClick={() => setMenuOpen(false)}
+          activeOptions={{ exact: !!item.exact }}
+          className="inline-flex h-9 items-center rounded-lg px-3.5 text-[0.9rem] font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          activeProps={{ className: "bg-white/15 font-semibold text-white" }}
+        >
+          {item.label}
         </Link>
-      </Button>
-      <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
-        <Link to="/notes" onClick={() => setMenuOpen(false)}>
-          <FolderOpen className="mr-2 h-4 w-4" /> My notes
-        </Link>
-      </Button>
-      <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
-        <Link to="/about" onClick={() => setMenuOpen(false)}>
-          <Info className="mr-2 h-4 w-4" /> About
-        </Link>
-      </Button>
-      <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
-        <Link to="/plans" onClick={() => setMenuOpen(false)}>
-          <Crown className="mr-2 h-4 w-4" /> Plans
-        </Link>
-      </Button>
-      <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
-        <Link to="/feedback" onClick={() => setMenuOpen(false)}>
-          <MessageSquarePlus className="mr-2 h-4 w-4" /> Feedback
-        </Link>
-      </Button>
-      {isAdmin && (
-        <Button variant="ghost" size="sm" asChild className="text-white hover:bg-white/10">
-          <Link to="/admin" onClick={() => setMenuOpen(false)}>
-            <ShieldCheck className="mr-2 h-4 w-4" /> Admin
-          </Link>
-        </Button>
-      )}
+      ))}
     </>
   );
+  const initial = (me?.full_name ?? "").trim().charAt(0).toUpperCase() || "?";
 
   return (
     <header
@@ -115,32 +100,65 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
         </div>
 
         <div className="flex items-center justify-end gap-1">
-          {me?.full_name && (
-            <div className="hidden items-center gap-3 text-sm text-white/90 xl:flex">
-              <span className="flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 shrink-0" />
-                <span className="max-w-[10rem] truncate">{me.full_name}</span>
-              </span>
-              {universityName && (
-                <span
-                  className="flex items-center gap-1.5 rounded-full border border-white/30 px-2.5 py-1 text-white"
-                  style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
-                >
-                  {isNyu ? (
-                    <img
-                      src="/nyu-torch-white.png"
-                      alt="NYU torch"
-                      width={20}
-                      height={20}
-                      className="-my-0.5 h-5 w-5 shrink-0"
-                    />
-                  ) : (
-                    <University className="h-3.5 w-3.5 shrink-0" style={{ color: "#fff" }} />
-                  )}
-                  <span className="max-w-[12rem] truncate">{universityName}</span>
-                </span>
+          {universityName && (
+            <span className="hidden items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold text-white lg:inline-flex">
+              {isNyu ? (
+                <img
+                  src="/nyu-torch-white.png"
+                  alt="NYU torch"
+                  width={18}
+                  height={18}
+                  className="-my-0.5 h-[18px] w-[18px] shrink-0"
+                />
+              ) : (
+                <University className="h-3.5 w-3.5 shrink-0" />
               )}
-            </div>
+              <span className="max-w-[12rem] truncate">{universityName}</span>
+            </span>
+          )}
+          {me?.full_name && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="ml-2 hidden items-center gap-2 rounded-full border border-white/25 py-1 pl-1 pr-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:inline-flex"
+                  aria-label="Account menu"
+                >
+                  <span
+                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-xs font-bold"
+                    style={{ color: uniTheme.primary }}
+                  >
+                    {initial}
+                  </span>
+                  <span className="max-w-[10rem] truncate">{me.full_name}</span>
+                  <ChevronDown className="h-4 w-4 opacity-80" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <span className="block truncate font-semibold">{me.full_name}</span>
+                  {universityName && (
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {universityName}
+                    </span>
+                  )}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/notes">My notes</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/plans">Plans</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => void signOut()}>
+                  <LogOut className="mr-2 h-4 w-4" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {trailing}
@@ -149,7 +167,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
             variant="ghost"
             size="sm"
             onClick={signOut}
-            className="hidden text-white hover:bg-white/10 md:inline-flex"
+            className="ml-1 hidden rounded-lg text-white/85 hover:bg-white/10 hover:text-white md:inline-flex"
           >
             <LogOut className="mr-2 h-4 w-4" /> Sign out
           </Button>
