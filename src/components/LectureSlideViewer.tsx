@@ -118,11 +118,14 @@ export function LectureSlideViewer({
             }
           })();
         } else {
-          const { init } = await import("pptx-preview");
+          const { openDeck } = await import("@/lib/pptx-deck");
           if (cancelled || !hostRef.current) return;
-          const viewer = init(hostRef.current, { width: 960, height: 540, mode: "slide" });
+          // Repairs decks the viewer can't fully read and draws each slide on its own.
+          const { viewer } = await openDeck(hostRef.current, await data.arrayBuffer(), {
+            width: 960,
+            height: 540,
+          });
           previewerRef.current = viewer;
-          await viewer.preview(await data.arrayBuffer());
           if (cancelled) return;
           setTotal(viewer.slideCount);
           const saved = Number(localStorage.getItem(`slide-pos:${slideId}`)) || 1;
