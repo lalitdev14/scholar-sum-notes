@@ -33,4 +33,7 @@ in this repo with no Lovable dependency.
 - Use the `@/` alias for imports from `src`.
 - Never import `*.server.ts` modules from client code (the build fails on it).
 - Secrets (`SUPABASE_SERVICE_ROLE_KEY`, AI keys) are server-only env vars; only `VITE_*` vars reach the browser.
+- Open PRs against `preprod`, never `main`. `preprod` deploys to
+  https://lectureloop-preprod.vercel.app for testing; a release PR `preprod` → `main` takes it
+  live (see "Release flow" in `DEPLOYMENT.md`). Pre-prod shares the live database.
 - See `AGENTS.md` for UI notes and `DEPLOYMENT.md` for hosting.

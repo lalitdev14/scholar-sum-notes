@@ -31,7 +31,52 @@ never commit secrets (service role key, AI keys) to it.
    picks up automatically).
 4. Add the environment variables below, then **Deploy**.
 
-Every push to `main` redeploys automatically.
+Every push to `main` redeploys lectureloop.org; every push to `preprod` redeploys
+https://lectureloop-preprod.vercel.app (see the release flow below).
+
+## 2a. Release flow: preprod first, then live
+
+Nothing goes straight to the live site. Every change is tested on pre-prod first.
+
+```text
+feature branch ──PR──▶ preprod ──release PR──▶ main
+                         │                       │
+        lectureloop-preprod.vercel.app      lectureloop.org
+```
+
+1. **Open each PR against `preprod`** (not `main`). The "Checks" workflow runs typecheck and
+   build on it.
+2. **Merge it into `preprod`.** Vercel deploys the branch to
+   **https://lectureloop-preprod.vercel.app** within a couple of minutes.
+3. **Test there.** The address asks you to sign in to Vercel (Vercel Authentication is on for
+   every address except lectureloop.org). Then sign in to LectureLoop as usual.
+4. **Release:** open a PR from `preprod` into `main` titled "Release …", listing what it
+   contains. Merging it deploys lectureloop.org.
+
+The "Release guard" workflow fails any PR into `main` that doesn't come from `preprod`.
+For an urgent fix, add the label `hotfix` to the PR to allow it, then merge `main` back
+into `preprod` afterwards so the two stay in step.
+
+### Pre-prod shares the live database
+
+Pre-prod uses the same Supabase project as lectureloop.org. So:
+- Test with test accounts (for example `zz-test-…@nyu.edu`) and delete them afterwards.
+  Don't change or delete real students' data.
+- A database change (`supabase/migrations/…`) must be run in Supabase **before** the PR is
+  merged into `preprod`, and it must not break the code that is live on `main`
+  (add columns or tables; don't rename or drop ones the live code uses).
+
+### One-time setup (dashboard settings)
+
+- **Vercel → Settings → Environment Variables:** edit `SUPABASE_SERVICE_ROLE_KEY` and
+  `GOOGLE_GENERATIVE_AI_API_KEY` and also tick **Preview** (or Preview for the branch
+  `preprod` only). Without them, AI features and admin tools fail on pre-prod.
+- **Supabase → Authentication → URL Configuration → Redirect URLs:** add
+  `https://lectureloop-preprod.vercel.app/**` (needed for Google sign-in on pre-prod).
+- Account emails (confirm sign-up, reset password) always link to lectureloop.org, because
+  they use the Supabase Site URL. Test those flows on the live site.
+- To let someone without a Vercel account test pre-prod: Vercel → Settings → Deployment
+  Protection → create a shareable link (or turn protection off for previews).
 
 ## 3. Environment variables
 
