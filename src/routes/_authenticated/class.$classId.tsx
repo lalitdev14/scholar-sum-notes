@@ -175,14 +175,17 @@ function ClassPage() {
 
   async function handleSlideUpload(file: File | undefined) {
     if (!file) return;
-    if (
-      !/\.(pdf|pptx)$/i.test(file.name) ||
-      ![
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      ].includes(file.type)
-    ) {
-      toast.error("Choose a PDF or PowerPoint (.pptx) file.");
+    // Decide the type from the file itself: many browsers report no type for .pptx files
+    // (for example on a Mac without PowerPoint, or decks exported from Keynote or Google Slides).
+    const contentType = await slideFileType(file);
+    if (!contentType) {
+      toast.error(
+        /\.ppt$/i.test(file.name)
+          ? "Old .ppt files aren't supported. Save it as .pptx (or PDF) and upload that."
+          : /\.key$/i.test(file.name)
+            ? "Keynote files aren't supported. In Keynote, use File → Export To → PowerPoint or PDF."
+            : "Choose a PDF or PowerPoint (.pptx) file.",
+      );
       return;
     }
     if (file.size > MAX_SLIDE_BYTES) {
@@ -196,16 +199,11 @@ function ClassPage() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) throw new Error("Sign in to upload slides.");
-      const filePath = `${userId}/${classId}/${crypto.randomUUID()}.${file.name.toLowerCase().endsWith(".pdf") ? "pdf" : "pptx"}`;
+      const filePath = `${userId}/${classId}/${crypto.randomUUID()}.${contentType === PDF_TYPE ? "pdf" : "pptx"}`;
       const { error: uploadError } = await supabase.storage
         .from("lecture-slides")
-        // Set the type from the extension: some browsers report an empty type for .pptx,
-        // and storage only accepts PDF and PowerPoint files.
-        .upload(filePath, file, {
-          contentType: filePath.endsWith(".pdf")
-            ? "application/pdf"
-            : "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        });
+        // Storage only accepts PDF and PowerPoint types, so send the checked type.
+        .upload(filePath, new Blob([file], { type: contentType }), { contentType });
       if (uploadError) throw uploadError;
       const { data: row, error: saveError } = await supabase
         .from("lecture_slides")
@@ -214,7 +212,7 @@ function ClassPage() {
           user_id: userId,
           file_path: filePath,
           file_name: file.name.slice(0, 255),
-          content_type: file.type,
+          content_type: contentType,
           title: file.name.replace(/\.(pdf|pptx)$/i, "").slice(0, 120),
         })
         .select("id")
@@ -1726,4 +1724,21 @@ function ClassPage() {
       </main>
     </div>
   );
+}
+
+const PDF_TYPE = "application/pdf";
+const PPTX_TYPE = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+/**
+ * PDF or PowerPoint type for an uploaded slide deck, or null if it is neither. Uses the file
+ * name and the first bytes (PDFs start with "%PDF", .pptx files are zip files starting
+ * with "PK"), not the browser's reported type, which is often empty for .pptx.
+ */
+async function slideFileType(file: File): Promise<typeof PDF_TYPE | typeof PPTX_TYPE | null> {
+  const name = file.name.toLowerCase();
+  const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  const text = String.fromCharCode(...head);
+  if (name.endsWith(".pdf") && text === "%PDF") return PDF_TYPE;
+  if (name.endsWith(".pptx") && text.startsWith("PK")) return PPTX_TYPE;
+  return null;
 }
