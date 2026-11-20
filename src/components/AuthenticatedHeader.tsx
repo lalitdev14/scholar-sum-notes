@@ -116,61 +116,43 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
               <span className="max-w-[12rem] truncate">{universityName}</span>
             </span>
           )}
-          {me?.full_name && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="ml-2 hidden items-center gap-2 rounded-full border border-white/25 py-1 pl-1 pr-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:inline-flex"
-                  aria-label="Account menu"
+          {/* Always shown: signing out on desktop happens from this menu. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="ml-2 hidden items-center gap-2 rounded-full border border-white/25 py-1 pl-1 pr-3 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:inline-flex"
+                aria-label="Account menu"
+              >
+                <span
+                  className="grid h-7 w-7 place-items-center rounded-full bg-white text-xs font-bold"
+                  style={{ color: uniTheme.primary }}
                 >
-                  <span
-                    className="grid h-7 w-7 place-items-center rounded-full bg-white text-xs font-bold"
-                    style={{ color: uniTheme.primary }}
-                  >
-                    {initial}
+                  {initial}
+                </span>
+                <span className="max-w-[10rem] truncate">{me?.full_name || "Account"}</span>
+                <ChevronDown className="h-4 w-4 opacity-80" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <span className="block truncate font-semibold">
+                  {me?.full_name || "Your account"}
+                </span>
+                {universityName && (
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {universityName}
                   </span>
-                  <span className="max-w-[10rem] truncate">{me.full_name}</span>
-                  <ChevronDown className="h-4 w-4 opacity-80" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <span className="block truncate font-semibold">{me.full_name}</span>
-                  {universityName && (
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {universityName}
-                    </span>
-                  )}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard">Dashboard</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/notes">My notes</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/plans">Plans</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => void signOut()}>
-                  <LogOut className="mr-2 h-4 w-4" /> Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => void signOut()}>
+                <LogOut className="mr-2 h-4 w-4" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {trailing}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={signOut}
-            className="ml-1 hidden rounded-lg text-white/85 hover:bg-white/10 hover:text-white md:inline-flex"
-          >
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </Button>
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
