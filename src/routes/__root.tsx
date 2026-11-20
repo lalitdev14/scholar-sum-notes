@@ -8,10 +8,11 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
+import { isStaleDeployError, reloadForNewVersion } from "@/lib/stale-deploy";
 
 function NotFoundComponent() {
   return (
@@ -38,6 +39,12 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  const stale = isStaleDeployError(error);
+
+  // A new version went live while this tab was open: load it instead of showing an error.
+  useEffect(() => {
+    if (stale) reloadForNewVersion();
+  }, [stale]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -51,6 +58,10 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
+              if (stale) {
+                window.location.reload();
+                return;
+              }
               router.invalidate();
               reset();
             }}
@@ -136,6 +147,15 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Vite reports a code file that failed to load (usually: a new version was deployed).
+  useEffect(() => {
+    const onPreloadError = (e: Event) => {
+      if (reloadForNewVersion()) e.preventDefault();
+    };
+    window.addEventListener("vite:preloadError", onPreloadError);
+    return () => window.removeEventListener("vite:preloadError", onPreloadError);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
