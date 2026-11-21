@@ -4,7 +4,6 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
-  useRouter,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -36,10 +35,11 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: ErrorComponentProps) {
+function ErrorComponent({ error }: ErrorComponentProps) {
   console.error(error);
-  const router = useRouter();
   const stale = isStaleDeployError(error);
+  // Shown under "Error details" so a screenshot tells us what failed.
+  const message = (error instanceof Error ? error.message : String(error ?? "")).slice(0, 300);
 
   // A new version went live while this tab was open: load it instead of showing an error.
   useEffect(() => {
@@ -58,12 +58,8 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              if (stale) {
-                window.location.reload();
-                return;
-              }
-              router.invalidate();
-              reset();
+              // A full reload also picks up a newer version if one went live meanwhile.
+              window.location.reload();
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
@@ -76,6 +72,12 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
             Go home
           </a>
         </div>
+        {message && (
+          <details className="mt-6 text-left text-xs text-muted-foreground">
+            <summary className="cursor-pointer text-center">Error details</summary>
+            <p className="mt-2 break-words rounded-md bg-muted px-3 py-2 font-mono">{message}</p>
+          </details>
+        )}
       </div>
     </div>
   );
