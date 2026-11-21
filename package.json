@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "req:new": "node scripts/req/new.mjs",
+    "req:audit": "node scripts/req/audit.mjs",
+    "req:evidence": "node scripts/req/evidence.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.30",
@@ -94,6 +97,7 @@
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "exceljs": "4.4.0",
     "globals": "^15.15.0",
     "lightningcss": "^1.33.0",
     "nitro": "3.0.260603-beta",

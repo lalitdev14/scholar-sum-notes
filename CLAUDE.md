@@ -28,6 +28,27 @@ in this repo with no Lovable dependency.
 - `src/integrations/supabase/` — browser client, server client, auth middleware, generated `types.ts`
 - `supabase/migrations/` — database schema, apply in filename order
 
+## How every requirement is delivered (required)
+
+For every new requirement or change request, follow `docs/process/REQUIREMENTS_PROCESS.md`:
+
+1. **Requirement analyst** (main session): `node scripts/req/new.mjs "<title>" "<request>"`, then
+   fill in `requirement.md` with scope, user stories and numbered acceptance criteria (AC-1…).
+2. **Developer agent** builds it on `claude/<slug>` from `preprod`, using only the requirement.
+3. **Test master agent** writes `test-cases.json` from the requirement only (not the code),
+   covering every acceptance criterion.
+4. **Tester agent** runs every test case (test data or mocks only), saves screenshots to
+   `evidence/`, writes `test-results.json`, and runs `node scripts/req/evidence.mjs <folder>`
+   to produce `test-evidence.xlsx`.
+5. **Product manager agent** checks the requirement against the working feature and the
+   evidence, and records Approved or Changes requested in `requirement.md`.
+6. Only after approval: commit the requirement folder with the code and raise the PR into
+   `preprod`.
+
+Use a separate agent (Agent tool) for each of the developer, test master, tester and product
+manager roles. Record every step with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>"
+"<Details>"`. The user can waive steps 3–5 for a trivial change; record that in the audit trail.
+
 ## Conventions
 
 - Use the `@/` alias for imports from `src`.
