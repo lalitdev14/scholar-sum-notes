@@ -1,0 +1,378 @@
+[
+  {
+    "id": "TC-01",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "PowerPoint deck shows immediately with 'Preparing exact slides…' indicator; navigation and notes work meanwhile",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter set to 'succeed slowly' (job stays 'processing' for ~60 s). Test deck: 5-slide 16:9 .pptx with pictures.",
+    "steps": [
+      "Open the class page",
+      "Slides panel → Add slides → choose deck5.pptx",
+      "Immediately (before the mock job finishes) look at the Slides viewer and toolbar",
+      "Click › twice, then ‹ once",
+      "Type 'note while converting' in the notes panel and let it save"
+    ],
+    "expected": "Within a few seconds of upload the deck tab appears and the PowerPoint viewer shows slide 1 with toolbar 'Slide 1 / 5'; a visible 'Preparing exact slides…' indicator is shown; navigation updates the counter to 'Slide 3 / 5' then 'Slide 2 / 5' and the slide changes; the typed note is kept/saved; no blocking dialog or spinner covers the viewer"
+  },
+  {
+    "id": "TC-02",
+    "ac": [
+      "AC-2"
+    ],
+    "title": "Background conversion saves <deck>.converted.pdf in the student's folder and switches the viewer to the PDF with 'Exact slides ready'",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter set to 'succeed' (returns a valid 5-page PDF after ~3 s). Test deck: deck5.pptx.",
+    "steps": [
+      "Upload deck5.pptx",
+      "Inspect converter requests in the mock log",
+      "Wait until the mock job reports done",
+      "Inspect mocked storage uploads",
+      "Look at the Slides viewer, toolbar and toasts"
+    ],
+    "expected": "Converter receives exactly one POST /api/convert/office-to-pdf with multipart field 'files' containing the .pptx, then GET /api/jobs/<id> polls until 'done', then one GET of outputs[0].url on the converter host; storage bucket 'lecture-slides' receives a file at '<uid>/<classId>/<uuid>.converted.pdf' (same <uid>/<classId>/<uuid> as the uploaded .pptx, contentType application/pdf, 5 pages); the viewer switches to the PDF (toolbar shows 'Page 1 / 5'); a toast/note 'Exact slides ready' appears; the 'Preparing exact slides…' indicator is gone"
+  },
+  {
+    "id": "TC-03",
+    "ac": [
+      "AC-2"
+    ],
+    "title": "Switch to PDF keeps the slide the student is on (slide k > 1)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter set to 'succeed slowly' (~20 s) so the student can navigate first. Test deck: deck5.pptx (each slide visibly numbered/titled).",
+    "steps": [
+      "Upload deck5.pptx",
+      "While 'Preparing exact slides…' is visible, navigate to slide 4 ('Slide 4 / 5')",
+      "Wait for the switch to the PDF"
+    ],
+    "expected": "After the switch the toolbar shows 'Page 4 / 5' and the displayed page is slide 4's content (same title/picture as the PowerPoint slide 4); the viewer did not jump back to page 1; 'Exact slides ready' shown, indicator gone"
+  },
+  {
+    "id": "TC-04",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Reopening a deck that already has a PDF copy opens the PDF directly with zero converter requests",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. deck5.pptx already uploaded and its '<uuid>.converted.pdf' present in mocked storage (e.g. from TC-02). Converter request counter reset to 0.",
+    "steps": [
+      "Reload the class page (or navigate to another page and back)",
+      "Select the deck5 tab",
+      "Observe the viewer for 10 s",
+      "Read the converter request counter"
+    ],
+    "expected": "The PDF opens straight away (toolbar 'Page 1 / 5'), no 'Preparing exact slides…' indicator and no 'Exact slides ready' toast; converter request counter is 0 (no POST, no job polling); no new file is written to storage"
+  },
+  {
+    "id": "TC-05",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Legacy deck (uploaded before the feature, no PDF copy) is converted on first open and switches when done",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mocked storage pre-seeded with a slide-deck record and legacy.pptx (5 slides) at '<uid>/<classId>/<uuid>.pptx' but NO '.converted.pdf'. Mock converter set to 'succeed'. Counter reset.",
+    "steps": [
+      "Open the class page",
+      "Select the legacy deck tab",
+      "Observe viewer and converter log until done",
+      "Inspect storage"
+    ],
+    "expected": "The deck first shows in the PowerPoint viewer ('Slide 1 / 5') with 'Preparing exact slides…'; exactly one conversion is started (1 POST); '<uid>/<classId>/<uuid>.converted.pdf' is saved; viewer switches to 'Page 1 / 5' with 'Exact slides ready'; reopening afterwards makes no further converter requests"
+  },
+  {
+    "id": "TC-06",
+    "ac": [
+      "AC-4"
+    ],
+    "title": "'Write on slide' on a PowerPoint deck now shown as PDF adds the current slide as a notebook page",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. deck5.pptx converted (viewer shows PDF). Left panel notes open.",
+    "steps": [
+      "In the Slides viewer go to 'Page 3 / 5'",
+      "Left panel → Handwrite tab → add-page menu → 'Write on slide'",
+      "Look at the new notebook page"
+    ],
+    "expected": "A new notebook page is added whose background is slide 3 of deck5 (matches the PDF page 3 image, not another slide); no 'Open a PDF slide deck on the Slides side first.' message; the page can be written on"
+  },
+  {
+    "id": "TC-07",
+    "ac": [
+      "AC-4"
+    ],
+    "title": "'Write on all slides' on a converted PowerPoint deck adds every slide in order (32-slide deck)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. deck32.pptx (32 numbered slides) uploaded and converted (viewer shows 'Page 1 / 32').",
+    "steps": [
+      "Handwrite tab → add-page menu → 'Write on all slides'",
+      "Wait for pages to be added",
+      "Count notebook pages and check first, 16th and last page backgrounds"
+    ],
+    "expected": "32 notebook pages are added, in order: page 1 shows slide 1, page 16 shows slide 16, page 32 shows slide 32; no error message; no page errors in the console"
+  },
+  {
+    "id": "TC-08",
+    "ac": [
+      "AC-4"
+    ],
+    "title": "'Write on slide' while the PowerPoint deck is still converting explains the exact slides are being prepared",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter set to 'succeed slowly' (~60 s). deck5.pptx just uploaded; 'Preparing exact slides…' visible.",
+    "steps": [
+      "Handwrite tab → add-page menu → 'Write on slide'",
+      "Read the message",
+      "Repeat with 'Write on all slides'",
+      "After the switch to PDF, try 'Write on slide' again"
+    ],
+    "expected": "While converting, both actions show a message saying the exact slides are still being prepared (NOT 'Open a PDF slide deck on the Slides side first.'); no blank or wrong page is added; after the switch 'Write on slide' adds the current slide as a page"
+  },
+  {
+    "id": "TC-09",
+    "ac": [
+      "AC-5"
+    ],
+    "title": "Conversion failure keeps the PowerPoint view without an error dialog and retries on next open",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter set to 'fail' (job returns status 'failed'; also check variant: POST returns HTTP 500). Counter reset. Test deck: deck5.pptx.",
+    "steps": [
+      "Upload deck5.pptx",
+      "Wait for the mocked failure",
+      "Observe viewer, toasts and dialogs; navigate slides",
+      "Inspect storage",
+      "Set mock to 'succeed'; reload the class page and open the deck tab"
+    ],
+    "expected": "After the failure the PowerPoint viewer stays ('Slide N / 5', navigation works); no modal/error dialog appears (at most a quiet, non-blocking note); the 'Preparing exact slides…' indicator stops; no '.converted.pdf' is saved; on reopen a new conversion is requested (counter increases by one POST) and on success the viewer switches to the PDF"
+  },
+  {
+    "id": "TC-10",
+    "ac": [
+      "AC-5"
+    ],
+    "title": "Conversion timeout keeps the PowerPoint view and retries on next open",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter set to 'time out' (job stays 'processing' forever / no response). Test deck: deck5.pptx.",
+    "steps": [
+      "Upload deck5.pptx",
+      "Wait until the app gives up (observe for up to ~5 minutes; note the time it stops polling)",
+      "Observe viewer, dialogs and network polling",
+      "Set mock to 'succeed'; reopen the deck"
+    ],
+    "expected": "The app stops polling after a bounded time; PowerPoint view stays usable throughout; no error dialog; indicator removed or replaced by a quiet note; no '.converted.pdf' saved; reopening starts a new conversion and switches to the PDF on success"
+  },
+  {
+    "id": "TC-11",
+    "ac": [
+      "AC-5"
+    ],
+    "title": "Page-count mismatch (deck with a hidden slide) is rejected: PowerPoint view stays",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Test deck: hidden.pptx with 6 slides, slide 4 hidden (viewer shows it as 6 slides). Mock converter set to return a 5-page PDF (wrong page count).",
+    "steps": [
+      "Upload hidden.pptx",
+      "Wait for the mock conversion to finish",
+      "Observe viewer and toasts",
+      "Inspect storage",
+      "Reopen the deck and check converter counter"
+    ],
+    "expected": "The PDF copy is not used: the viewer stays on the PowerPoint ('Slide N / 6'), no 'Exact slides ready', no error dialog; no '.converted.pdf' is kept for the deck (or, if written, it is never shown); bookmarks numbering unchanged; reopening the deck tries the conversion again (new POST)"
+  },
+  {
+    "id": "TC-12",
+    "ac": [
+      "AC-5"
+    ],
+    "title": "Only one conversion per deck: rapid deck-tab switching while converting",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. A PDF deck and deck5.pptx in the class. Mock converter 'succeed slowly' (~30 s). Counter reset.",
+    "steps": [
+      "Upload deck5.pptx",
+      "While converting, click between the PDF deck tab and the deck5 tab 10 times quickly",
+      "Wait for completion",
+      "Read converter counter and storage"
+    ],
+    "expected": "Exactly one POST /api/convert/office-to-pdf for deck5 (polling requests for one job id only); exactly one '.converted.pdf' upload; viewer ends on the PDF for deck5 when its tab is selected; no page errors"
+  },
+  {
+    "id": "TC-13",
+    "ac": [
+      "AC-5"
+    ],
+    "title": "Only one conversion per deck: leaving and reopening the class while a conversion is running",
+    "type": "Negative",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Legacy deck without a PDF copy (as in TC-05). Mock converter 'succeed slowly' (~30 s). Counter reset.",
+    "steps": [
+      "Open the class and select the legacy deck (conversion starts)",
+      "Within 5 s navigate to the dashboard (in-app link) and back to the class, select the deck again",
+      "Repeat once more",
+      "Wait for completion; read counter"
+    ],
+    "expected": "Only one conversion job is running for the deck at any time (at most one POST while the first job is in progress); one '.converted.pdf' saved; viewer switches to PDF; no duplicate toasts beyond one 'Exact slides ready'"
+  },
+  {
+    "id": "TC-14",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "Deleting a converted deck deletes both the .pptx and its .converted.pdf",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. deck5.pptx converted ('<uuid>.pptx' and '<uuid>.converted.pdf' in storage). Also a legacy deck without a copy.",
+    "steps": [
+      "Delete deck5 via its deck-tab delete action and confirm",
+      "Inspect mocked storage remove calls/contents",
+      "Delete the legacy deck (no copy)"
+    ],
+    "expected": "deck5 tab disappears; storage no longer contains '<uid>/<classId>/<uuid>.pptx' nor '<uid>/<classId>/<uuid>.converted.pdf'; deleting the legacy deck succeeds without error (missing copy is tolerated); no page errors"
+  },
+  {
+    "id": "TC-15",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "Bookmarks, slide counter, AI overview and zoom work after the switch to PDF",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter 'succeed slowly' (~20 s). AI overview endpoint mocked. Test deck: deck5.pptx.",
+    "steps": [
+      "Upload deck5.pptx; while still PowerPoint, go to slide 4 and click Bookmark",
+      "Wait for switch to PDF",
+      "Open bookmarks dropdown and choose the slide 4 bookmark",
+      "Go to page 2 and add a bookmark",
+      "Use ‹ › through all pages",
+      "Zoom in and out",
+      "Click 'AI overview'"
+    ],
+    "expected": "Bookmark from before the switch is listed and jumps to 'Page 4 / 5' showing slide 4; new bookmark for page 2 is saved and listed; counter goes 1..5 correctly with no off-by-one; zoom enlarges/reduces the page; AI overview opens and shows content (mock) for the deck; no page errors"
+  },
+  {
+    "id": "TC-16",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "PDF upload regression: PDF decks behave as before and never call the converter",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Test file: lecture.pdf (4 pages). Counter reset.",
+    "steps": [
+      "Add slides → lecture.pdf",
+      "Navigate, zoom, bookmark, AI overview",
+      "Handwrite → 'Write on slide' on page 2",
+      "Read converter counter and storage"
+    ],
+    "expected": "PDF opens with 'Page 1 / 4'; no 'Preparing exact slides…' indicator or 'Exact slides ready'; converter counter is 0; no '.converted.pdf' file written; Write on slide adds page 2 as a notebook page; all viewer features work as before"
+  },
+  {
+    "id": "TC-17",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "PowerPoint viewer regression when the converter is unreachable",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter down (connection refused / network error). Test deck: deck5.pptx with pictures.",
+    "steps": [
+      "Upload deck5.pptx",
+      "Navigate all 5 slides, zoom, bookmark slide 2, open AI overview",
+      "Reload and reopen the deck"
+    ],
+    "expected": "PowerPoint viewer renders all slides with pictures as before ('Slide N / 5'); zoom, bookmarks and AI overview work; no error dialog, no uncaught errors; on reopen a conversion is attempted again and failure is again silent"
+  },
+  {
+    "id": "TC-18",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "No page errors across the full flow (upload, convert, switch, write on slide, delete)",
+    "type": "Regression",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Mock converter 'succeed'. Console and pageerror listeners attached.",
+    "steps": [
+      "Upload deck5.pptx; wait for switch",
+      "Write on slide; Write on all slides",
+      "Switch deck tabs; reload",
+      "Delete the deck",
+      "Review captured console errors and page errors"
+    ],
+    "expected": "Zero uncaught page errors (pageerror) and no red console errors originating from the app during the flow (failed mock requests intentionally triggered elsewhere excluded)"
+  },
+  {
+    "id": "TC-19",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "Phone width: indicator and viewer fit at 390 px",
+    "type": "UI",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session) as a test student, enrolled in a test class; mocked Supabase storage (uploaded paths inspectable); mocked PDF Studio converter with request counter; browser console and network log captured. Viewport 390x844. Mock converter 'succeed slowly'.",
+    "steps": [
+      "Open class page at phone width, go to Slides",
+      "Upload deck5.pptx",
+      "Screenshot while 'Preparing exact slides…' is shown and after 'Exact slides ready'"
+    ],
+    "expected": "Indicator text is visible and readable, does not overlap the toolbar controls; no horizontal page scroll; after switch the PDF page fits the width"
+  },
+  {
+    "id": "TC-20",
+    "ac": [
+      "AC-7"
+    ],
+    "title": "Security policy allows the converter host; no CSP violations during conversion",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Local production build (`bun run build` output) served; signed-in test session; mock converter served at the configured converter origin (or real host reachable).",
+    "steps": [
+      "Fetch the class page response headers (curl -I) and/or read the CSP meta tag",
+      "Check connect-src",
+      "Upload deck5.pptx and let conversion run; watch console for 'Content Security Policy' violations / securitypolicyviolation events"
+    ],
+    "expected": "CSP connect-src includes https://pdf-studio-api-xy4g.onrender.com (or the configured converter origin); no CSP violation is reported for converter POST, job polling or the PDF download"
+  },
+  {
+    "id": "TC-21",
+    "ac": [
+      "AC-7"
+    ],
+    "title": "Privacy page states PowerPoint files are sent once to the PDF Studio server for conversion",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "App running; signed out is fine",
+    "steps": [
+      "Open /privacy",
+      "Search the page for 'PDF Studio'"
+    ],
+    "expected": "The privacy page contains a sentence saying uploaded PowerPoint files are sent once to the PDF Studio server to be converted to PDF; rest of the page renders normally"
+  },
+  {
+    "id": "TC-22",
+    "ac": [
+      "AC-2",
+      "AC-5"
+    ],
+    "title": "Real converter end-to-end check with curl (download and page count)",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Test machine with curl and pdfinfo (or python pypdf); network access to pdf-studio-api-xy4g.onrender.com; test decks deck5.pptx and hidden.pptx (no real student data)",
+    "steps": [
+      "curl -F files=@deck5.pptx https://pdf-studio-api-xy4g.onrender.com/api/convert/office-to-pdf → note job id (allow 30–60 s cold start)",
+      "Poll curl https://pdf-studio-api-xy4g.onrender.com/api/jobs/<id> until status is done/failed; record total time",
+      "Download outputs[0].url (relative) from the same host to deck5.pdf",
+      "Run pdfinfo deck5.pdf (Pages)",
+      "curl -I -X OPTIONS with Origin: https://lectureloop-preprod.vercel.app and Access-Control-Request-Method: POST to check CORS",
+      "Repeat steps 1-4 with hidden.pptx and record its page count"
+    ],
+    "expected": "deck5 job reaches 'done'; downloaded file is a valid PDF with exactly 5 pages and slide pictures visible; CORS response allows the pre-prod origin; hidden.pptx result page count is recorded (if it differs from 6 it confirms the mismatch scenario TC-11 guards against)"
+  }
+]

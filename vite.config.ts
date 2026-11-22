@@ -20,7 +20,8 @@ const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://*.supabase.co https://*.googleusercontent.com",
-  "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co",
+  // PDF Studio's converter makes the exact PDF copy of uploaded PowerPoint decks.
+  "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://pdf-studio-api-xy4g.onrender.com",
   "worker-src 'self' blob:",
   "media-src 'self' blob:",
   // PDF Studio (merge, split, convert PDFs) is embedded in My notes.

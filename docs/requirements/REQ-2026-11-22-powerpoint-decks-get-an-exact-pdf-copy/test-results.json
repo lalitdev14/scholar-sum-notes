@@ -1,0 +1,233 @@
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "2175 ms after choosing the file: toast \"Slides uploaded\", deck tab shown, viewer \"Slide 1 / 5\" title \"Slide 1 of 5\", indicator \"Preparing exact slides…\"; › ×2 → \"Slide 3 / 5\" (\"Slide 3 of 5\"), ‹ → \"Slide 2 / 5\" (\"Slide 2 of 5\"); typed note kept in editor (\"note while converting\"), Save sent the text to the save-notes server function (mocked), toasts \"Notes saved\"; indicator still \"Preparing exact slides…\"; blocking dialogs 0; converter job still running (posts 1, no copy yet: true); 0 page errors",
+    "evidence": [
+      "evidence/TC-01-1.png",
+      "evidence/TC-01-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:23:02Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Pass",
+    "actual": "converter: 1 POST /api/convert/office-to-pdf (field \"files\", file 85389bb5-61df-4bbb-956e-5cf4633e68ce.pptx, zip payload true), 2 GET /api/jobs/job1 until done, 1 GET of outputs[0].url; storage: deck at <uid>/<classId>/85389bb5-61df-4bbb-956e-5cf4633e68ce.pptx; copy at <uid>/<classId>/85389bb5-61df-4bbb-956e-5cf4633e68ce.converted.pdf (application/pdf, 5 pages, same <uuid>: true); switched to the PDF 2033 ms after upload (5 PDF pages drawn), indicator before \"Preparing exact slides…\", after \"\", toasts \"Slides uploaded|Exact slides ready\", toolbar \"Slide 1 / 5\"; 0 page errors. Observation: toolbar reads \"Slide 1 / 5\" instead of the expected \"Page 1 / 5\" (developer keeps the unit \"Slide\" for a deck shown as its PDF copy, documented in §7); counter number and page count are correct",
+    "evidence": [
+      "evidence/TC-02-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:23:40Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "while \"Preparing exact slides…\": navigated to \"Slide 4 / 5\" (\"Slide 4 of 5\"); switched after 18797 ms: toolbar \"Slide 4 / 5\", page in view = PDF page 4 with slide 4's colour (rgb 74,222,128), indicator \"\", toast \"Exact slides ready\"; 0 page errors. Observation: toolbar reads \"Slide 4 / 5\" rather than \"Page 4 / 5\" (unit \"Slide\" kept for converted decks)",
+    "evidence": [
+      "evidence/TC-03-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:24:51Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "after reload the deck5 tab showed the PDF in 4 ms (5 pages), toolbar \"Slide 1 / 5\"; during 10 s: indicator/PowerPoint view seen: false; toasts \"none\"; converter requests: 0 POST, 0 polls, 0 downloads; storage writes: 0; copy downloaded from storage 4× (found 2); 0 page errors. Observation: toolbar reads \"Slide 1 / 5\", not \"Page 1 / 5\" (unit \"Slide\" kept for converted decks)",
+    "evidence": [
+      "evidence/TC-04-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:23:54Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "legacy deck (no copy) opened: \"Slide 1 / 5\" title \"Legacy slide 1 of 5\", indicator \"Preparing exact slides…\"; converter POSTs 1; copy saved at <uid>/<classId>/11111111-1111-4111-8111-111111111111.converted.pdf (next to the .pptx); switched after 2803 ms, toolbar \"Slide 1 / 5\", toast \"Exact slides ready\", indicator \"\"; reopened: PDF shown (5 pages), converter POSTs still 1; 0 page errors",
+    "evidence": [
+      "evidence/TC-05-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:24:11Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "viewer on \"Slide 3 / 5\" (PDF copy); Write on slide → toast \"Added the current slide as a page. Write on it!\"; notebook 1 → 2 pages, shown page 2 background rgb 250,204,21 = slide 3 colour (distance 0); a stroke was drawn on the page (20,20,20); 0 page errors",
+    "evidence": [
+      "evidence/TC-06-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:25:08Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "deck32 converted and shown as PDF (32 pages, toolbar \"Slide 1 / 32\"); Write on all slides → toasts \"Added all 32 slides as pages. Write on them, swipe to turn the page.\"; notebook 1 → 32 pages (the notebook started with 1 empty page, which the first slide page replaced; it now holds exactly 32 slide pages); page backgrounds checked for all 32 added pages by colour: page 1 = slide 1, page 16 = slide 16, page 32 = slide 32; mismatches []; 0 page errors",
+    "evidence": [
+      "evidence/TC-07-1.png",
+      "evidence/TC-07-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:26:49Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "while \"Preparing exact slides…\" (on slide 2): Write on slide → \"Exact slides are still being prepared for this PowerPoint. Try again in a moment.\"; Write on all slides → \"Exact slides are still being prepared for this PowerPoint. Try again in a moment.\"; notebook pages 1 → 1; switch after 50534 ms to \"Slide 2 / 5\"; Write on slide → \"Added the current slide as a page. Write on it!\", notebook 1 → 2 pages, new page = slide 2; 0 page errors",
+    "evidence": [
+      "evidence/TC-08-1.png",
+      "evidence/TC-08-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:26:22Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "[job status \"failed\"] indicator \"Preparing exact slides…\" → \"PowerPoint view\" after 1304 ms; PowerPoint view stays, › ×2 → \"Slide 3 / 5\" (\"Slide 3 of 5\"), PDF pages 0; dialogs 0; toasts \"Slides uploaded\"; copies saved 0; console: warning: [slides] exact PDF copy not made for <uid>/<classId>/52759a4a-5059-4754-bdd8-7421ad7496a3.pptx; showing the PowerPoint view: conversion failed: LibreOffi; converter set to succeed, page reloaded: POSTs 1 → 2, switched to the PDF after 2032 ms (\"Slide 3 / 5\"), toast \"Exact slides ready\"; [POST answers HTTP 500] indicator \"PowerPoint view\" → \"PowerPoint view\" after 4 ms; PowerPoint view stays, › ×2 → \"Slide 3 / 5\" (\"Slide 3 of 5\"), PDF pages 0; dialogs 0; toasts \"Slides uploaded\"; copies saved 0; console: warning: [slides] exact PDF copy not made for <uid>/<classId>/612b1c66-2f39-40ec-ab3b-27f055a92f1a.pptx; showing the PowerPoint view: the converter answered 500; converter set to succeed, page reloaded: POSTs 2 → 3, switched to the PDF after 2034 ms (\"Slide 3 / 5\"), toast \"Exact slides ready\"; 0 page errors. Observation: with the HTTP 500 variant the single upload produced 2 POSTs one after the other (the upload-triggered attempt failed at once, then the viewer started its own attempt); never two at the same time",
+    "evidence": [
+      "evidence/TC-09-1.png",
+      "evidence/TC-09-2.png",
+      "evidence/TC-09-3.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:27:20Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Pass",
+    "actual": "indicator \"Preparing exact slides…\"; job never finished; the app polled 160× (every ~1.5 s) and stopped 241 s after the POST; indicator became \"PowerPoint view\" 240 s after upload; no polls in the following 15 s; PowerPoint view usable throughout (navigated every 30 s: true), now \"Slide 5 / 5\"; dialogs 0; error toasts 0; copies saved 0; console: warning: [slides] exact PDF copy not made for <uid>/<classId>/9edb871d-ed18-4558-8245-34449e983f09.pptx; showing the PowerPoint view: conversion timed out; converter set to succeed, reopened: POSTs 1 → 2, switched to the PDF after 2037 ms, toast \"Exact slides ready\"; 0 page errors. Waited in real time (no clock fast-forward)",
+    "evidence": [
+      "evidence/TC-10-1.png",
+      "evidence/TC-10-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:36:26Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Pass",
+    "actual": "hidden.pptx (6 slides, slide 4 hidden) opened as \"Slide 1 / 6\" with \"Preparing exact slides…\"; converter returned the real converter's 5-page PDF (downloaded 1×); afterwards toolbar \"Slide 1 / 6\", PDF pages drawn 0, indicator \"PowerPoint view\", toasts \"Slides uploaded\", dialogs 0, copies saved 0; console: warning: [slides] exact PDF copy not made for <uid>/<classId>/653e546b-4705-44a6-b95c-73fb59340644.pptx; showing the PowerPoint view: the PDF has 5 pages but the ; Bookmark → \"Bookmarked slide 1\" (numbering unchanged); reopened: POSTs 1 → 2; 0 page errors",
+    "evidence": [
+      "evidence/TC-11-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:27:34Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Pass",
+    "actual": "10 quick switches between lecture (PDF) and deck5 while converting; converter: 1 POST, polls for job id(s) [job1], 1 download; .converted.pdf uploads 1; deck5 tab ends on the PDF (5 pages, \"Slide 1 / 5\"); toasts \"Slides uploaded|Slides uploaded|Exact slides ready\"; 0 page errors",
+    "evidence": [
+      "evidence/TC-12-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:28:13Z"
+  },
+  {
+    "id": "TC-13",
+    "result": "Pass",
+    "actual": "left to the dashboard and came back (in-app links); POSTs 1, indicator \"Preparing exact slides…\"; again: POSTs 1, indicator \"Preparing exact slides…\"; after completion: 1 POST in total (first job running from 0 s to ~30 s), 1 .converted.pdf saved, viewer on PDF (\"Slide 1 / 5\", 5 pages), \"Exact slides ready\" toasts: 1; 0 page errors",
+    "evidence": [
+      "evidence/TC-13-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:31:07Z"
+  },
+  {
+    "id": "TC-14",
+    "result": "Pass",
+    "actual": "before: storage has deck5 .pptx true and .converted.pdf true; legacy deck has no copy (true); deleted deck5: storage remove call for [<uid>/<classId>/8233b654-4e86-457e-9633-a8fcc2119f55.pptx, <uid>/<classId>/8233b654-4e86-457e-9633-a8fcc2119f55.converted.pdf]; storage still has .pptx false, .converted.pdf false; tabs now [legacy]; toast \"Slides removed\"; deleted legacy (no copy): remove call for [<uid>/<classId>/11111111-1111-4111-8111-111111111111.pptx, <uid>/<classId>/11111111-1111-4111-8111-111111111111.converted.pdf], toast \"Slides removed\", tabs now [], .pptx left false; 0 page errors",
+    "evidence": [
+      "evidence/TC-14-1.png",
+      "evidence/TC-14-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:29:19Z"
+  },
+  {
+    "id": "TC-15",
+    "result": "Pass",
+    "actual": "PowerPoint view \"Slide 4 / 5\": Bookmark → \"Bookmarked slide 4\"; switched after 14726 ms on \"Slide 1 / 5\"; dropdown after switch [Slide 4]; chose Slide 4 → \"Slide 4 / 5\", page in view 4 (slide 4 colour); on page 2: Bookmark → \"Bookmarked slide 2\"; dropdown [Slide 2,Slide 4]; toolbar ‹ › buttons after switch: 0 (PDF view scrolls, as PDF decks do); scrolling pages 1..5 → Slide 1 / 5=p1/s1, Slide 2 / 5=p2/s2, Slide 3 / 5=p3/s3, Slide 4 / 5=p4/s4, Slide 5 / 5=p5/s5; zoom: 576px → + 125% 720px → −− 80% 460px; AI overview on page 3: \"AI OVERVIEW · SLIDE 3 Slide 3 of 5 Mocked overview: this slide introduces the topic of the recitation. • Key i\" (request headline: Slide 3 of 5); 0 page errors. Note: TC step \"Use ‹ › through all pages\" done by scrolling: after the switch the deck is a PDF view without toolbar arrows (documented limitation in §7)",
+    "evidence": [
+      "evidence/TC-15-1.png",
+      "evidence/TC-15-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:30:06Z"
+  },
+  {
+    "id": "TC-16",
+    "result": "Pass",
+    "actual": "lecture.pdf: toast \"Slides uploaded\", \"Page 1 / 4\", 4 pages, indicator \"none\"; scroll to page 3 → \"Page 3 / 4\", zoom → 125%, Bookmark on page 2 → \"Bookmarked page 2\", AI overview \"AI OVERVIEW · PAGE 2 Lecture page 2 of 4 Mocked overview: this slide i\"; Write on slide on page 2 → \"Added the current slide as a page. Write on it!\", new notebook page = lecture page 2; converter requests: 0 POST, 0 polls; .converted.pdf writes 0; \"Exact slides ready\" toasts 0; 0 page errors",
+    "evidence": [
+      "evidence/TC-16-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:30:25Z"
+  },
+  {
+    "id": "TC-17",
+    "result": "Pass",
+    "actual": "converter down (connection refused, 2 attempt); indicator \"PowerPoint view\"; slides: Slide 1 / 5:0pics, Slide 2 / 5:2pics, Slide 3 / 5:0pics, Slide 4 / 5:2pics, Slide 5 / 5:0pics; zoom → 125%; on \"Slide 2 / 5\" Bookmark → \"Bookmarked slide 2\"; AI overview \"AI OVERVIEW · SLIDE 2 Slide 2 of 5 Mocked overview: this sli\"; dialogs 0; error toasts 0; console: warning: [slides] exact PDF copy not made for <uid>/<classId>/bcaca7e7-bd14-4edc-8ff7-30f0f2f41067.pptx; showing the PowerPoint view: Failed to fetch; reloaded: conversion attempted again (attempts 2 → 3), indicator \"PowerPoint view\", still \"Slide 2 / 5\", silent (error toasts 0, dialogs 0); 0 page errors (the browser's own \"net::ERR_CONNECTION_REFUSED\" console lines are expected for the refused converter). Observation: as in TC-09, a fast failure (connection refused) on upload leads to a second, sequential attempt by the viewer (2 attempts on upload, 1 more on reload); never concurrent",
+    "evidence": [
+      "evidence/TC-17-1.png",
+      "evidence/TC-17-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:31:22Z"
+  },
+  {
+    "id": "TC-18",
+    "result": "Pass",
+    "actual": "upload + switch (2033 ms); Write on slide \"Added the current slide as a page. Write on it!\"; Write on all slides \"Added all 5 slides as pages. Write on them, swipe to turn the page.\"; tab switch, reload, delete: toasts \"Slides uploaded|Slides uploaded|Exact slides ready|Added the current slide as a page. Write on it!|Added all 5 slides as pages. Write on them, swipe to turn the page.|Slides removed\"; pageerror events: 0; console errors: 4, all of them network \"Failed to load resource\" lines: true; HTTP errors seen: 400 https://ytxsplbzohecawbdskgz.supabase.co/storage/v1/object/list/lecture-audio, 400 https://ytxsplbzohecawbdskgz.supabase.co/storage/v1/object/lecture-slides/<uid>/00000000-. The 400 answers are the mocked storage saying \"Object not found\" when the viewer checks for a PDF copy that does not exist yet (real Supabase answers the same way; the app treats it as \"no copy\"), and the unmocked lecture-audio listing; no JavaScript errors from the app",
+    "evidence": [
+      "evidence/TC-18-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 1440x900, fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:32:32Z"
+  },
+  {
+    "id": "TC-19",
+    "result": "Pass",
+    "actual": "390px while preparing: indicator \"Preparing exact slides…\" at 42,553,178,26 (font 12px), on screen true, overlapping toolbar buttons 0; page scrollWidth 390/390; after switch (11970 ms, toast \"Exact slides ready\"): PDF page 298px wide in a 324px viewer, fits true; scrollWidth 390/390; indicator \"\"; 0 page errors",
+    "evidence": [
+      "evidence/TC-19-1.png",
+      "evidence/TC-19-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-pdf-copy @ 504c469), Chromium 390x844 (phone), fake session, mocked Supabase (storage recorded) and mocked PDF Studio converter (page.route) serving PDFs made by the real converter",
+    "testedAt": "2026-11-22T17:34:35Z"
+  },
+  {
+    "id": "TC-20",
+    "result": "Pass",
+    "actual": "production build (bun run build, node .output/server/index.mjs on :3100): Content-Security-Policy header connect-src = \"'self' data: blob: https://*.supabase.co wss://*.supabase.co https://pdf-studio-api-xy4g.onrender.com\"; meta CSP tag: none (header only); in the production page a deck5 upload ran the full conversion against the converter origin (1 POST, 2 job polls, 1 PDF download, mocked at the network layer after the browser's CSP check) and switched to the PDF in 1278 ms (toast \"Exact slides ready\"); securitypolicyviolation events: 0; CSP console messages: 0; page errors 0; negative control in the same production page: fetch to a host not in connect-src was blocked and raised a securitypolicyviolation event (connect-src), so the listener works",
+    "evidence": [
+      "evidence/TC-20-1.png",
+      "evidence/TC-20-2.png"
+    ],
+    "environment": "Local production build (node .output/server/index.mjs, :3100), Chromium 1440x900, fake session, mocked Supabase and mocked converter",
+    "testedAt": "2026-11-22T17:33:23Z"
+  },
+  {
+    "id": "TC-21",
+    "result": "Pass",
+    "actual": "/privacy renders (9 headings, 5379 characters, 0 page errors); sentence(s) mentioning PDF Studio: \"PDF Studio, the PDF tool shown inside My notes, is a separate app (pdfstudioapp.vercel.app). Files you add there are sent to PDF Studio's own server for processing and, as PDF Studio states, deleted automatically. LectureLoop does not send your notes to PDF Studio. When you upload a PowerPoint (.pptx) deck, the file is sent once to the PDF Studio server (run by the LectureLoop team) to make an exact PDF copy of the slides, which is saved with your deck in your own storage. PDF Studio does not keep the file: the converted result expires there after an hour.\"",
+    "evidence": [
+      "evidence/TC-21-1.png"
+    ],
+    "environment": "Dev server, Chromium 1440x900, signed out",
+    "testedAt": "2026-11-22T17:31:47Z"
+  },
+  {
+    "id": "TC-22",
+    "result": "Pass",
+    "actual": "Real converter via curl: deck5.pptx job reached \"done\" after 13.0 s (no cold start seen), outputs[0].url downloaded from the same host: valid PDF (%PDF-), pdfinfo 5 pages, slide colours and pictures visible in the rendered pages; CORS preflight (OPTIONS, Origin https://lectureloop-preprod.vercel.app, method POST) answered 200 with access-control-allow-origin: https://lectureloop-preprod.vercel.app and allow-methods GET, POST, DELETE, OPTIONS; hidden.pptx (6 slides, slide 4 hidden) converted in 12.2 s to a 5-page PDF: 6 != 5 confirms the mismatch scenario TC-11 guards against (that real 5-page PDF was used in TC-11). Also converted deck32 (32 pages) and legacy (5 pages) for the mocks.",
+    "evidence": [
+      "evidence/TC-22-1.png"
+    ],
+    "environment": "Test container, curl + pdfinfo against https://pdf-studio-api-xy4g.onrender.com (real service, generated test decks only)",
+    "testedAt": "2026-11-22T17:33:56Z"
+  }
+]
