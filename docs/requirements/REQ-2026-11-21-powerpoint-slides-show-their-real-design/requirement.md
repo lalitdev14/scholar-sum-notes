@@ -3,11 +3,11 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-21-powerpoint-slides-show-their-real-design |
-| Status       | Approved                                                |
+| Status       | PR raised                                               |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-21                                              |
 | Branch       | `claude/powerpoint-slides-show-their-real-design`       |
-| PR           | (added in step 6)                                       |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/68 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -260,14 +260,14 @@ out of step with the app, so Bookmark could save the wrong slide, and the counte
 
 Notes per acceptance criterion:
 
-| AC   | Met? | Notes |
-| ---- | ---- | ----- |
-| AC-1 | Yes  | TC-01..TC-05 pass. I checked myself: `dmg-combined` and `recitation-32` draw every slide with pictures, colour and picture backgrounds and formatted text; no text-only note. |
-| AC-2 | Yes  | TC-06 and TC-07 pass. I checked myself on `lo-formula`: the picture, the orange background and both equations (as pictures) are shown. Documented limits: OMML isn't typeset; EMF/WMF previews stay blank. |
+| AC   | Met? | Notes                                                                                                                                                                                                                             |
+| ---- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | Yes  | TC-01..TC-05 pass. I checked myself: `dmg-combined` and `recitation-32` draw every slide with pictures, colour and picture backgrounds and formatted text; no text-only note.                                                     |
+| AC-2 | Yes  | TC-06 and TC-07 pass. I checked myself on `lo-formula`: the picture, the orange background and both equations (as pictures) are shown. Documented limits: OMML isn't typeset; EMF/WMF previews stay blank.                        |
 | AC-3 | Yes  | TC-08, TC-09, TC-10, TC-11, TC-18, TC-19 and TC-21 pass. I checked myself: only one set of navigation; the drawn slide, toolbar counter, Bookmark and AI overview give the same N; full counter at 390 and 360px with 128 slides. |
-| AC-4 | Yes  | TC-12, TC-13 and TC-14 pass: 16:9 and 4:3 slides are whole and centred and match the previous build, apart from the intended picture-background fix. My `good-16x9` walk matched. |
-| AC-5 | Yes  | TC-15: a slide that can't be drawn shows its text with the note, the other slides draw, and the console logs the reason. |
-| AC-6 | Yes  | TC-16 and TC-17 pass with clear messages for corrupt, truncated and non-PowerPoint files. I saw 0 page errors in all my runs. |
+| AC-4 | Yes  | TC-12, TC-13 and TC-14 pass: 16:9 and 4:3 slides are whole and centred and match the previous build, apart from the intended picture-background fix. My `good-16x9` walk matched.                                                 |
+| AC-5 | Yes  | TC-15: a slide that can't be drawn shows its text with the note, the other slides draw, and the console logs the reason.                                                                                                          |
+| AC-6 | Yes  | TC-16 and TC-17 pass with clear messages for corrupt, truncated and non-PowerPoint files. I saw 0 page errors in all my runs.                                                                                                     |
 
 **Required changes from the first review: all closed**
 
@@ -296,7 +296,8 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T01:03:46Z | Tester              | Evidence generated                 | test-evidence.xlsx with 48 screenshots                                                                                                                                                                                                                                                                                                                                   |
 | 2026-11-22T01:09:09Z | Product manager     | PM requested changes               | AC-1,2,4,5,6 met; AC-3 partly: hide library in-slide arrows/counter (out of sync, 0/M, bookmark saves wrong slide) and show full Slide N / M at 390px; retest TC-08, TC-19                                                                                                                                                                                               |
 | 2026-11-22T01:10:25Z | Test master         | Test cases updated after PM review | TC-08 revised (in-slide controls absent or in sync, never 0/M, Bookmark toast = slide shown = counter after every step); TC-19 revised (390px and 360px, full counter incl. 128-slide deck, no horizontal scroll, all toolbar buttons reachable); TC-11, TC-13, TC-20 tightened; TC-21 added (slide/counter/Bookmark/AI overview agree across all navigation). 21 cases. |
-| 2026-11-22T01:18:03Z | Developer | Changes after PM review complete | Library in-slide arrows/counter removed (toolbar is the only navigation; drawn slide, counter, bookmark and AI overview always agree); counter shown in full on phones (360/390px); commit 5178a72 |
-| 2026-11-22T04:45:41Z | Tester | Re-test executed | Re-test after PM review: TC-08, TC-19 (390/360px), TC-21 new, regression TC-01, TC-09..TC-13, TC-18, TC-20: 11/11 passed; total 21/21 passed, 0 failed, 0 blocked |
-| 2026-11-22T04:45:41Z | Tester | Evidence regenerated | test-evidence.xlsx, 54 screenshots |
-| 2026-11-22T04:52:32Z | Product manager | PM approved | Re-verified after 5178a72: no library in-slide controls; slide drawn, counter, bookmark and AI overview agree; full counter at 390/360px (128 / 128); AC-1..AC-6 met; 21/21 Pass |
+| 2026-11-22T01:18:03Z | Developer           | Changes after PM review complete   | Library in-slide arrows/counter removed (toolbar is the only navigation; drawn slide, counter, bookmark and AI overview always agree); counter shown in full on phones (360/390px); commit 5178a72                                                                                                                                                                       |
+| 2026-11-22T04:45:41Z | Tester              | Re-test executed                   | Re-test after PM review: TC-08, TC-19 (390/360px), TC-21 new, regression TC-01, TC-09..TC-13, TC-18, TC-20: 11/11 passed; total 21/21 passed, 0 failed, 0 blocked                                                                                                                                                                                                        |
+| 2026-11-22T04:45:41Z | Tester              | Evidence regenerated               | test-evidence.xlsx, 54 screenshots                                                                                                                                                                                                                                                                                                                                       |
+| 2026-11-22T04:52:32Z | Product manager     | PM approved                        | Re-verified after 5178a72: no library in-slide controls; slide drawn, counter, bookmark and AI overview agree; full counter at 390/360px (128 / 128); AC-1..AC-6 met; 21/21 Pass                                                                                                                                                                                         |
+| 2026-11-22T04:53:50Z | Release             | PR raised                          | https://github.com/lalitdev14/scholar-sum-notes/pull/68 into preprod (after PM approval)                                                                                                                                                                                                                                                                                 |
