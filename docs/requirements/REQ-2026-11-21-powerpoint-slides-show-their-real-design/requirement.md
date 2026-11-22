@@ -6,7 +6,7 @@
 | Status       | PR raised                                               |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-21                                              |
-| Branch       | `claude/powerpoint-slides-show-their-real-design`       |
+| Branch       | `claude/pptx-faithful-slides`                           |
 | PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/68 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
