@@ -273,3 +273,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T01:03:46Z | Tester | Tests executed | 18/20 passed, 2 failed, 0 blocked |
 | 2026-11-22T01:03:46Z | Tester | Evidence generated | test-evidence.xlsx with 48 screenshots |
 | 2026-11-22T01:09:09Z | Product manager | PM requested changes | AC-1,2,4,5,6 met; AC-3 partly: hide library in-slide arrows/counter (out of sync, 0/M, bookmark saves wrong slide) and show full Slide N / M at 390px; retest TC-08, TC-19 |
+| 2026-11-22T01:10:25Z | Test master | Test cases updated after PM review | TC-08 revised (in-slide controls absent or in sync, never 0/M, Bookmark toast = slide shown = counter after every step); TC-19 revised (390px and 360px, full counter incl. 128-slide deck, no horizontal scroll, all toolbar buttons reachable); TC-11, TC-13, TC-20 tightened; TC-21 added (slide/counter/Bookmark/AI overview agree across all navigation). 21 cases. |

@@ -114,19 +114,21 @@
     "ac": [
       "AC-3"
     ],
-    "title": "32-slide repaired deck: count, order, arrows and counters",
+    "title": "32-slide repaired deck: one set of navigation, count, order, and Bookmark always saves the slide shown",
     "type": "Functional",
     "priority": "High",
-    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck recitation-32.pptx (Recitation9 stand-in): python-pptx 32 slides, each with big title 'Slide k of 32' and a different background colour, slide 10 with a picture; round-tripped through `soffice --convert-to pptx`, then damaged (layout Overrides removed from [Content_Types].xml and slide rels rewritten to '/ppt/...').",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck recitation-32.pptx (Recitation9 stand-in): python-pptx 32 slides, each with big title 'Slide k of 32' and a different background colour, slide 10 with a picture; round-tripped through `soffice --convert-to pptx`, then damaged (layout Overrides removed from [Content_Types].xml and slide rels rewritten to '/ppt/...'). ",
     "steps": [
-      "Add slides → choose recitation-32.pptx",
-      "Read the app counter and the library's in-slide 'N/M' counter",
-      "Press the app '›' button 3 times",
-      "Press the library's small next arrow inside the slide once",
-      "Press '‹' twice",
-      "Go to the last slide"
+      "Add slides → choose recitation-32.pptx and wait for slide 1 to draw",
+      "Inspect the slide area (visually and in DevTools Elements): look for the library's in-slide 'N/M' counter and small prev/next arrows (.pptx-preview-wrapper-pagination / -prev / -next)",
+      "Read the toolbar counter; click 'Bookmark' and read the toast",
+      "Press the toolbar '›' 3 times; after EACH press read the slide title and toolbar counter, click 'Bookmark' and read the toast",
+      "Press the toolbar '‹' twice; after each press check title, counter and Bookmark toast again",
+      "If any in-slide arrow is visible: click it once, then check title, toolbar counter and Bookmark toast",
+      "Navigate to the last slide; press '›' once more",
+      "Open the bookmarks dropdown"
     ],
-    "expected": "Initially app counter 'Slide 1 / 32' and in-slide counter '1/32'; slide shows 'Slide 1 of 32'. After 3× '›': 'Slide 4 / 32' and the title reads 'Slide 4 of 32'. Library arrow advances to 5 and the app counter follows ('Slide 5 / 32'). After 2× '‹': 'Slide 3 / 32'. Last slide shows 'Slide 32 of 32' and 'Slide 32 / 32'; '›' is disabled or does nothing. Every viewed slide shows its colour background (design, not text-only note); slide 10 shows its picture."
+    "expected": "In-slide counter and in-slide arrows are NOT shown (absent or hidden: not visible, not clickable); only the toolbar '‹ Slide N / 32 ›' is present. If the developer kept any in-slide control, it shows the same N as the toolbar at all times and never '0/32'. The text '0/32' (or 'Slide 0') never appears anywhere. On open: title 'Slide 1 of 32', toolbar 'Slide 1 / 32', Bookmark toast 'Bookmarked slide 1'. After every navigation step the three numbers are equal: drawn title 'Slide N of 32' = toolbar 'Slide N / 32' = toast 'Bookmarked slide N' (expected sequence 2,3,4 then 3,2). Last slide: 'Slide 32 of 32' / 'Slide 32 / 32'; extra '›' is disabled or does nothing. Bookmarks dropdown lists exactly the slides bookmarked, each matching the slide that was on screen. Every viewed slide shows its colour background (design, not text-only note); slide 10 shows its picture."
   },
   {
     "id": "TC-09",
@@ -169,16 +171,16 @@
     "ac": [
       "AC-3"
     ],
-    "title": "AI overview works on a repaired deck",
+    "title": "AI overview works on a repaired deck and uses the slide on screen",
     "type": "Functional",
     "priority": "Medium",
     "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. recitation-32.pptx (see TC-08) uploaded; AI endpoint mocked to return an overview.",
     "steps": [
-      "Go to slide 12",
+      "Go to slide 12 with the toolbar '›'/slide jump",
       "Click 'AI overview'",
-      "Close the overview and navigate to slide 13"
+      "Close the overview, navigate to slide 13 and click 'AI overview' again"
     ],
-    "expected": "AI overview opens and shows the (mocked) overview text without an error toast; the request concerns this deck/slide (slide text such as 'Slide 12 of 32' is available to it, not empty). The viewer remains on slide 12 with its design, and navigation to 13 still works."
+    "expected": "AI overview opens without an error toast and shows the (mocked) overview for the slide on screen: the overview / its request refers to slide 12 (slide text 'Slide 12 of 32'), then slide 13 after navigating; never the previous slide or slide 0. The viewer stays on the same slide with its design while the overview is open."
   },
   {
     "id": "TC-12",
@@ -213,7 +215,7 @@
       "View each slide at 100%",
       "Compare with screenshots of the same deck taken on the preprod/previous build"
     ],
-    "expected": "'Slide 1 / 5'; every slide drawn with design, 16:9 aspect, whole (no edges cropped) and centred horizontally and vertically in the viewer; no letterboxing artefacts beyond the normal ones; looks the same as before the change. No text-only note."
+    "expected": "'Slide 1 / 5'; every slide drawn with design, 16:9 aspect, whole (no edges cropped) and centred horizontally and vertically in the viewer; no letterboxing artefacts beyond the normal ones; looks the same as before the change. No text-only note. Desktop toolbar counter text is 'Slide N / 5'; no in-slide 'N/M' counter or in-slide arrows."
   },
   {
     "id": "TC-14",
@@ -305,17 +307,19 @@
       "AC-4",
       "AC-6"
     ],
-    "title": "Phone width: repaired deck drawn and usable",
+    "title": "Phone width 390px and 360px: full slide counter, no horizontal scroll, all toolbar buttons reachable",
     "type": "UI",
     "priority": "Medium",
-    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Browser viewport 390x844 (phone). dmg-combined.pptx and recitation-32.pptx uploaded.",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck recitation-32.pptx (Recitation9 stand-in): python-pptx 32 slides, each with big title 'Slide k of 32' and a different background colour, slide 10 with a picture; round-tripped through `soffice --convert-to pptx`, then damaged (layout Overrides removed from [Content_Types].xml and slide rels rewritten to '/ppt/...'). Also big-128.pptx: python-pptx 128 slides titled 'Slide k of 128' (plain or coloured backgrounds; optionally damaged like recitation-32). dmg-combined.pptx (TC-04) uploaded too. Viewports: 390x844 and 360x740.",
     "steps": [
-      "Open the class page at phone width and go to the Slides panel",
-      "Open dmg-combined, view slides 2-4",
-      "Open recitation-32, use '›', bookmarks dropdown and zoom",
-      "Check for horizontal page scroll"
+      "At 390x844 open the class page and the Slides panel; open recitation-32",
+      "Go to slide 32 (toolbar '›' / slide jump); read the toolbar counter; check document.documentElement.scrollWidth <= clientWidth",
+      "Tap each toolbar control: '‹', '›', zoom '−' and '+', 'AI overview', 'Bookmark', bookmarks dropdown",
+      "Open big-128 and go to slide 128 (and slide 100); read the counter",
+      "Open dmg-combined and view slides 2-4",
+      "Repeat all steps at 360x740"
     ],
-    "expected": "Slides are drawn with design (pictures, backgrounds) scaled to fit the width, whole and centred; counter shows 'Slide N / 5' / 'Slide N / 32' correctly; controls (‹ ›, zoom, AI overview, Bookmark, dropdown) are visible and tappable; no horizontal page scroll; no page errors."
+    "expected": "At both widths: the toolbar counter is shown in full with no ellipsis or clipping, e.g. 'Slide 32 / 32' and 'Slide 128 / 128' (a compact '32 / 32' / '128 / 128' without the word 'Slide' is acceptable on phones); the counter number always equals the slide drawn. No horizontal page scroll (scrollWidth not greater than clientWidth). Every toolbar button is visible, not overlapping, and tappable, and does its job (navigation changes slide and counter, zoom changes %, AI overview opens, Bookmark shows 'Bookmarked slide N' with the slide shown, dropdown opens). No in-slide 'N/M' counter or in-slide arrows. Slides are drawn with design (pictures, backgrounds) scaled to fit, whole and centred. No page errors."
   },
   {
     "id": "TC-20",
@@ -331,6 +335,25 @@
       "Add slides → choose good-16x9.pdf",
       "Navigate through all pages, zoom in and out, add a bookmark"
     ],
-    "expected": "PDF shows as before: 'Slide 1 / 5', pages drawn exactly, navigation, zoom and bookmark work; no errors."
+    "expected": "PDF shows as before: toolbar reads 'Page 1 / 5' (PDF wording unchanged), pages drawn exactly, navigation, zoom and bookmark work; no errors."
+  },
+  {
+    "id": "TC-21",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Slide on screen, counter, Bookmark toast and AI overview agree after every kind of navigation",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck recitation-32.pptx (Recitation9 stand-in): python-pptx 32 slides, each with big title 'Slide k of 32' and a different background colour, slide 10 with a picture; round-tripped through `soffice --convert-to pptx`, then damaged (layout Overrides removed from [Content_Types].xml and slide rels rewritten to '/ppt/...'). Uploaded; AI endpoint mocked (its request payload visible in DevTools Network). Bookmarks already on slides 7 and 21.",
+    "steps": [
+      "Go to slide 5 with toolbar '›'; click Bookmark; open AI overview",
+      "Use slide jump to go to slide 18; Bookmark; AI overview",
+      "Choose slide 7 in the bookmarks dropdown; Bookmark; AI overview",
+      "Use keyboard arrow keys (if supported) to move to slide 8; Bookmark; AI overview",
+      "Zoom to a non-100% value, press '›' to slide 9; Bookmark; AI overview",
+      "Switch to another deck tab and back; check which slide is shown, then Bookmark"
+    ],
+    "expected": "After each step the drawn title 'Slide N of 32', toolbar 'Slide N / 32', toast 'Bookmarked slide N' and the AI overview's slide (overview content / request slide number or text) are the same N: 5, 18, 7, 8, 9 respectively; after switching tabs the counter matches whatever slide is drawn. Never a mismatch, never slide 0."
   }
 ]
