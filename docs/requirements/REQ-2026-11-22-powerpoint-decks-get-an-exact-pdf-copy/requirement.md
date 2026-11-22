@@ -119,3 +119,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | -------------------- | ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | 2026-11-22T17:02:06Z | Requirement analyst | Requirement created         | PowerPoint decks get an exact PDF copy                                                                     |
 | 2026-11-22T17:02:33Z | Requirement analyst | Requirement ready for build | 7 acceptance criteria; converter CORS verified for lectureloop.org and pre-prod; real conversion test 12 s |
+| 2026-11-22T17:04:38Z | Test master | Test cases written | 22 test cases covering AC-1..AC-7 |
