@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "req:new": "node scripts/req/new.mjs",
+    "req:audit": "node scripts/req/audit.mjs",
+    "req:evidence": "node scripts/req/evidence.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.30",
@@ -63,6 +66,7 @@
     "docx": "^9.15.3",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "jszip": "^3.10.2",
     "lucide-react": "^0.575.0",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "^6.5.438",
@@ -94,6 +98,7 @@
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "exceljs": "4.4.0",
     "globals": "^15.15.0",
     "lightningcss": "^1.33.0",
     "nitro": "3.0.260603-beta",

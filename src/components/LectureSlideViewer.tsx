@@ -471,6 +471,9 @@ export function LectureSlideViewer({
   function move(direction: -1 | 1) {
     const viewer = previewerRef.current;
     if (!viewer) return;
+    // The library wraps from the last slide to the first; the app stops at the ends.
+    const to = viewer.currentIndex + direction;
+    if (to < 0 || to >= viewer.slideCount) return;
     if (direction === -1) viewer.renderPreSlide();
     else viewer.renderNextSlide();
     setSlide(viewer.currentIndex + 1);
@@ -737,7 +740,7 @@ export function LectureSlideViewer({
       {/* Toolbar */}
       {ready && (
         <div
-          className="mt-3 flex shrink-0 items-center gap-2"
+          className="mt-3 flex shrink-0 flex-wrap items-center gap-1 sm:gap-2"
           role="toolbar"
           aria-label="Slide tools"
         >
@@ -754,11 +757,13 @@ export function LectureSlideViewer({
               <ChevronLeft />
             </Button>
           )}
+          {/* Always shown in full; on phones a deck's counter drops the word "Slide" visually. */}
           <span
-            className="min-w-0 truncate text-sm tabular-nums text-muted-foreground"
+            className="shrink-0 whitespace-nowrap text-sm tabular-nums text-muted-foreground"
             aria-live="polite"
           >
-            {unit} {Math.floor(currentNumber)}
+            <span className={isPdf ? undefined : "sr-only sm:not-sr-only"}>{unit} </span>
+            {Math.floor(currentNumber)}
             {pageCount ? ` / ${pageCount}` : ""}
           </span>
           {!isPdf && (
@@ -774,9 +779,10 @@ export function LectureSlideViewer({
               <ChevronRight />
             </Button>
           )}
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
             <Button
               size="sm"
+              className="px-2 sm:px-3"
               variant={overviewOpen ? "secondary" : "outline"}
               onClick={() => setOverviewOpen((o) => !o)}
               aria-pressed={overviewOpen}
@@ -788,6 +794,7 @@ export function LectureSlideViewer({
             </Button>
             <Button
               size="sm"
+              className="px-2 sm:px-3"
               variant="outline"
               onClick={() => void addBookmark()}
               disabled={adding}
@@ -799,6 +806,7 @@ export function LectureSlideViewer({
             </Button>
             <Button
               size="sm"
+              className="px-2 sm:px-3"
               variant={bookmarksOpen ? "secondary" : "outline"}
               onClick={() => setBookmarksOpen((o) => !o)}
               aria-expanded={bookmarksOpen}

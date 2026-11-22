@@ -1,0 +1,244 @@
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): Upload toast \"Slides uploaded\"; 'Slide 1 / 5' on load=true; S1 \"Design test Referenc\"; S2 2 pictures; S3 bg rgb(30, 58, 138); S4 bg img(960px 540.013px); S5 bold=700 italic=italic red=rgb(220, 0, 0) 40px vs 18px, 3 bullet lines; text-only slides: 0; 0 page errors; 1 [slides] warnings (e.g. warning: [slides] deck package fixed before drawing (1): content type added or fixed (11): ppt/slideLayouts/slideLayout1.xml, ppt/slideLayouts/slideLayout2.xml,)",
+    "evidence": [
+      "evidence/TC-01-1.png",
+      "evidence/TC-01-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:40:44Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Pass",
+    "actual": "Upload toast \"Slides uploaded\"; 'Slide 1 / 5' on load=true; S1 \"Design test Referenc\"; S2 2 pictures; S3 bg rgb(30, 58, 138); S4 bg img(960px 540.013px); S5 bold=700 italic=italic red=rgb(220, 0, 0) 40px vs 18px, 3 bullet lines; text-only slides: 0; 0 page errors; 1 [slides] warnings (e.g. warning: [slides] deck package fixed before drawing (1): relationship target rewritten (17): /ppt/slideMasters/slideMaster1.xml → slideMasters/slideMaster1.xml,); order: Design test Refere → Two pictures → Blue background → Picture background → Formatted text Bol",
+    "evidence": [
+      "evidence/TC-02-1.png",
+      "evidence/TC-02-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:42:47Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "Upload toast \"Slides uploaded\"; 'Slide 1 / 5' on load=true; S1 \"Design test Referenc\"; S2 2 pictures; S3 bg rgb(30, 58, 138); S4 bg img(960px 540.013px); S5 bold=700 italic=italic red=rgb(220, 0, 0) 40px vs 18px, 3 bullet lines; text-only slides: 0; 0 page errors; 1 [slides] warnings (e.g. warning: [slides] deck package fixed before drawing (1): relationship target rewritten (17): ./slideMasters/slideMaster1.xml → slideMasters/slideMaster1.xml, ./)",
+    "evidence": [
+      "evidence/TC-03-1.png",
+      "evidence/TC-03-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:42:57Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "Upload toast \"Slides uploaded\"; 'Slide 1 / 5' on load=true; S1 \"Design test Referenc\"; S2 2 pictures; S3 bg rgb(30, 58, 138); S4 bg img(960px 540.013px); S5 bold=700 italic=italic red=rgb(220, 0, 0) 40px vs 18px, 3 bullet lines; text-only slides: 0; back with ‹ to \"Slide 1 / 5\"; 0 page errors; 1 [slides] warnings (e.g. warning: [slides] deck package fixed before drawing (2): relationship target rewritten (7): /ppt/slideLayouts/slideLayout1.xml → ../slideLayouts/slideLayout1.xm)",
+    "evidence": [
+      "evidence/TC-04-1.png",
+      "evidence/TC-04-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:53:43Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "Slide 4: damaged bg img(960px 540.013px) vs reference img(960px 540.013px), mean pixel difference 0.0 (0-255); slide 5: mean difference 0.0; damaged S5 'Bold' weight 700, 'Italic' italic, 'Red 40pt' rgb(220, 0, 0) 40px vs body 18px; bullets [\"0px/36px\",\"0px/36px\",\"0px/36px\"]; no text-only block; 0 page errors",
+    "evidence": [
+      "evidence/TC-05-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:43:52Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "Toast \"Slides uploaded\"; Slide 1 / 3; S1 1 picture(s) + caption; S2 bg rgb(249, 115, 22), title \"Orange\"; S3 \"Formula\" with 2 drawn picture(s) (the two equations E = mc² and the quadratic formula, as their pictures), not blank, no error message; supplementary OMML deck (before LibreOffice) slide 3: 2 equation pictures, text-only=false; 0 page errors. Note: LibreOffice Math is not installed in the test machine, so the formula was made as an OMML equation (python-pptx raw XML, picture fallback as PowerPoint writes it) and exported with soffice --convert-to pptx (LibreOffice turns it into picture-filled shapes)",
+    "evidence": [
+      "evidence/TC-06-1.png",
+      "evidence/TC-06-2.png",
+      "evidence/TC-06-3.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:53:54Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "Upload toast \"Slides uploaded\"; 'Slide 1 / 5' on load=true; S1 \"Design test Referenc\"; S2 2 pictures; S3 bg rgb(30, 58, 138); S4 bg img(960px 540px); S5 bold=700 italic=italic red=rgb(0, 0, 0) 40px vs 28px, 3 bullet lines; text-only slides: 0; 0 page errors; 1 [slides] warnings (e.g. warning: [slides] deck package fixed before drawing (1): added empty default text style (masters' shapes failed to load without it)). Note: the LibreOffice round trip itself rewrote some formatting in the file (slide5.xml stores \"Red 40pt\" as sz=4000 with no red colour; slide3.xml title colour is scheme dk1, not white; Bold/Italic runs became 32pt): the viewer draws what the file contains (40pt larger text, bold, italic, bullets), so the black \"Red 40pt\" and black S3 title are faithful to the file, not a viewer defect",
+    "evidence": [
+      "evidence/TC-07-1.png",
+      "evidence/TC-07-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:54:03Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): in-slide controls in DOM: 0 (visible 0); \"0/32\"/\"Slide 0\" text on page: false; open: title 1, toolbar \"Slide 1 / 32\", toast \"Bookmarked slide 1\"; › → 2: title 2, toolbar \"Slide 2 / 32\", toast \"Bookmarked slide 2\"; › → 3: title 3, toolbar \"Slide 3 / 32\", toast \"Bookmarked slide 3\"; › → 4: title 4, toolbar \"Slide 4 / 32\", toast \"Bookmarked slide 4\"; ‹ → 3: title 3, toolbar \"Slide 3 / 32\", toast \"Bookmarked slide 3\"; ‹ → 2: title 2, toolbar \"Slide 2 / 32\", toast \"Bookmarked slide 2\"; in-slide arrow step: not applicable (no in-slide arrows); last: title 32, \"Slide 32 / 32\", › disabled=true, after extra › \"Slide 32 / 32\"; Bookmark on 32: \"Bookmarked slide 32\"; dropdown: [Slide 1, Slide 2, Slide 2, Slide 3, Slide 3, Slide 4, Slide 32]; walk 1-32: 32/32 drawn, text-only [], 32 distinct backgrounds, slide 10 pictures 1, title mismatches []; 0 page errors",
+    "evidence": [
+      "evidence/TC-08-1.png",
+      "evidence/TC-08-2.png",
+      "evidence/TC-08-3.png",
+      "evidence/TC-08-4.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:35:54Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): clicking the \"Slide 1 / 32\" counter opens no input (0 number inputs on page); the app's slide jump is the Bookmarks list; jump to 20: \"Slide 20 / 32\", title \"Slide 20 of 32\", bg rgb(160, 198, 247); jump to 1: \"Slide 1 / 32\", title \"Slide 1 of 32\", bg rgb(247, 160, 160); jump to 32: \"Slide 32 / 32\", title \"Slide 32 of 32\", bg rgb(247, 160, 177) (no in-slide counter shown); out-of-range typed value: not applicable (no typed slide-number field for PowerPoint decks; the Bookmarks panel shows the current slide as plain text); › is disabled on 32 and ‹ on 1, so the counter cannot leave 1-32; 0 page errors",
+    "evidence": [
+      "evidence/TC-09-1.png",
+      "evidence/TC-09-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:41:41Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): toasts: Bookmarked slide 7 | Bookmarked slide 21; dropdown lists [Slide 7, Slide 21], button shows \"2\"; chose 7: \"Slide 7 / 32\", \"Slide 7 of 32\"; chose 21: \"Slide 21 / 32\", \"Slide 21 of 32\"; after reload: dropdown [Slide 7, Slide 21], chose 7: \"Slide 7 / 32\", \"Slide 7 of 32\"; 0 page errors (bookmarks persisted by the mocked backend across reload)",
+    "evidence": [
+      "evidence/TC-10-1.png",
+      "evidence/TC-10-2.png",
+      "evidence/TC-10-3.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:42:18Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): on \"Slide 12 / 32\" (title 12, drawn, bg rgb(160, 247, 166)) panel: \"AI OVERVIEW · SLIDE 12 Slide 12 of 32 Mocked overview: this slide introduces the topic of the recitation. • Key idea one\"; request headline \"Slide 12 of 32\"; after closing and › : \"Slide 13 / 32\" (title 13); panel \"AI OVERVIEW · SLIDE 13 Slide 13 of 32 Mocked overview: this \"; new request headline \"Slide 13 of 32\"; no error toast; never the previous slide or slide 0; 0 page errors. AI endpoint mocked",
+    "evidence": [
+      "evidence/TC-11-1.png",
+      "evidence/TC-11-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:40:22Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): slide 2 at 100%: 2 pictures, slide box 576x324, centre offset (0,0), whole=true; + ×2 → 156% (899px wide, 2 pictures, text-only=false); − ×4 → 64% (369px wide, 2 pictures); + until 100% (576px, centre offset (0,0), whole=true); at 125% › → \"Slide 3 / 5\" zoom 125%, bg rgb(30, 58, 138), text-only=false; 0 page errors",
+    "evidence": [
+      "evidence/TC-12-1.png",
+      "evidence/TC-12-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:42:29Z"
+  },
+  {
+    "id": "TC-13",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): 'Slide 1 / 5'; all 5 slides drawn (text-only: 0); slide box 576x324 (ratio 1.778, expected 1.778), whole=true, centre offsets (0,0) (0,0) (0,0) (0,0) (0,0); S1 \"Design test Referenc\"; S2 2 pictures; S3 bg rgb(30, 58, 138); S4 bg img(960px 540.013px); pixel comparison with the previous build (preprod base 756b744 on a second dev server), mean abs diff per slide: 0.74, 0.74, 0.27, 13.16, 0.74. Slide 3 differs by 0.27 and slides 1, 2, 5 by 0.74 only because the previous build drew pptx-preview’s in-slide arrows and \"N/M\" counter in the bottom-right corner, which this build removes on purpose (PM change 1); the slide content is identical. Slide 4 differs by the intended picture-background fix (now fills the slide). Desktop toolbar reads \"Slide 1 / 5\" … \"Slide 5 / 5\"; in-slide counter/arrows: 0 on every slide. Not a regression",
+    "evidence": [
+      "evidence/TC-13-1.png",
+      "evidence/TC-13-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions; previous build on localhost:8090",
+    "testedAt": "2026-11-22T04:43:00Z"
+  },
+  {
+    "id": "TC-14",
+    "result": "Pass",
+    "actual": "'Slide 1 / 5'; all 5 slides drawn (text-only: 0); slide box 432x324 (ratio 1.333, expected 1.333), whole=true, centre offsets (0,0) (0,0) (0,0) (0,0) (0,0); S1 \"Design test Referenc\"; S2 2 pictures; S3 bg rgb(30, 58, 138); S4 bg img(720px 540px); pixel comparison with the previous build (preprod base 756b744 on a second dev server), mean abs diff per slide: 0.0, 0.0, 0.0, 15.85, 0.0; slides 1, 2, 3, 5 are pixel-identical to the previous build. Slide 4 differs (mean diff 15.85) only because of the documented intended fix: the previous build drew the picture background at the image's own pixel size so only its left part showed (gradient cut off at yellow-green), this build stretches it to fill the slide as PowerPoint does (full yellow to green). Not a regression",
+    "evidence": [
+      "evidence/TC-14-1.png",
+      "evidence/TC-14-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions; previous build on localhost:8090",
+    "testedAt": "2026-11-22T00:57:23Z"
+  },
+  {
+    "id": "TC-15",
+    "result": "Pass",
+    "actual": "Tried 3 variants (screenshots TC-15-1..3 show slide 3 of each). variant A (slide3.xml not well-formed, </p:spTree> removed): \"Slide 1 / 5\"; text-only slides []; slide 3 \"Blue background\"; slides 1,2,4,5 drawn=true; last counter \"Slide 5 / 5\"; [slides] warnings naming slide 3: 0; 0 page errors || variant B (slide 3 layout link + layout file deleted): \"Slide 1 / 5\"; text-only slides []; slide 3 \"Blue background\"; slides 1,2,4,5 drawn=true; last counter \"Slide 5 / 5\"; [slides] warnings naming slide 3: 0; 0 page errors || variant C (slide 3 background = invalid one-stop gradient): \"Slide 1 / 5\"; text-only slides [3]; slide 3 \"This slide's design can't be shown here, so here is its text. For exact slides, export the deck as PDF and upl\"; slides 1,2,4,5 drawn=true; last counter \"Slide 5 / 5\"; [slides] warnings naming slide 3: 3 — warning: [slides] slide 3 (ppt/slides/slide3.xml) could not be read: TypeError: ((0 , import_lodash.get)(...) || []).map is not a function / warning: [slides] slide 3 could not be read even with shapes left out: TypeError: ((0 , import_lodash.get)(...) || []).map is not a function / warning: [slides] slide 3 is shown as text only: Error: the slide could not be read when the deck loaded; 0 page errors. Variant partial-bad-C-gradient.pptx matches the expected result (undrawable slide 3 shows the note + its text, others drawn, reason logged). Variants that the app could still draw are correct behaviour for AC-5's 'last resort'.",
+    "evidence": [
+      "evidence/TC-15-1.png",
+      "evidence/TC-15-2.png",
+      "evidence/TC-15-3.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:57:45Z"
+  },
+  {
+    "id": "TC-16",
+    "result": "Pass",
+    "actual": "corrupt.pptx (random bytes): toast \"Choose a PDF or PowerPoint (.pptx) file.\", deck tabs 1→1, viewer error \"\"; truncated.pptx (first 20 KB): toast \"Slides uploaded\", deck tabs → 2, viewer shows \"This file couldn't be opened as a PowerPoint deck. It may be damaged: save it again as .pptx, or upload a PDF.\", spinner=0; then good-16x9 tab: \"Slide 1 / 5\", slide 2 2 pictures, text-only=false; 0 page errors",
+    "evidence": [
+      "evidence/TC-16-1.png",
+      "evidence/TC-16-2.png",
+      "evidence/TC-16-3.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:58:04Z"
+  },
+  {
+    "id": "TC-17",
+    "result": "Pass",
+    "actual": "notpptx.pptx (zip with readme.txt): toast \"Slides uploaded\", viewer \"This file couldn't be opened as a PowerPoint deck. It may be damaged: save it again as .pptx, or upload a PDF.\", counter \"\"; old.ppt: toast \"Old .ppt files aren't supported. Save it as .pptx (or PDF) and upload that.\", tabs 1→1; talk.key: toast \"Keynote files aren't supported. In Keynote, use File → Export To → PowerPoint or PDF.\", tabs 1→1; 0 page errors",
+    "evidence": [
+      "evidence/TC-17-1.png",
+      "evidence/TC-17-2.png",
+      "evidence/TC-17-3.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T00:58:17Z"
+  },
+  {
+    "id": "TC-18",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): 11 decks loaded: dmg-ct-layouts: \"Slide 1 / 5\", fwd/back 4, slide shown; dmg-abs-targets: \"Slide 1 / 5\", fwd/back 4, slide shown; dmg-dot-targets: \"Slide 1 / 5\", fwd/back 4, slide shown; dmg-combined: \"Slide 1 / 5\", fwd/back 4, slide shown; good-16x9: \"Slide 1 / 5\", fwd/back 4, slide shown; lo-formula: \"Slide 1 / 3\", fwd/back 2, slide shown; lo-roundtrip: \"Slide 1 / 5\", fwd/back 4, slide shown; recitation-32: \"Slide 1 / 32\", fwd/back 5, slide shown; partial-bad-A-malformed: \"Slide 1 / 5\", fwd/back 4, slide shown; partial-bad-B-nolayout: \"Slide 1 / 5\", fwd/back 4, slide shown; partial-bad-C-gradient: \"Slide 1 / 5\", fwd/back 4, slide shown; rapid switch recitation-32 → lo-formula → dmg-combined ends on \"Slide 1 / 5\" (drawn); after reload: active deck \"Slide 1 / 5\", slide shown=true; 0 pageerror events; error overlay/boundary: 0; [slides] warnings: 30; other console errors: 2 (a 404 for storage/v1/object/list/lecture-audio that the test mock does not serve; mock artefact, not the app) [HTTP: 404 https://ytxsplbzohecawbdskgz.supabase.co/storage/v1/object/list/lecture-audio] (error: Failed to load resource: the server responded with a status of 404 (Not Found))",
+    "evidence": [
+      "evidence/TC-18-1.png",
+      "evidence/TC-18-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:44:34Z"
+  },
+  {
+    "id": "TC-19",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): 390px recitation-32 slide 32: counter shows \"32 / 32\" (accessible text \"Slide 32 / 32\", the word \"Slide\" is screen-reader only below sm), clipped=false, drawn title 32, scrollWidth 390/390, toolbar rows 1, overlaps 0, off-screen []; controls: ‹ → \"31 / 32\", › → \"32 / 32\", zoom − → 80%, + → 100%, AI overview slide 32 (opened), Bookmark \"Bookmarked slide 32\", dropdown opened=true; 390px big-128 slide 100: counter \"100 / 128\", clipped=false, title 100, scrollWidth 390/390, rows 1, off-screen []; 390px big-128 slide 128: counter \"128 / 128\", clipped=false, title 128, scrollWidth 390/390, rows 1, off-screen []; 390px dmg-combined slides 2: 2 pics, bg rgb(255, 255, 255), 298px wide, whole=true, dx 0; 3: 0 pics, bg rgb(30, 58, 138), 298px wide, whole=true, dx 0; 4: 0 pics, bg img(960px 540.013px), 298px wide, whole=true, dx 0; 390px in-slide controls 0; 0 page errors; 360px recitation-32 slide 32: counter shows \"32 / 32\" (accessible text \"Slide 32 / 32\", the word \"Slide\" is screen-reader only below sm), clipped=false, drawn title 32, scrollWidth 360/360, toolbar rows 1, overlaps 0, off-screen []; controls: ‹ → \"31 / 32\", › → \"32 / 32\", zoom − → 80%, + → 100%, AI overview slide 32 (opened), Bookmark \"Bookmarked slide 32\", dropdown opened=true; 360px big-128 slide 100: counter \"100 / 128\", clipped=false, title 100, scrollWidth 360/360, rows 1, off-screen []; 360px big-128 slide 128: counter \"128 / 128\", clipped=false, title 128, scrollWidth 360/360, rows 1, off-screen []; 360px dmg-combined slides 2: 2 pics, bg rgb(255, 255, 255), 268px wide, whole=true, dx 0; 3: 0 pics, bg rgb(30, 58, 138), 268px wide, whole=true, dx 0; 4: 0 pics, bg img(960px 540.013px), 268px wide, whole=true, dx 0; 360px in-slide controls 0; 0 page errors. Visible counter on phones is the short \"N / M\" form (accepted by the test case), never clipped; toolbar on one row at both widths.",
+    "evidence": [
+      "evidence/TC-19-1.png",
+      "evidence/TC-19-2.png",
+      "evidence/TC-19-3.png",
+      "evidence/TC-19-4.png",
+      "evidence/TC-19-5.png",
+      "evidence/TC-19-6.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 390x844 and 360x740 (phone), fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:40:11Z"
+  },
+  {
+    "id": "TC-20",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): toast \"Slides uploaded\"; counter \"Page 1 / 5\" (PDFs use \"Page\"); 5 pages drawn as canvases; scroll to page 3 → \"Page 3 / 5\", page 5 → \"Page 5 / 5\"; zoom + → 125%, − ×2 → 80%; bookmark toast \"Bookmarked page 4\", list [Page 4]; 0 page errors",
+    "evidence": [
+      "evidence/TC-20-1.png",
+      "evidence/TC-20-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:44:49Z"
+  },
+  {
+    "id": "TC-21",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 5178a72): 1. › to 5: title 5, toolbar \"Slide 5 / 32\", toast \"Bookmarked slide 5\", AI overview header slide 5 / headline \"Slide 5 of 32\" / request \"Slide 5 of 32\"; 2. slide jump (Bookmarks list) to 18: title 18, toolbar \"Slide 18 / 32\", toast \"Bookmarked slide 18\", AI overview header slide 18 / headline \"Slide 18 of 32\" / request \"Slide 18 of 32\"; 3. bookmarks dropdown → 7: title 7, toolbar \"Slide 7 / 32\", toast \"Bookmarked slide 7\", AI overview header slide 7 / headline \"Slide 7 of 32\" / request \"Slide 7 of 32\"; 4. keyboard ArrowRight: counter \"Slide 7 / 32\" → arrow keys not supported (step is \"if supported\"); moved to 8 with ›; 4b. › to 8: title 8, toolbar \"Slide 8 / 32\", toast \"Bookmarked slide 8\", AI overview header slide 8 / headline \"Slide 8 of 32\" / request \"Slide 8 of 32\"; 5. zoom 125%, › to 9: title 9, toolbar \"Slide 9 / 32\", toast \"Bookmarked slide 9\", AI overview header slide 9 / headline \"Slide 9 of 32\" / request \"Slide 9 of 32\"; 6. switched to good-16x9 and back: drawn title 9, toolbar \"Slide 9 / 32\", toast \"Bookmarked slide 9\"; never slide 0 (none), in-slide controls 0; 0 page errors. Bookmarks on 7, 18 and 21 were seeded in the mocked backend (18 added so the app's only slide jump, the Bookmarks list, can reach slide 18)",
+    "evidence": [
+      "evidence/TC-21-1.png",
+      "evidence/TC-21-2.png",
+      "evidence/TC-21-3.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/pptx-faithful-slides @ 1ea8a3b), Chromium 1440x900, fake session + mocked Supabase/server functions",
+    "testedAt": "2026-11-22T04:38:37Z"
+  }
+]
