@@ -1,13 +1,13 @@
 # REQ-2026-11-22-powerpoint-decks-get-an-exact-pdf-copy: PowerPoint decks get an exact PDF copy
 
-| Field        | Value                                                 |
-| ------------ | ----------------------------------------------------- |
-| ID           | REQ-2026-11-22-powerpoint-decks-get-an-exact-pdf-copy |
-| Status       | Approved                                              |
-| Requested by | Product owner                                         |
-| Created      | 2026-11-22                                            |
-| Branch       | `claude/pptx-pdf-copy`                                |
-| PR           | (added in step 6)                                     |
+| Field        | Value                                                   |
+| ------------ | ------------------------------------------------------- |
+| ID           | REQ-2026-11-22-powerpoint-decks-get-an-exact-pdf-copy   |
+| Status       | PR raised                                               |
+| Requested by | Product owner                                           |
+| Created      | 2026-11-22                                              |
+| Branch       | `claude/pptx-pdf-copy`                                  |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/69 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -242,15 +242,15 @@ Delete, CSP, privacy, cross-tab locking, the timeout and the real converter come
 
 Notes per acceptance criterion:
 
-| AC   | Met? | Notes |
-| ---- | ---- | ----- |
-| AC-1 | Yes  | TC-01 and TC-19 pass. I checked myself: shown at once with "Preparing exact slides…"; navigation and notes work while converting. |
-| AC-2 | Yes  | TC-02, TC-03 and TC-22 pass. I checked myself: one conversion, copy saved as `<uuid>.converted.pdf`, switch on the same slide (4), "Exact slides ready", pill removed. The toolbar says "Slide" (observation 1, accepted). |
-| AC-3 | Yes  | TC-04 and TC-05 pass. I checked myself: reopen goes straight to the PDF with 0 converter requests. Older decks convert on first open (TC-05). |
-| AC-4 | Yes  | TC-06, TC-07 and TC-08 pass. I checked myself: Write on slide adds slide 4 on the PDF copy; while preparing, the message explains why. |
+| AC   | Met? | Notes                                                                                                                                                                                                                                                               |
+| ---- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | Yes  | TC-01 and TC-19 pass. I checked myself: shown at once with "Preparing exact slides…"; navigation and notes work while converting.                                                                                                                                   |
+| AC-2 | Yes  | TC-02, TC-03 and TC-22 pass. I checked myself: one conversion, copy saved as `<uuid>.converted.pdf`, switch on the same slide (4), "Exact slides ready", pill removed. The toolbar says "Slide" (observation 1, accepted).                                          |
+| AC-3 | Yes  | TC-04 and TC-05 pass. I checked myself: reopen goes straight to the PDF with 0 converter requests. Older decks convert on first open (TC-05).                                                                                                                       |
+| AC-4 | Yes  | TC-06, TC-07 and TC-08 pass. I checked myself: Write on slide adds slide 4 on the PDF copy; while preparing, the message explains why.                                                                                                                              |
 | AC-5 | Yes  | TC-09..TC-13, TC-17 and TC-22 pass. I checked myself: failed job, HTTP 500 and page mismatch all keep the PowerPoint view quietly, with no dialog or error toast and a console reason. Attempts never overlap (observation 2). Retry on next open: TC-09 and TC-10. |
-| AC-6 | Yes  | TC-14..TC-18 pass: delete removes both files; bookmark, counter, AI overview and zoom work after the switch (I checked Bookmark myself); no PDF or PowerPoint regressions; 0 page errors. |
-| AC-7 | Yes  | TC-20 and TC-21 pass: CSP `connect-src` allows the converter (no violations, with a negative control), and the privacy page has the sentence. |
+| AC-6 | Yes  | TC-14..TC-18 pass: delete removes both files; bookmark, counter, AI overview and zoom work after the switch (I checked Bookmark myself); no PDF or PowerPoint regressions; 0 page errors.                                                                           |
+| AC-7 | Yes  | TC-20 and TC-21 pass: CSP `connect-src` allows the converter (no violations, with a negative control), and the privacy page has the sentence.                                                                                                                       |
 
 **Required changes:** none.
 
@@ -275,6 +275,7 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T17:02:33Z | Requirement analyst | Requirement ready for build | 7 acceptance criteria; converter CORS verified for lectureloop.org and pre-prod; real conversion test 12 s                                                                                                                                                                                                                            |
 | 2026-11-22T17:04:38Z | Test master         | Test cases written          | 22 test cases covering AC-1..AC-7                                                                                                                                                                                                                                                                                                     |
 | 2026-11-22T17:13:45Z | Developer           | Build complete              | New src/lib/pptx-to-pdf.ts (PDF Studio client, validation, per-deck lock) + slide-copy-path.ts; viewer opens copy or converts and switches on same slide; Write-on-slide preparing message; deletes remove .converted.pdf; CSP + privacy. Verified in Chromium with mocked Supabase/converter; typecheck + build pass. Commit 2862bfd |
-| 2026-11-22T17:37:00Z | Tester | Tests executed | 22/22 passed, 0 failed, 0 blocked |
-| 2026-11-22T17:37:00Z | Tester | Evidence generated | test-evidence.xlsx with 33 screenshots |
-| 2026-11-22T17:41:02Z | Product manager | PM approved | AC-1..AC-7 met, verified on dev server (upload, switch on same slide, Exact slides ready, Write on slide, reopen without conversion, quiet fallbacks); observations accepted; follow-ups: hidden-slide decks, arrows on PDF view, pre-prod check |
+| 2026-11-22T17:37:00Z | Tester              | Tests executed              | 22/22 passed, 0 failed, 0 blocked                                                                                                                                                                                                                                                                                                     |
+| 2026-11-22T17:37:00Z | Tester              | Evidence generated          | test-evidence.xlsx with 33 screenshots                                                                                                                                                                                                                                                                                                |
+| 2026-11-22T17:41:02Z | Product manager     | PM approved                 | AC-1..AC-7 met, verified on dev server (upload, switch on same slide, Exact slides ready, Write on slide, reopen without conversion, quiet fallbacks); observations accepted; follow-ups: hidden-slide decks, arrows on PDF view, pre-prod check                                                                                      |
+| 2026-11-22T17:42:10Z | Release             | PR raised                   | https://github.com/lalitdev14/scholar-sum-notes/pull/69 into preprod (after PM approval)                                                                                                                                                                                                                                              |
