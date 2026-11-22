@@ -188,7 +188,7 @@ whitespace-nowrap`). Below the `sm` breakpoint a PowerPoint deck's counter shows
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-| 20    | 18   | 2    | 0       | `test-evidence.xlsx` |
+| 21    | 21   | 0    | 0       | `test-evidence.xlsx` |
 
 Run on the dev server (branch `claude/pptx-faithful-slides`, commit `5b1ef0c`), Chromium 1440x900
 (390x844 for TC-19), fake session with mocked Supabase and server functions (AI overview mocked).
@@ -216,6 +216,21 @@ not applicable). TC-13/14: slides 1, 2, 3 and 5 are pixel-identical to the previ
 differs only through the intended picture-background fix (now fills the slide). TC-15: of three
 damaged variants, two were still drawn (normaliser repaired them); the one-stop-gradient variant
 shows slide 3 as text with the note and logs the reason.
+
+**Re-test after PM review** (2026-11-22, dev server at `1ea8a3b`, code `5178a72`): re-ran TC-08,
+TC-19 (390x844 and 360x740), the new TC-21 and the regression set TC-01, TC-09, TC-10, TC-11,
+TC-12, TC-13, TC-18, TC-20. **All 11 pass**; with the earlier results for TC-02..07 and TC-14..17
+(not re-run) the total is 21/21 passed. TC-08: no in-slide counter or arrows in the page, "0/32" never
+shown; after open, 3× › and 2× ‹ the drawn title, toolbar "Slide N / 32" and "Bookmarked slide N"
+were equal every time (1, 2, 3, 4, 3, 2), extra › on 32 does nothing, dropdown lists exactly those
+bookmarks. TC-21: drawn slide, counter, Bookmark toast and AI overview (header, headline and request)
+agreed at 5, 18, 7, 8 and 9 and after switching deck tabs (arrow keys aren't supported, so slide 8
+was reached with ›; slide 18 was reached through the Bookmarks list with a seeded bookmark). TC-19:
+the phone counter shows "32 / 32", "100 / 128", "128 / 128" in full (word "Slide" kept for screen
+readers), toolbar on one row, no horizontal scroll, every control works at 390px and 360px. TC-13:
+content pixel-identical to the previous build; the only differences are the removed library
+controls and the intended picture-background fix. 54 screenshots in `evidence/`. The two failures
+listed above (TC-08, TC-19) are fixed.
 
 ## 9. Product manager verification
 
@@ -294,3 +309,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T01:09:09Z | Product manager     | PM requested changes               | AC-1,2,4,5,6 met; AC-3 partly: hide library in-slide arrows/counter (out of sync, 0/M, bookmark saves wrong slide) and show full Slide N / M at 390px; retest TC-08, TC-19                                                                                                                                                                                               |
 | 2026-11-22T01:10:25Z | Test master         | Test cases updated after PM review | TC-08 revised (in-slide controls absent or in sync, never 0/M, Bookmark toast = slide shown = counter after every step); TC-19 revised (390px and 360px, full counter incl. 128-slide deck, no horizontal scroll, all toolbar buttons reachable); TC-11, TC-13, TC-20 tightened; TC-21 added (slide/counter/Bookmark/AI overview agree across all navigation). 21 cases. |
 | 2026-11-22T01:18:03Z | Developer | Changes after PM review complete | Library in-slide arrows/counter removed (toolbar is the only navigation; drawn slide, counter, bookmark and AI overview always agree); counter shown in full on phones (360/390px); commit 5178a72 |
+| 2026-11-22T04:45:41Z | Tester | Re-test executed | Re-test after PM review: TC-08, TC-19 (390/360px), TC-21 new, regression TC-01, TC-09..TC-13, TC-18, TC-20: 11/11 passed; total 21/21 passed, 0 failed, 0 blocked |
+| 2026-11-22T04:45:41Z | Tester | Evidence regenerated | test-evidence.xlsx, 54 screenshots |
