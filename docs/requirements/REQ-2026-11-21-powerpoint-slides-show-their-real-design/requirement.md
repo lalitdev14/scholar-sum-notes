@@ -113,3 +113,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | -------------------- | ------------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
 | 2026-11-21T23:44:57Z | Requirement analyst | Requirement created         | PowerPoint slides show their real design                                                  |
 | 2026-11-21T23:45:18Z | Requirement analyst | Requirement ready for build | 6 acceptance criteria (AC-1..AC-6); example deck Recitation9 (32 slides, text-only today) |
+| 2026-11-21T23:47:27Z | Test master | Test cases written | 20 test cases covering AC-1..AC-6 |
