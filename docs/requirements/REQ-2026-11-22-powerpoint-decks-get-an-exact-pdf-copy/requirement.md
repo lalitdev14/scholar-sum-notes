@@ -3,7 +3,7 @@
 | Field        | Value                                                 |
 | ------------ | ----------------------------------------------------- |
 | ID           | REQ-2026-11-22-powerpoint-decks-get-an-exact-pdf-copy |
-| Status       | Ready for build                                       |
+| Status       | In test                                               |
 | Requested by | Product owner                                         |
 | Created      | 2026-11-22                                            |
 | Branch       | `claude/pptx-pdf-copy`                                |
@@ -89,7 +89,71 @@ Each criterion is testable and has an ID that test cases refer to.
 
 ## 7. Build summary (developer)
 
-What was changed and how each acceptance criterion is met.
+What was changed and how each acceptance criterion is met. Code commit: `2862bfd` on `claude/pptx-pdf-copy`.
+
+**Changes**
+
+- `src/lib/pptx-to-pdf.ts` (new): browser client for PDF Studio. `ensurePdfCopy(deckPath, deck)` posts the .pptx
+  (multipart `files`) to `PDF_CONVERTER_URL/api/convert/office-to-pdf`, polls `/api/jobs/<id>` every 1.5 s (overall
+  timeout 4 min), downloads `outputs[0].url`, checks it starts with `%PDF-` and that its page count (pdf.js) equals
+  the deck's slide count (`p:sldId` entries in `ppt/presentation.xml`, hidden slides included; fallback
+  `ppt/slides/slideN.xml`), then uploads it to `lecture-slides` at `<deck path without .pptx>.converted.pdf`
+  (`application/pdf`; an "already exists" answer counts as success, since the bucket has no UPDATE policy for
+  upsert). `downloadPdfCopy()` fetches an existing copy. One conversion per deck: an in-memory promise map
+  (calls share the running conversion) plus a localStorage marker so a second tab waits for the first tab's copy.
+  `forgetDeck()` stops a running conversion from saving a copy for a deck deleted meanwhile. Converter URL constant,
+  overridable with `VITE_PDF_CONVERTER_URL`. Failures resolve to `null` with `console.warn("[slides] exact PDF copy
+not made …: <reason>")`.
+- `src/lib/slide-copy-path.ts` (new): `pdfCopyPath()` / `slideStorageFiles()` (no imports; used by browser and server).
+- `src/components/LectureSlideViewer.tsx`: for a PowerPoint deck it first tries the PDF copy and, if present, renders
+  it with the existing PDF branch (no conversion). Otherwise it shows the PowerPoint view with a
+  "Preparing exact slides…" pill (`role=status`), starts/joins the conversion, and on success stores the current
+  slide as the saved position, switches to the PDF on that page and toasts "Exact slides ready". On failure the pill
+  becomes a quiet "PowerPoint view" note (tooltip explains it will be retried). A deck shown as its PDF copy keeps
+  "Slide" as the unit for the counter and bookmarks.
+- `src/lib/slide-capture.ts` + `src/components/HandwritingNotebook.tsx`: viewers register while a deck's exact slides
+  are being prepared; "Write on slide"/"Write on all slides" then say "Exact slides are still being prepared for this
+  PowerPoint. Try again in a moment." (otherwise the existing PDF message).
+- `src/routes/_authenticated/class.$classId.tsx`: starts the conversion right after a .pptx upload (with the uploaded
+  file); deleting a deck removes the deck and its `.converted.pdf`.
+- `src/routes/_authenticated/dashboard.tsx` (class delete) and `src/lib/admin.functions.ts` (admin class delete) also
+  remove the copies. Account deletion already removes the whole user folder.
+- `vite.config.ts`: CSP `connect-src` adds `https://pdf-studio-api-xy4g.onrender.com`.
+- `src/routes/privacy.tsx`: new sentence that PowerPoint files are sent once to the PDF Studio server (run by the
+  LectureLoop team) for an exact PDF copy and not kept there (result expires after an hour).
+
+**Acceptance criteria**
+
+- AC-1: deck appears at once in the PowerPoint viewer with "Preparing exact slides…"; navigation and notes work meanwhile.
+- AC-2: background conversion, copy saved as `<uid>/<classId>/<uuid>.converted.pdf`, switch on the same slide number,
+  toast "Exact slides ready", pill removed.
+- AC-3: copy downloaded first on open → PDF directly, no converter request; older decks without a copy convert on open.
+- AC-4: PDF copy registers the existing slide capture, so Write on slide / all slides work; message while preparing.
+- AC-5: failed/cancelled job, timeout, network error, non-PDF or page-count mismatch → PowerPoint view stays, no
+  dialog or error toast, console.warn with reason, retried on next open; upload + viewer (and two viewers, e.g.
+  full screen) share one conversion.
+- AC-6: delete removes both files; bookmarks/counter/AI overview/zoom use the same 1:1 numbers on the PDF; PDF uploads
+  untouched.
+- AC-7: CSP and privacy page as above.
+
+**Developer check** (Chromium, dev server, fake session, mocked Supabase and mocked converter via `page.route`
+serving a PDF made by the real converter from the test deck): all of the above passed, including one converter POST
+for upload+viewer, switch at slide 3/5, bookmark on slide 3, zoom 125 %, AI overview, Write on slide and Write on all
+5 slides on the copy, reopen without conversion, delete removing both files, failure and page-mismatch fallbacks with
+retry, PDF upload regression, and no page errors. Real converter checked with curl from this container (5-slide deck
+→ 5-page PDF in ~11 s). `bun run typecheck` and `bun run build` pass.
+
+**Limitations**
+
+- The browser talks to the converter directly, so it only works on origins the converter's CORS allows (production and
+  pre-prod); on localhost the conversion fails quietly and the PowerPoint view stays.
+- Decks with hidden slides (LibreOffice leaves them out) or a converter page count that differs are never switched and
+  are re-sent on every open (as the requirement asks: retry next open).
+- If the tab is closed mid-conversion, nothing is saved; the next open starts again (a stale cross-tab marker can make
+  another tab wait up to ~4.5 min before trying itself).
+- PDF copies made before a deck is deleted elsewhere in an old tab could remain only if deletion happens outside this
+  app's delete paths.
+- After the switch the deck scrolls like other PDF decks (no previous/next arrows), as PDF decks already do.
 
 ## 8. Test summary (tester)
 
@@ -115,8 +179,9 @@ Notes per acceptance criterion:
 
 Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Details>"`.
 
-| Time (UTC)           | Role                | Action                      | Details                                                                                                    |
-| -------------------- | ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 2026-11-22T17:02:06Z | Requirement analyst | Requirement created         | PowerPoint decks get an exact PDF copy                                                                     |
-| 2026-11-22T17:02:33Z | Requirement analyst | Requirement ready for build | 7 acceptance criteria; converter CORS verified for lectureloop.org and pre-prod; real conversion test 12 s |
-| 2026-11-22T17:04:38Z | Test master | Test cases written | 22 test cases covering AC-1..AC-7 |
+| Time (UTC)           | Role                | Action                      | Details                                                                                                                                                                                                                                                                                                                               |
+| -------------------- | ------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-22T17:02:06Z | Requirement analyst | Requirement created         | PowerPoint decks get an exact PDF copy                                                                                                                                                                                                                                                                                                |
+| 2026-11-22T17:02:33Z | Requirement analyst | Requirement ready for build | 7 acceptance criteria; converter CORS verified for lectureloop.org and pre-prod; real conversion test 12 s                                                                                                                                                                                                                            |
+| 2026-11-22T17:04:38Z | Test master         | Test cases written          | 22 test cases covering AC-1..AC-7                                                                                                                                                                                                                                                                                                     |
+| 2026-11-22T17:13:45Z | Developer           | Build complete              | New src/lib/pptx-to-pdf.ts (PDF Studio client, validation, per-deck lock) + slide-copy-path.ts; viewer opens copy or converts and switches on same slide; Write-on-slide preparing message; deletes remove .converted.pdf; CSP + privacy. Verified in Chromium with mocked Supabase/converter; typecheck + build pass. Commit 2862bfd |
