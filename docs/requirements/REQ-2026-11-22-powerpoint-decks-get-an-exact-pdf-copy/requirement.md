@@ -159,7 +159,31 @@ retry, PDF upload regression, and no page errors. Real converter checked with cu
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-|       |      |      |         | `test-evidence.xlsx` |
+| 22    | 22   | 0    | 0       | `test-evidence.xlsx` |
+
+Run on the dev server (branch `claude/pptx-pdf-copy` @ `504c469`), Chromium 1440x900 (390x844 for
+TC-19), fake session, mocked Supabase (storage uploads, downloads and removes recorded) and the PDF
+Studio converter mocked with `page.route` (success, slow, failed job, HTTP 500, never-finishing,
+wrong page count, connection refused), serving PDFs produced by the real converter from generated test
+decks. TC-20 used a local production build (CSP header + in-browser conversion with a
+`securitypolicyviolation` listener and a negative control). TC-22 used the real converter with curl
+(5-slide deck → 5-page PDF in 13 s; CORS allows the pre-prod origin; a deck with a hidden slide → 5
+pages for 6 slides). TC-10 waited in real time: polling stopped 241 s after the POST. 33 screenshots
+in `evidence/`.
+
+**Failures:** none.
+
+**Observations for the PM** (not counted as failures):
+
+- After the switch, the toolbar of a converted deck reads "Slide N / 5" (the developer keeps the unit
+  "Slide" for a deck shown as its PDF copy, §7), while TC-02/03/04 (and TC-15's jump) wrote the expected
+  text as "Page N / 5". The number, the page count and the page shown are correct.
+- When the converter fails at once (HTTP 500 or unreachable), one upload makes two attempts in a row:
+  the upload's attempt fails, then the viewer starts its own. They never overlap (TC-09, TC-17).
+- After the switch the deck is a scrolling PDF view without ‹ › buttons (documented in §7); TC-15's
+  "‹ › through all pages" was done by scrolling.
+- TC-07: the notebook's initial empty page is replaced by slide 1, so the notebook ends with exactly
+  32 slide pages (31 more pages than before).
 
 ## 9. Product manager verification
 
@@ -185,3 +209,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T17:02:33Z | Requirement analyst | Requirement ready for build | 7 acceptance criteria; converter CORS verified for lectureloop.org and pre-prod; real conversion test 12 s                                                                                                                                                                                                                            |
 | 2026-11-22T17:04:38Z | Test master         | Test cases written          | 22 test cases covering AC-1..AC-7                                                                                                                                                                                                                                                                                                     |
 | 2026-11-22T17:13:45Z | Developer           | Build complete              | New src/lib/pptx-to-pdf.ts (PDF Studio client, validation, per-deck lock) + slide-copy-path.ts; viewer opens copy or converts and switches on same slide; Write-on-slide preparing message; deletes remove .converted.pdf; CSP + privacy. Verified in Chromium with mocked Supabase/converter; typecheck + build pass. Commit 2862bfd |
+| 2026-11-22T17:37:00Z | Tester | Tests executed | 22/22 passed, 0 failed, 0 blocked |
+| 2026-11-22T17:37:00Z | Tester | Evidence generated | test-evidence.xlsx with 33 screenshots |
