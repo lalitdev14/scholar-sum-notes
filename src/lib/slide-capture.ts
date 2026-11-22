@@ -55,3 +55,31 @@ export async function captureAllSlides(
   }
   return out;
 }
+
+/**
+ * PowerPoint decks open in a viewer whose exact PDF copy is still being made. While one is
+ * showing and no PDF deck is, "Write on slide" explains that the slides are being prepared.
+ */
+const preparing: object[] = [];
+
+/** Marks a PowerPoint deck as being prepared; returns a function that clears the mark. */
+export function registerPreparingSlides(): () => void {
+  const token = {};
+  preparing.push(token);
+  return () => {
+    const i = preparing.indexOf(token);
+    if (i >= 0) preparing.splice(i, 1);
+  };
+}
+
+/** True while a PowerPoint deck's exact slides are being prepared and no PDF deck is open. */
+export function slidesBeingPrepared(): boolean {
+  return !top() && preparing.length > 0;
+}
+
+/** Message for "Write on slide" when there are no slide images to use. */
+export function noSlidesMessage(): string {
+  return slidesBeingPrepared()
+    ? "Exact slides are still being prepared for this PowerPoint. Try again in a moment."
+    : "Open a PDF slide deck on the Slides side first.";
+}

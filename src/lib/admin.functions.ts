@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { noteToPlainText } from "@/lib/note-format";
+import { slideStorageFiles } from "@/lib/slide-copy-path";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", {
@@ -423,7 +424,7 @@ export const purgeClasses = createServerFn({ method: "POST" })
       supabaseAdmin.from("lecture_slides").select("file_path").in("class_id", ids),
       supabaseAdmin.from("handwriting_pages").select("image_path").in("class_id", ids),
     ]);
-    const slidePaths = (slides ?? []).map((x) => x.file_path);
+    const slidePaths = (slides ?? []).flatMap((x) => slideStorageFiles(x.file_path));
     const pagePaths = (pages ?? []).map((x) => x.image_path);
     for (let i = 0; i < slidePaths.length; i += 100) {
       await supabaseAdmin.storage.from("lecture-slides").remove(slidePaths.slice(i, i + 100));

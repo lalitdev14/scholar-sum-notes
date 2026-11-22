@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Loader2,
   Maximize2,
   Sparkles,
   Trash2,
@@ -19,7 +20,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { slideOverview } from "@/lib/notes.functions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import { registerSlideCapture } from "@/lib/slide-capture";
+import { registerPreparingSlides, registerSlideCapture } from "@/lib/slide-capture";
+import { downloadPdfCopy, ensurePdfCopy } from "@/lib/pptx-to-pdf";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -58,6 +60,12 @@ export function LectureSlideViewer({
     getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }>;
     numPages: number;
   } | null>(null);
+  const isPptx = contentType !== PDF_TYPE;
+  /** The exact PDF copy of a PowerPoint deck, once it exists (then shown instead of the deck). */
+  const [pdfCopy, setPdfCopy] = useState<Blob | null>(null);
+  /** "preparing" while the PDF copy is being made, "failed" if it couldn't be made this time. */
+  const [copyStatus, setCopyStatus] = useState<"idle" | "preparing" | "failed">("idle");
+  const isPdf = !isPptx || !!pdfCopy;
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -90,12 +98,24 @@ export function LectureSlideViewer({
 
     async function load() {
       try {
-        const { data, error: downloadError } = await supabase.storage
-          .from("lecture-slides")
-          .download(filePath);
-        if (downloadError || !data) throw downloadError ?? new Error("Could not open file");
+        if (isPptx && !pdfCopy) {
+          // A deck with an exact PDF copy opens as that PDF straight away.
+          const copy = await downloadPdfCopy(filePath);
+          if (cancelled) return;
+          if (copy) {
+            setPdfCopy(copy);
+            return;
+          }
+        }
+        let data: Blob | null = pdfCopy;
+        if (!data) {
+          const download = await supabase.storage.from("lecture-slides").download(filePath);
+          if (download.error || !download.data)
+            throw download.error ?? new Error("Could not open file");
+          data = download.data;
+        }
         if (cancelled) return;
-        if (contentType === "application/pdf") {
+        if (!isPptx || pdfCopy) {
           objectUrl = URL.createObjectURL(data);
           setUrl(objectUrl);
           void (async () => {
@@ -133,6 +153,30 @@ export function LectureSlideViewer({
           let guard = 0;
           while (viewer.currentIndex < target && guard++ < 10000) viewer.renderNextSlide();
           setSlide(viewer.currentIndex + 1);
+          // Make the exact PDF copy in the background (shared with a conversion already running,
+          // e.g. the one started by the upload) and switch to it on the same slide when it's ready.
+          setCopyStatus("preparing");
+          void ensurePdfCopy(filePath, data).then((pdf) => {
+            if (cancelled) return;
+            if (!pdf) {
+              setCopyStatus("failed");
+              return;
+            }
+            const at = Math.min(
+              Math.max(1, (previewerRef.current?.currentIndex ?? 0) + 1),
+              viewer.slideCount,
+            );
+            try {
+              localStorage.setItem(`slide-pos:${slideId}`, String(at));
+            } catch {
+              /* private mode */
+            }
+            setPdfPage(at);
+            setPdfJump(at);
+            setCopyStatus("idle");
+            setPdfCopy(pdf);
+            toast.success("Exact slides ready");
+          });
         }
       } catch (cause) {
         if (!cancelled)
@@ -151,10 +195,16 @@ export function LectureSlideViewer({
       loadingTask?.destroy().catch(() => {});
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [filePath, contentType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filePath, contentType, pdfCopy]);
+
+  // While the exact slides are being made, "Write on slide" says so.
+  useEffect(() => {
+    if (copyStatus !== "preparing") return;
+    return registerPreparingSlides();
+  }, [copyStatus]);
 
   const queryClient = useQueryClient();
-  const isPdf = contentType === "application/pdf";
   const [pdfPage, setPdfPage] = useState(1);
   const [pdfJump, setPdfJump] = useState<number | null>(null);
   const [jumpTick, setJumpTick] = useState(0);
@@ -363,7 +413,7 @@ export function LectureSlideViewer({
       if (error) throw error;
       setComment("");
       await queryClient.invalidateQueries({ queryKey: ["slide-bookmarks", slideId] });
-      toast.success(`Bookmarked ${isPdf ? "page" : "slide"} ${n}`);
+      toast.success(`Bookmarked ${unit.toLowerCase()} ${n}`);
     } catch (e) {
       toast.error(friendlyError(e, "Could not add bookmark"));
     } finally {
@@ -481,7 +531,8 @@ export function LectureSlideViewer({
 
   const ready = isPdf ? !!url : total > 0;
   const pageCount = isPdf ? (pdfReady > 0 ? (pdfDocRef.current?.numPages ?? 0) : 0) : total;
-  const unit = isPdf ? "Page" : "Slide";
+  // A PowerPoint deck shown as its PDF copy still counts slides.
+  const unit = isPptx ? "Slide" : "Page";
 
   return (
     <div ref={topRef} className="flex min-h-0 min-w-0 flex-1 flex-col scroll-mt-24">
@@ -525,7 +576,7 @@ export function LectureSlideViewer({
             "absolute inset-0 overflow-auto p-3",
             zoom <= 1 && "grid place-items-center",
           )}
-          hidden={contentType === "application/pdf" || !!error}
+          hidden={isPdf || !!error}
         >
           <div
             className="overflow-hidden rounded-md bg-background shadow-sm"
@@ -543,6 +594,26 @@ export function LectureSlideViewer({
             />
           </div>
         </div>
+        {ready && !isPdf && copyStatus !== "idle" && (
+          <p
+            role="status"
+            className="absolute left-2 top-2 z-10 flex items-center gap-1.5 rounded-full border border-border bg-background/90 px-2.5 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur"
+            title={
+              copyStatus === "preparing"
+                ? "Making an exact PDF copy of this PowerPoint. You can keep using the slides."
+                : "The exact slides couldn't be prepared this time. They'll be tried again the next time you open this deck."
+            }
+          >
+            {copyStatus === "preparing" ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                Preparing exact slides…
+              </>
+            ) : (
+              "PowerPoint view"
+            )}
+          </p>
+        )}
         {ready && (
           <div
             className="absolute bottom-2 left-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-background/90 p-0.5 shadow-sm backdrop-blur"
@@ -730,7 +801,7 @@ export function LectureSlideViewer({
               </ul>
             ) : (
               <p className="mt-2 text-xs text-muted-foreground">
-                Bookmark important {isPdf ? "pages" : "slides"} to jump back to them later.
+                Bookmark important {isPptx ? "slides" : "pages"} to jump back to them later.
               </p>
             )}
           </div>
@@ -834,6 +905,8 @@ export function LectureSlideViewer({
     </div>
   );
 }
+const PDF_TYPE = "application/pdf";
+
 type PdfDocLike = { getPage: (n: number) => Promise<unknown> };
 
 /**
