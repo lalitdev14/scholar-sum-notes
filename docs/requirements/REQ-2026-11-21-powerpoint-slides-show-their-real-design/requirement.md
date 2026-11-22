@@ -165,6 +165,25 @@ LibreOffice 24, plus damaged copies of a 32-slide deck. Test decks are not commi
 - We had no copy of "Recitation9"; the fixes target every way we found the library drops slides,
   and the console log names the reason if a deck still shows text-only slides.
 
+**Changes after PM review** (commit `5178a72`)
+
+1. One set of navigation: `openDeck` no longer adds pptx-preview's in-slide arrows and "N/M"
+   counter (`.pptx-preview-wrapper-prev/-next/-pagination` are never created), so "0/32" and the
+   second set of arrows are gone. The toolbar arrows now stop at the first/last slide instead of
+   the library wrapping round.
+2. Everything uses the slide on screen: the only ways to change slide (toolbar arrows, bookmark
+   jump, saved position on open) all go through the app, which updates "Slide N / M" from the
+   viewer. Checked on the class page (1440px and 390px; `combo` and `unreadable_slide8` decks): on
+   open, after 3× next, after previous, after a bookmark jump to 30 and at the last slide, the slide
+   drawn, the toolbar counter, "Bookmarked slide N" and the AI overview slide were the same N every
+   time; no library controls in the page; no page errors.
+3. Full counter on phones: the counter no longer shrinks or truncates (`shrink-0
+whitespace-nowrap`). Below the `sm` breakpoint a PowerPoint deck's counter shows "N / M" (the
+   word "Slide" stays for screen readers), with tighter toolbar gaps and button padding. Measured
+   with a 128-slide deck: "128 / 128" in full, no horizontal scroll, all toolbar buttons on screen
+   and on one line at 360px and 390px (at 320px the buttons wrap to a second line, still complete).
+   Desktop ("Slide 128 / 128") and PDF ("Page 1 / 2", also on phones) wording unchanged.
+
 ## 8. Test summary (tester)
 
 | Total | Pass | Fail | Blocked | Evidence             |
@@ -224,14 +243,14 @@ is small, so it is not deferred.
 
 Notes per acceptance criterion:
 
-| AC   | Met?   | Notes |
-| ---- | ------ | ----- |
-| AC-1 | Yes    | TC-01..TC-05 pass. I checked myself: `dmg-combined` and `recitation-32` draw 5/5 and 32/32 slides with pictures, colour and picture backgrounds and formatted text, and no text-only note. |
-| AC-2 | Yes    | TC-06 and TC-07 pass. I checked myself: on `lo-formula` the picture shows, the orange background shows, and both equations show as their pictures (not blank, no error). Caveats are documented (OMML isn't typeset; EMF/WMF previews stay blank). |
+| AC   | Met?   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC-1 | Yes    | TC-01..TC-05 pass. I checked myself: `dmg-combined` and `recitation-32` draw 5/5 and 32/32 slides with pictures, colour and picture backgrounds and formatted text, and no text-only note.                                                                                                                                                                                                                                                                                                                   |
+| AC-2 | Yes    | TC-06 and TC-07 pass. I checked myself: on `lo-formula` the picture shows, the orange background shows, and both equations show as their pictures (not blank, no error). Caveats are documented (OMML isn't typeset; EMF/WMF previews stay blank).                                                                                                                                                                                                                                                           |
 | AC-3 | Partly | Count and order are right ("Slide 1 / 32" … "Slide 32 / 32"), and app arrows, bookmark jump and AI overview work when only the toolbar is used (TC-09, TC-10, TC-11, TC-18 pass). **TC-08 fails**: the in-slide counter shows "0/32" on open, and the in-slide arrows change the slide without updating the toolbar counter, so Bookmark and AI overview act on the wrong slide (I reproduced this). **TC-19 fails**: at 390px the counter is cut to "Slide 2 …" (needs 76px, gets 66px; I reproduced this). |
-| AC-4 | Yes    | TC-12, TC-13 and TC-14 pass: 16:9 and 4:3 slides are whole and centred and pixel-identical to the previous build, apart from the intended picture-background fix. My `good-16x9` walk matched. |
-| AC-5 | Yes    | TC-15: the one-stop-gradient slide shows as text with the note, the other slides draw, and the console names the reason. The other two damaged variants were repaired and drawn, which is better than required. |
-| AC-6 | Yes    | TC-16 and TC-17 pass. Corrupt, truncated and not-a-PowerPoint files each show a clear message; `.ppt` and `.key` are refused with a message. I saw 0 page errors in all my runs. |
+| AC-4 | Yes    | TC-12, TC-13 and TC-14 pass: 16:9 and 4:3 slides are whole and centred and pixel-identical to the previous build, apart from the intended picture-background fix. My `good-16x9` walk matched.                                                                                                                                                                                                                                                                                                               |
+| AC-5 | Yes    | TC-15: the one-stop-gradient slide shows as text with the note, the other slides draw, and the console names the reason. The other two damaged variants were repaired and drawn, which is better than required.                                                                                                                                                                                                                                                                                              |
+| AC-6 | Yes    | TC-16 and TC-17 pass. Corrupt, truncated and not-a-PowerPoint files each show a clear message; `.ppt` and `.key` are refused with a message. I saw 0 page errors in all my runs.                                                                                                                                                                                                                                                                                                                             |
 
 **Required changes** (back to step 2, then re-run steps 3–4):
 
@@ -264,13 +283,14 @@ shows as text, its `[slides]` console line names the reason.
 
 Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Details>"`.
 
-| Time (UTC)           | Role                | Action                      | Details                                                                                   |
-| -------------------- | ------------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
-| 2026-11-21T23:44:57Z | Requirement analyst | Requirement created         | PowerPoint slides show their real design                                                  |
-| 2026-11-21T23:45:18Z | Requirement analyst | Requirement ready for build | 6 acceptance criteria (AC-1..AC-6); example deck Recitation9 (32 slides, text-only today) |
-| 2026-11-21T23:47:27Z | Test master         | Test cases written          | 20 test cases covering AC-1..AC-6                                                         |
-| 2026-11-22T00:26:15Z | Developer | Build complete | Package normaliser (pptx-normalize.ts) + per-slide reload/fallbacks in pptx-deck.ts; damaged/LibreOffice decks draw 32/32 with design; commit c3d4e91 |
-| 2026-11-22T01:03:46Z | Tester | Tests executed | 18/20 passed, 2 failed, 0 blocked |
-| 2026-11-22T01:03:46Z | Tester | Evidence generated | test-evidence.xlsx with 48 screenshots |
-| 2026-11-22T01:09:09Z | Product manager | PM requested changes | AC-1,2,4,5,6 met; AC-3 partly: hide library in-slide arrows/counter (out of sync, 0/M, bookmark saves wrong slide) and show full Slide N / M at 390px; retest TC-08, TC-19 |
-| 2026-11-22T01:10:25Z | Test master | Test cases updated after PM review | TC-08 revised (in-slide controls absent or in sync, never 0/M, Bookmark toast = slide shown = counter after every step); TC-19 revised (390px and 360px, full counter incl. 128-slide deck, no horizontal scroll, all toolbar buttons reachable); TC-11, TC-13, TC-20 tightened; TC-21 added (slide/counter/Bookmark/AI overview agree across all navigation). 21 cases. |
+| Time (UTC)           | Role                | Action                             | Details                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------- | ------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-11-21T23:44:57Z | Requirement analyst | Requirement created                | PowerPoint slides show their real design                                                                                                                                                                                                                                                                                                                                 |
+| 2026-11-21T23:45:18Z | Requirement analyst | Requirement ready for build        | 6 acceptance criteria (AC-1..AC-6); example deck Recitation9 (32 slides, text-only today)                                                                                                                                                                                                                                                                                |
+| 2026-11-21T23:47:27Z | Test master         | Test cases written                 | 20 test cases covering AC-1..AC-6                                                                                                                                                                                                                                                                                                                                        |
+| 2026-11-22T00:26:15Z | Developer           | Build complete                     | Package normaliser (pptx-normalize.ts) + per-slide reload/fallbacks in pptx-deck.ts; damaged/LibreOffice decks draw 32/32 with design; commit c3d4e91                                                                                                                                                                                                                    |
+| 2026-11-22T01:03:46Z | Tester              | Tests executed                     | 18/20 passed, 2 failed, 0 blocked                                                                                                                                                                                                                                                                                                                                        |
+| 2026-11-22T01:03:46Z | Tester              | Evidence generated                 | test-evidence.xlsx with 48 screenshots                                                                                                                                                                                                                                                                                                                                   |
+| 2026-11-22T01:09:09Z | Product manager     | PM requested changes               | AC-1,2,4,5,6 met; AC-3 partly: hide library in-slide arrows/counter (out of sync, 0/M, bookmark saves wrong slide) and show full Slide N / M at 390px; retest TC-08, TC-19                                                                                                                                                                                               |
+| 2026-11-22T01:10:25Z | Test master         | Test cases updated after PM review | TC-08 revised (in-slide controls absent or in sync, never 0/M, Bookmark toast = slide shown = counter after every step); TC-19 revised (390px and 360px, full counter incl. 128-slide deck, no horizontal scroll, all toolbar buttons reachable); TC-11, TC-13, TC-20 tightened; TC-21 added (slide/counter/Bookmark/AI overview agree across all navigation). 21 cases. |
+| 2026-11-22T01:18:03Z | Developer | Changes after PM review complete | Library in-slide arrows/counter removed (toolbar is the only navigation; drawn slide, counter, bookmark and AI overview always agree); counter shown in full on phones (360/390px); commit 5178a72 |
