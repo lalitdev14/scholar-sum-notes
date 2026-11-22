@@ -3,7 +3,7 @@
 | Field        | Value                                                 |
 | ------------ | ----------------------------------------------------- |
 | ID           | REQ-2026-11-22-powerpoint-decks-get-an-exact-pdf-copy |
-| Status       | In test                                               |
+| Status       | Approved                                              |
 | Requested by | Product owner                                         |
 | Created      | 2026-11-22                                            |
 | Branch       | `claude/pptx-pdf-copy`                                |
@@ -187,17 +187,83 @@ in `evidence/`.
 
 ## 9. Product manager verification
 
-| Field       | Value                          |
-| ----------- | ------------------------------ |
-| Decision    | (Approved / Changes requested) |
-| Verified by | Product manager agent          |
-| Date        |                                |
+| Field       | Value                 |
+| ----------- | --------------------- |
+| Decision    | Approved              |
+| Verified by | Product manager agent |
+| Date        | 2026-11-22            |
+
+**What I checked myself.** Dev server (branch `claude/pptx-pdf-copy`, tester commit `a14bc12`), Chromium,
+fake session, mocked Supabase and the PDF Studio converter mocked with PDFs the real converter made from the
+generated test decks. No real student data was used.
+
+- **Upload and switch:**
+  - After uploading `deck5.pptx` the deck showed at once ("Slide 1 / 5") with the "Preparing exact
+    slides…" pill.
+  - I moved to slide 4 while it converted. "Write on slide" said "Exact slides are still being prepared
+    for this PowerPoint. Try again in a moment."
+  - The viewer then switched to the PDF with page 4 in view and the toolbar still at "Slide 4 / 5". The
+    toast said "Exact slides ready" and the pill went away.
+  - There was exactly 1 converter POST, and the copy was saved as `<uuid>.converted.pdf` (`application/pdf`).
+- **After the switch:** Bookmark gave "Bookmarked slide 4". "Write on slide" said "Added the current slide
+  as a page. Write on it!" and the new notebook page (2 of 2) is slide 4.
+- **Reopen:** after a reload, the deck opened straight in the PDF view. There was no pill, no PowerPoint
+  view and 0 converter requests.
+- **Failures:**
+  - HTTP 500 and a failed job both kept the PowerPoint view (navigation works) with only the quiet
+    "PowerPoint view" pill.
+  - There was no dialog and no error toast, and the console gave one `[slides] exact PDF copy not made …`
+    line per attempt.
+  - The hidden-slide deck (6 slides, 5 pages) behaved the same way.
+- **Page errors:** 0 in every run.
+
+Delete, CSP, privacy, cross-tab locking, the timeout and the real converter come from the tester's evidence
+(TC-10, TC-12..TC-14, TC-20..TC-22).
+
+**Tester observations, judged against the ACs and the user's goal:**
+
+1. **"Slide N / M" after the switch, where TC-02/03/04/15 expected "Page N / M": accepted, and it's the
+   better choice.** The deck is still a lecture deck; its numbers match its bookmarks and notes; the unit
+   doesn't change under the student mid-session. The number, page count and page shown are correct, which
+   is what AC-2 and AC-6 need. The test cases' wording should say "Slide" next time it's touched.
+2. **Two attempts in a row when the converter fails at once: accepted.** AC-5 asks for one conversion at a
+   time, and they never overlap. The second attempt (about 0.5 s later) is invisible to the student and
+   costs one extra request on failure only.
+3. **No ‹ › after the switch (scrolling view like other PDFs): accepted for now.** No AC requires the
+   arrows. The counter, bookmark jump and zoom work (TC-15), and it matches how PDF decks already work, so
+   there is still one consistent set of navigation per view. Follow-up below.
+4. **Decks with hidden slides never switch and are re-sent on every open: accepted as written, with a
+   follow-up.** This is what AC-5 and §3 ask for ("try again the next time"), and the student is never
+   worse off than before: the PowerPoint view and the quiet note stay. Course decks often have hidden
+   slides, though, so those students don't get exact slides or Write on slide, and every open re-uploads
+   the file to a free-plan converter. Follow-up below.
+5. **Up to ~4.5 min wait in another tab after a tab closes mid-conversion: accepted.** It's a rare edge
+   case, the PowerPoint view stays usable throughout, and it recovers by itself.
 
 Notes per acceptance criterion:
 
 | AC   | Met? | Notes |
 | ---- | ---- | ----- |
-| AC-1 |      |       |
+| AC-1 | Yes  | TC-01 and TC-19 pass. I checked myself: shown at once with "Preparing exact slides…"; navigation and notes work while converting. |
+| AC-2 | Yes  | TC-02, TC-03 and TC-22 pass. I checked myself: one conversion, copy saved as `<uuid>.converted.pdf`, switch on the same slide (4), "Exact slides ready", pill removed. The toolbar says "Slide" (observation 1, accepted). |
+| AC-3 | Yes  | TC-04 and TC-05 pass. I checked myself: reopen goes straight to the PDF with 0 converter requests. Older decks convert on first open (TC-05). |
+| AC-4 | Yes  | TC-06, TC-07 and TC-08 pass. I checked myself: Write on slide adds slide 4 on the PDF copy; while preparing, the message explains why. |
+| AC-5 | Yes  | TC-09..TC-13, TC-17 and TC-22 pass. I checked myself: failed job, HTTP 500 and page mismatch all keep the PowerPoint view quietly, with no dialog or error toast and a console reason. Attempts never overlap (observation 2). Retry on next open: TC-09 and TC-10. |
+| AC-6 | Yes  | TC-14..TC-18 pass: delete removes both files; bookmark, counter, AI overview and zoom work after the switch (I checked Bookmark myself); no PDF or PowerPoint regressions; 0 page errors. |
+| AC-7 | Yes  | TC-20 and TC-21 pass: CSP `connect-src` allows the converter (no violations, with a negative control), and the privacy page has the sentence. |
+
+**Required changes:** none.
+
+**Follow-ups** (new requirements, not blocking this release):
+
+1. **Hidden slides:** make decks with hidden slides switch too, for example by converting with hidden
+   slides included, or by mapping PDF pages to slide numbers. Until then, remember a page-count mismatch
+   for that exact file, so it isn't re-uploaded to the converter on every open.
+2. **Arrows on the PDF view (optional):** consider ‹ › buttons that scroll to the previous or next page
+   for all PDF and converted decks, so switching doesn't remove the arrows the student was using.
+3. **Check on pre-prod:** the conversion only works on origins the converter allows. After merge, upload a
+   real course deck on https://lectureloop-preprod.vercel.app and confirm the switch, "Exact slides ready"
+   and Write on slide work against the real PDF Studio server, including a Render cold start.
 
 ## 10. Audit trail
 
@@ -211,3 +277,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T17:13:45Z | Developer           | Build complete              | New src/lib/pptx-to-pdf.ts (PDF Studio client, validation, per-deck lock) + slide-copy-path.ts; viewer opens copy or converts and switches on same slide; Write-on-slide preparing message; deletes remove .converted.pdf; CSP + privacy. Verified in Chromium with mocked Supabase/converter; typecheck + build pass. Commit 2862bfd |
 | 2026-11-22T17:37:00Z | Tester | Tests executed | 22/22 passed, 0 failed, 0 blocked |
 | 2026-11-22T17:37:00Z | Tester | Evidence generated | test-evidence.xlsx with 33 screenshots |
+| 2026-11-22T17:41:02Z | Product manager | PM approved | AC-1..AC-7 met, verified on dev server (upload, switch on same slide, Exact slides ready, Write on slide, reopen without conversion, quiet fallbacks); observations accepted; follow-ups: hidden-slide decks, arrows on PDF view, pre-prod check |
