@@ -404,7 +404,9 @@ export function slideText(source: unknown): string[] {
 }
 
 /**
- * Loads `file` into `host` in single-slide mode (with the library's own arrows and page count).
+ * Loads `file` into `host` in single-slide mode. Navigate with `viewer.renderNextSlide()` /
+ * `renderPreSlide()` and read `viewer.currentIndex`; the library's own arrows and counter aren't
+ * added (the app shows its own).
  * Returns the viewer and how many slides needed repair.
  */
 export async function openDeck(
@@ -493,14 +495,8 @@ export async function openDeck(
     }
   };
 
-  // The same controls pptx-preview's own preview() adds in slide mode.
-  const next = viewer.renderNextButton();
-  next.onclick = () => viewer.renderNextSlide();
-  viewer.wrapper.append(next);
-  const prev = viewer.renderPreButton();
-  prev.onclick = () => viewer.renderPreSlide();
-  viewer.wrapper.append(prev);
-  viewer.renderPagination(viewer.wrapper);
+  // No library arrows or "N/M" counter: the app's toolbar is the only navigation, so the slide on
+  // screen, the toolbar counter, bookmarks and the AI overview always agree.
   viewer.currentIndex = 0;
   render.renderSlide(0);
   return { viewer, repaired };
