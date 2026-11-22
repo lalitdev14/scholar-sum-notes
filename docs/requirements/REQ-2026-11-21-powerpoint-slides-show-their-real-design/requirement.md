@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-21-powerpoint-slides-show-their-real-design |
-| Status       | Ready for build                                         |
+| Status       | Changes requested                                       |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-21                                              |
 | Branch       | `claude/powerpoint-slides-show-their-real-design`       |
@@ -200,17 +200,65 @@ shows slide 3 as text with the note and logs the reason.
 
 ## 9. Product manager verification
 
-| Field       | Value                          |
-| ----------- | ------------------------------ |
-| Decision    | (Approved / Changes requested) |
-| Verified by | Product manager agent          |
-| Date        |                                |
+| Field       | Value                 |
+| ----------- | --------------------- |
+| Decision    | Changes requested     |
+| Verified by | Product manager agent |
+| Date        | 2026-11-22            |
+
+What I checked myself (dev server, branch `claude/pptx-faithful-slides`, Chromium, class page with
+mocked backend, generated decks only): `recitation-32` (32 damaged slides), `dmg-combined`,
+`lo-formula` (LibreOffice export with formula) and `good-16x9`, walking every slide; the library's
+in-slide arrows; Bookmark after using them; and the toolbar at 390px. The design work itself is good:
+every slide drew with its real background, pictures and formatted text, the formula showed as its
+pictures, 0 text-only slides, 0 page errors. Blocking problem: the in-slide controls put the viewer
+out of step with the app. On `recitation-32` at "Slide 4 / 32" I pressed the library's in-slide next
+arrow: the slide shown became "Slide 5 of 32" (in-slide "5/32"), the toolbar stayed "Slide 4 / 32",
+and **Bookmark then saved "Bookmarked slide 4"**, a slide the student isn't looking at. The same
+applies to the AI overview and the toolbar arrows, which carry on from the wrong number. On open the
+in-slide counter says "0/32". Every PowerPoint deck shows two sets of arrows and two counters that
+can disagree. That fails AC-3 ("arrows, page counter, … bookmarks and AI overview work") and the
+user's goal ("Slide N / M match the lecture"), and it can attach a student's bookmarks to the wrong
+slide. The previous build has the same problem, but this requirement explicitly covers it and the fix
+is small, so it is not deferred.
 
 Notes per acceptance criterion:
 
-| AC   | Met? | Notes |
-| ---- | ---- | ----- |
-| AC-1 |      |       |
+| AC   | Met?   | Notes |
+| ---- | ------ | ----- |
+| AC-1 | Yes    | TC-01..TC-05 pass. I checked myself: `dmg-combined` and `recitation-32` draw 5/5 and 32/32 slides with pictures, colour and picture backgrounds and formatted text, and no text-only note. |
+| AC-2 | Yes    | TC-06 and TC-07 pass. I checked myself: on `lo-formula` the picture shows, the orange background shows, and both equations show as their pictures (not blank, no error). Caveats are documented (OMML isn't typeset; EMF/WMF previews stay blank). |
+| AC-3 | Partly | Count and order are right ("Slide 1 / 32" … "Slide 32 / 32"), and app arrows, bookmark jump and AI overview work when only the toolbar is used (TC-09, TC-10, TC-11, TC-18 pass). **TC-08 fails**: the in-slide counter shows "0/32" on open, and the in-slide arrows change the slide without updating the toolbar counter, so Bookmark and AI overview act on the wrong slide (I reproduced this). **TC-19 fails**: at 390px the counter is cut to "Slide 2 …" (needs 76px, gets 66px; I reproduced this). |
+| AC-4 | Yes    | TC-12, TC-13 and TC-14 pass: 16:9 and 4:3 slides are whole and centred and pixel-identical to the previous build, apart from the intended picture-background fix. My `good-16x9` walk matched. |
+| AC-5 | Yes    | TC-15: the one-stop-gradient slide shows as text with the note, the other slides draw, and the console names the reason. The other two damaged variants were repaired and drawn, which is better than required. |
+| AC-6 | Yes    | TC-16 and TC-17 pass. Corrupt, truncated and not-a-PowerPoint files each show a clear message; `.ppt` and `.key` are refused with a message. I saw 0 page errors in all my runs. |
+
+**Required changes** (back to step 2, then re-run steps 3–4):
+
+1. **One set of navigation for PowerPoint decks.** Hide the pptx-preview library's own in-slide
+   pagination (the "N/M" counter and its prev/next arrows: `.pptx-preview-wrapper-pagination`,
+   `.pptx-preview-wrapper-prev`, `.pptx-preview-wrapper-next`), for example with scoped CSS on the
+   viewer host or by removing them after `init()`. The toolbar arrows, the "Slide N / M" counter,
+   the bookmark list and the keyboard (if supported) are the only way to change slides. If the
+   developer keeps any library control instead, it must update the app's current slide (counter,
+   Bookmark, AI overview) on every change and must never show "0/M". Hiding them is preferred.
+2. **Bookmark and AI overview always use the slide on screen.** After any navigation, the slide
+   drawn, the toolbar "Slide N / M", "Bookmarked slide N" and the AI overview's slide must all be
+   the same N.
+3. **Phone counter fully visible.** At 390px wide (and down to 360px) the toolbar shows the whole
+   counter, with no ellipsis, for up to 3-digit decks (e.g. "Slide 32 / 32" and "Slide 128 / 128"),
+   with no horizontal page scroll and all toolbar buttons still reachable. For example: don't let
+   the counter shrink (`shrink-0 whitespace-nowrap`) and make room by tightening the gaps, or drop
+   the word "Slide"/"Page" below the `sm` breakpoint ("32 / 32"). Desktop text stays
+   "Slide N / M"; PDF stays "Page N / M".
+4. **Retest:** TC-08 and TC-19 must pass. Add a check to TC-08 that the in-slide controls are not
+   shown (or that each one stays in sync), and that Bookmark after every navigation saves the slide
+   shown. Re-run TC-01, TC-09..TC-12, TC-18 and TC-20 (PDF) as regression, then regenerate
+   `test-evidence.xlsx`.
+
+Not blocking (follow-up): we never had the real "Recitation9" file. After this ships to pre-prod,
+the product owner should open Recitation9 there and compare it with Brightspace. If any slide still
+shows as text, its `[slides]` console line names the reason.
 
 ## 10. Audit trail
 
@@ -224,3 +272,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T00:26:15Z | Developer | Build complete | Package normaliser (pptx-normalize.ts) + per-slide reload/fallbacks in pptx-deck.ts; damaged/LibreOffice decks draw 32/32 with design; commit c3d4e91 |
 | 2026-11-22T01:03:46Z | Tester | Tests executed | 18/20 passed, 2 failed, 0 blocked |
 | 2026-11-22T01:03:46Z | Tester | Evidence generated | test-evidence.xlsx with 48 screenshots |
+| 2026-11-22T01:09:09Z | Product manager | PM requested changes | AC-1,2,4,5,6 met; AC-3 partly: hide library in-slide arrows/counter (out of sync, 0/M, bookmark saves wrong slide) and show full Slide N / M at 390px; retest TC-08, TC-19 |
