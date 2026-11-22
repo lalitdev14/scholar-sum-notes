@@ -169,7 +169,34 @@ LibreOffice 24, plus damaged copies of a 32-slide deck. Test decks are not commi
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-|       |      |      |         | `test-evidence.xlsx` |
+| 20    | 18   | 2    | 0       | `test-evidence.xlsx` |
+
+Run on the dev server (branch `claude/pptx-faithful-slides`, commit `5b1ef0c`), Chromium 1440x900
+(390x844 for TC-19), fake session with mocked Supabase and server functions (AI overview mocked).
+Test decks were generated for the cases (python-pptx, damaged copies, LibreOffice 24 exports) and
+are not committed. TC-13/14 (and the TC-08/TC-19 checks) were compared with the previous build
+(preprod base `756b744`) on a second dev server. 48 screenshots in `evidence/`.
+
+**Failures** (both pre-existing; the previous build behaves the same, and `LectureSlideViewer.tsx`
+is not changed by this build):
+
+- **TC-08**: the pptx-preview library's own in-slide pagination reads "0/32" (not "1/32") when a
+  deck opens, and its small in-slide next arrow advances the slide (title "Slide 5 of 32") while the
+  app counter stays at "Slide 4 / 32". Everything else passed: 32/32 slides drawn with their colour
+  backgrounds, 0 text-only, slide 10 picture, app arrows, counter and last slide correct.
+- **TC-19**: at 390px the toolbar counter is cut off with an ellipsis ("Slide 2 …"; "Slide 1 / 32"
+  needs 76px, the span gets 66px), so "Slide N / M" isn't fully visible on a phone. Slides are drawn,
+  whole and centred; controls visible; no horizontal scroll; no page errors.
+
+**Notes**: TC-06 used an OMML equation (with PowerPoint-style picture fallback) exported through
+LibreOffice, because LibreOffice Math isn't installed on the test machine; both equations show as
+pictures. TC-07: the LibreOffice round trip itself removes the red colour and white title colour
+from the file; the viewer draws what the file contains. TC-09: the app has no typed slide-number
+field for PowerPoint decks; the slide jump was tested through the Bookmarks list (out-of-range input
+not applicable). TC-13/14: slides 1, 2, 3 and 5 are pixel-identical to the previous build; slide 4
+differs only through the intended picture-background fix (now fills the slide). TC-15: of three
+damaged variants, two were still drawn (normaliser repaired them); the one-stop-gradient variant
+shows slide 3 as text with the note and logs the reason.
 
 ## 9. Product manager verification
 
@@ -195,3 +222,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-21T23:45:18Z | Requirement analyst | Requirement ready for build | 6 acceptance criteria (AC-1..AC-6); example deck Recitation9 (32 slides, text-only today) |
 | 2026-11-21T23:47:27Z | Test master         | Test cases written          | 20 test cases covering AC-1..AC-6                                                         |
 | 2026-11-22T00:26:15Z | Developer | Build complete | Package normaliser (pptx-normalize.ts) + per-slide reload/fallbacks in pptx-deck.ts; damaged/LibreOffice decks draw 32/32 with design; commit c3d4e91 |
+| 2026-11-22T01:03:46Z | Tester | Tests executed | 18/20 passed, 2 failed, 0 blocked |
+| 2026-11-22T01:03:46Z | Tester | Evidence generated | test-evidence.xlsx with 48 screenshots |
