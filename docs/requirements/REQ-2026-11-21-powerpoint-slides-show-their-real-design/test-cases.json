@@ -1,0 +1,359 @@
+[
+  {
+    "id": "TC-01",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "Deck with layouts missing from [Content_Types].xml shows real design",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Reference deck good-16x9.pptx (python-pptx, 13.333x7.5 in, 5 slides): S1 title 'Design test' on white; S2 two pictures (red square PNG left, blue circle PNG right) with caption 'Two pictures'; S3 solid dark-blue background (#1E3A8A) with white title 'Blue background'; S4 full-slide picture background (yellow/green gradient PNG set as background fill or a full-slide picture sent to back) with title 'Picture background'; S5 formatted text: 'Bold' bold, 'Italic' italic, 'Red 40pt' in red 40 pt, and a 3-item bullet list. Damaged copy: unzip good-16x9.pptx, delete every <Override> for /ppt/slideLayouts/slideLayoutN.xml from [Content_Types].xml, re-zip (keep [Content_Types].xml first). File: dmg-ct-layouts.pptx.",
+    "steps": [
+      "Add slides → choose dmg-ct-layouts.pptx",
+      "Wait for the deck tab to appear and slide 1 to draw",
+      "Step through slides 1-5 with the app's '›' button, looking at each slide"
+    ],
+    "expected": "Upload succeeds and the deck appears as a tab with 'Slide 1 / 5'. S2 shows both pictures (red square and blue circle) as images; S3 has a dark-blue background with white title; S4 shows the gradient picture behind the title; S5 shows bold, italic, red large text and bullets. the note 'This slide's design can't be shown here, so here is its text…' does NOT appear on any slide; no slide is blank."
+  },
+  {
+    "id": "TC-02",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "Deck with relationship targets written as /ppt/... shows real design",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Reference deck good-16x9.pptx (python-pptx, 13.333x7.5 in, 5 slides): S1 title 'Design test' on white; S2 two pictures (red square PNG left, blue circle PNG right) with caption 'Two pictures'; S3 solid dark-blue background (#1E3A8A) with white title 'Blue background'; S4 full-slide picture background (yellow/green gradient PNG set as background fill or a full-slide picture sent to back) with title 'Picture background'; S5 formatted text: 'Bold' bold, 'Italic' italic, 'Red 40pt' in red 40 pt, and a 3-item bullet list. Damaged copy: unzip good-16x9.pptx, in ppt/_rels/presentation.xml.rels and every ppt/slides/_rels/slideN.xml.rels rewrite relative targets to absolute ones (e.g. '../slideLayouts/slideLayout2.xml' → '/ppt/slideLayouts/slideLayout2.xml', '../media/image1.png' → '/ppt/media/image1.png', 'slides/slide1.xml' → '/ppt/slides/slide1.xml'), re-zip (keep [Content_Types].xml first). File: dmg-abs-targets.pptx.",
+    "steps": [
+      "Add slides → choose dmg-abs-targets.pptx",
+      "Step through slides 1-5"
+    ],
+    "expected": "'Slide 1 / 5' shown; all 5 slides drawn with their design: S2 pictures visible, S3 blue background, S4 picture background, S5 formatted text. No text-only note on any slide; slides appear in original order (S1 'Design test' … S5 formatted text)."
+  },
+  {
+    "id": "TC-03",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "Deck with relationship targets written as ./... shows real design",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Reference deck good-16x9.pptx (python-pptx, 13.333x7.5 in, 5 slides): S1 title 'Design test' on white; S2 two pictures (red square PNG left, blue circle PNG right) with caption 'Two pictures'; S3 solid dark-blue background (#1E3A8A) with white title 'Blue background'; S4 full-slide picture background (yellow/green gradient PNG set as background fill or a full-slide picture sent to back) with title 'Picture background'; S5 formatted text: 'Bold' bold, 'Italic' italic, 'Red 40pt' in red 40 pt, and a 3-item bullet list. Damaged copy: unzip good-16x9.pptx, rewrite targets with a leading './' (presentation.xml.rels: 'slides/slide1.xml' → './slides/slide1.xml'; slide rels: '../slideLayouts/slideLayout2.xml' → './../slideLayouts/slideLayout2.xml', '../media/image1.png' → './../media/image1.png'), re-zip (keep [Content_Types].xml first). File: dmg-dot-targets.pptx.",
+    "steps": [
+      "Add slides → choose dmg-dot-targets.pptx",
+      "Step through slides 1-5"
+    ],
+    "expected": "'Slide 1 / 5' shown; pictures (S2), blue background (S3), picture background (S4) and formatted text (S5) are drawn. No text-only note; no blank slide."
+  },
+  {
+    "id": "TC-04",
+    "ac": [
+      "AC-1",
+      "AC-3"
+    ],
+    "title": "Combined damage (content types + /ppt/ + ./ targets, masters/themes missing from content types)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Reference deck good-16x9.pptx (python-pptx, 13.333x7.5 in, 5 slides): S1 title 'Design test' on white; S2 two pictures (red square PNG left, blue circle PNG right) with caption 'Two pictures'; S3 solid dark-blue background (#1E3A8A) with white title 'Blue background'; S4 full-slide picture background (yellow/green gradient PNG set as background fill or a full-slide picture sent to back) with title 'Picture background'; S5 formatted text: 'Bold' bold, 'Italic' italic, 'Red 40pt' in red 40 pt, and a 3-item bullet list. Damaged copy: unzip good-16x9.pptx, apply all of: remove layout, slideMaster and theme <Override>s from [Content_Types].xml; slide 1-2 rels use '/ppt/...' targets; slide 3-5 rels use './../...' targets, re-zip (keep [Content_Types].xml first). File: dmg-combined.pptx.",
+    "steps": [
+      "Add slides → choose dmg-combined.pptx",
+      "Step through all slides with '›', then back to slide 1 with '‹'",
+      "Check the console for '[slides]' warnings"
+    ],
+    "expected": "'Slide 1 / 5'; all 5 slides drawn with pictures, backgrounds and formatted text, in order. No text-only note. Console may show '[slides]' diagnostic warnings but no uncaught errors (red exceptions)."
+  },
+  {
+    "id": "TC-05",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "Formatted text and background picture match the undamaged reference",
+    "type": "UI",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Decks good-16x9.pptx and dmg-ct-layouts.pptx (see TC-01) both uploaded to the class as separate tabs.",
+    "steps": [
+      "Open the good-16x9 tab, go to slide 4, then slide 5, take screenshots",
+      "Open the dmg-ct-layouts tab, go to slide 4, then slide 5, take screenshots",
+      "Compare the pairs side by side"
+    ],
+    "expected": "For both slides the damaged deck looks the same as the reference: S4 gradient picture fills the slide behind the title; S5 'Bold' is bold, 'Italic' is italic, 'Red 40pt' is red and visibly larger, bullets show bullet markers and indentation. No plain-text fallback block."
+  },
+  {
+    "id": "TC-06",
+    "ac": [
+      "AC-2"
+    ],
+    "title": "LibreOffice-exported deck with pictures, coloured background and formula",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck lo-formula.pptx: in LibreOffice Impress (or a .fodp/.odp made by script) create 3 slides: S1 a picture (red square PNG) + caption; S2 slide background colour orange (#F97316) with title 'Orange'; S3 Insert → Object → Formula with 'E = mc^2' and 'x = {-b +- sqrt{b^2 - 4ac}} over {2a}' (alternatively a python-pptx deck with an OMML equation inserted via raw XML). Save, then run `soffice --headless --convert-to pptx` to produce lo-formula.pptx.",
+    "steps": [
+      "Add slides → choose lo-formula.pptx",
+      "View slides 1, 2 and 3"
+    ],
+    "expected": "'Slide 1 / 3'. S1 shows the red picture; S2 has an orange background with title 'Orange'; S3 shows the formula either drawn, as its picture, or as its text (e.g. 'E = mc²' / the quadratic formula). S3 is never blank and shows no error message; no page error in the console."
+  },
+  {
+    "id": "TC-07",
+    "ac": [
+      "AC-2",
+      "AC-1"
+    ],
+    "title": "LibreOffice round-trip of a python-pptx deck keeps design",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Reference deck good-16x9.pptx (python-pptx, 13.333x7.5 in, 5 slides): S1 title 'Design test' on white; S2 two pictures (red square PNG left, blue circle PNG right) with caption 'Two pictures'; S3 solid dark-blue background (#1E3A8A) with white title 'Blue background'; S4 full-slide picture background (yellow/green gradient PNG set as background fill or a full-slide picture sent to back) with title 'Picture background'; S5 formatted text: 'Bold' bold, 'Italic' italic, 'Red 40pt' in red 40 pt, and a 3-item bullet list. Round-trip: `soffice --headless --convert-to odp good-16x9.pptx` then `soffice --headless --convert-to pptx good-16x9.odp`, renamed lo-roundtrip.pptx.",
+    "steps": [
+      "Add slides → choose lo-roundtrip.pptx",
+      "Step through all slides"
+    ],
+    "expected": "Slide count equals the file's 5 slides ('Slide 1 / 5'); pictures, blue background, picture background and formatted text are drawn; no text-only note on any slide."
+  },
+  {
+    "id": "TC-08",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "32-slide repaired deck: one set of navigation, count, order, and Bookmark always saves the slide shown",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck recitation-32.pptx (Recitation9 stand-in): python-pptx 32 slides, each with big title 'Slide k of 32' and a different background colour, slide 10 with a picture; round-tripped through `soffice --convert-to pptx`, then damaged (layout Overrides removed from [Content_Types].xml and slide rels rewritten to '/ppt/...'). ",
+    "steps": [
+      "Add slides → choose recitation-32.pptx and wait for slide 1 to draw",
+      "Inspect the slide area (visually and in DevTools Elements): look for the library's in-slide 'N/M' counter and small prev/next arrows (.pptx-preview-wrapper-pagination / -prev / -next)",
+      "Read the toolbar counter; click 'Bookmark' and read the toast",
+      "Press the toolbar '›' 3 times; after EACH press read the slide title and toolbar counter, click 'Bookmark' and read the toast",
+      "Press the toolbar '‹' twice; after each press check title, counter and Bookmark toast again",
+      "If any in-slide arrow is visible: click it once, then check title, toolbar counter and Bookmark toast",
+      "Navigate to the last slide; press '›' once more",
+      "Open the bookmarks dropdown"
+    ],
+    "expected": "In-slide counter and in-slide arrows are NOT shown (absent or hidden: not visible, not clickable); only the toolbar '‹ Slide N / 32 ›' is present. If the developer kept any in-slide control, it shows the same N as the toolbar at all times and never '0/32'. The text '0/32' (or 'Slide 0') never appears anywhere. On open: title 'Slide 1 of 32', toolbar 'Slide 1 / 32', Bookmark toast 'Bookmarked slide 1'. After every navigation step the three numbers are equal: drawn title 'Slide N of 32' = toolbar 'Slide N / 32' = toast 'Bookmarked slide N' (expected sequence 2,3,4 then 3,2). Last slide: 'Slide 32 of 32' / 'Slide 32 / 32'; extra '›' is disabled or does nothing. Bookmarks dropdown lists exactly the slides bookmarked, each matching the slide that was on screen. Every viewed slide shows its colour background (design, not text-only note); slide 10 shows its picture."
+  },
+  {
+    "id": "TC-09",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Slide jump lands on the correct slide in a repaired deck",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. recitation-32.pptx (see TC-08) uploaded.",
+    "steps": [
+      "Use the slide jump (click the 'Slide N / 32' control / enter slide number) to go to slide 20",
+      "Jump to slide 1",
+      "Jump to slide 32",
+      "Try an out-of-range value (e.g. 40 or 0) if the control accepts typing"
+    ],
+    "expected": "Jump to 20 shows title 'Slide 20 of 32' with its design and counters 'Slide 20 / 32' and '20/32'. Jumps to 1 and 32 show the matching slides. Out-of-range input is ignored or clamped (no blank slide, no error)."
+  },
+  {
+    "id": "TC-10",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Bookmarks work on a repaired deck",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. recitation-32.pptx (see TC-08) uploaded.",
+    "steps": [
+      "Go to slide 7 and click 'Bookmark'",
+      "Go to slide 21 and click 'Bookmark'",
+      "Go to slide 1",
+      "Open the bookmarks dropdown and choose the slide 7 entry",
+      "Open the dropdown again and choose slide 21",
+      "Reload the page and reopen the deck tab and the dropdown"
+    ],
+    "expected": "Dropdown lists slide 7 and slide 21. Choosing slide 7 shows title 'Slide 7 of 32' and 'Slide 7 / 32'; choosing 21 shows 'Slide 21 of 32' and 'Slide 21 / 32'. Bookmarks remain after reload (as with mocked backend persistence) and still point to the right slides."
+  },
+  {
+    "id": "TC-11",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "AI overview works on a repaired deck and uses the slide on screen",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. recitation-32.pptx (see TC-08) uploaded; AI endpoint mocked to return an overview.",
+    "steps": [
+      "Go to slide 12 with the toolbar '›'/slide jump",
+      "Click 'AI overview'",
+      "Close the overview, navigate to slide 13 and click 'AI overview' again"
+    ],
+    "expected": "AI overview opens without an error toast and shows the (mocked) overview for the slide on screen: the overview / its request refers to slide 12 (slide text 'Slide 12 of 32'), then slide 13 after navigating; never the previous slide or slide 0. The viewer stays on the same slide with its design while the overview is open."
+  },
+  {
+    "id": "TC-12",
+    "ac": [
+      "AC-3",
+      "AC-4"
+    ],
+    "title": "Zoom works on a repaired deck",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. dmg-combined.pptx (see TC-04) uploaded.",
+    "steps": [
+      "Go to slide 2 (pictures)",
+      "Click '+' twice",
+      "Click '−' four times",
+      "Click '+' until back to 100%",
+      "Navigate to slide 3 at a non-100% zoom"
+    ],
+    "expected": "Zoom label changes (e.g. 100% → 120%/125% → … ) and the drawn slide, including pictures, scales accordingly without turning into the text fallback; at 100% the slide is whole and centred. Navigating keeps the zoom and draws slide 3 with its blue background."
+  },
+  {
+    "id": "TC-13",
+    "ac": [
+      "AC-4"
+    ],
+    "title": "Regression: normal PowerPoint-saved 16:9 deck unchanged",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Reference deck good-16x9.pptx (python-pptx, 13.333x7.5 in, 5 slides): S1 title 'Design test' on white; S2 two pictures (red square PNG left, blue circle PNG right) with caption 'Two pictures'; S3 solid dark-blue background (#1E3A8A) with white title 'Blue background'; S4 full-slide picture background (yellow/green gradient PNG set as background fill or a full-slide picture sent to back) with title 'Picture background'; S5 formatted text: 'Bold' bold, 'Italic' italic, 'Red 40pt' in red 40 pt, and a 3-item bullet list. Use good-16x9.pptx unmodified (if available, also a deck saved by real PowerPoint).",
+    "steps": [
+      "Add slides → choose good-16x9.pptx",
+      "View each slide at 100%",
+      "Compare with screenshots of the same deck taken on the preprod/previous build"
+    ],
+    "expected": "'Slide 1 / 5'; every slide drawn with design, 16:9 aspect, whole (no edges cropped) and centred horizontally and vertically in the viewer; no letterboxing artefacts beyond the normal ones; looks the same as before the change. No text-only note. Desktop toolbar counter text is 'Slide N / 5'; no in-slide 'N/M' counter or in-slide arrows."
+  },
+  {
+    "id": "TC-14",
+    "ac": [
+      "AC-4"
+    ],
+    "title": "Regression: normal PowerPoint-saved 4:3 deck unchanged",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck good-4x3.pptx: same 5 slides as good-16x9.pptx but slide size 10x7.5 in (4:3).",
+    "steps": [
+      "Add slides → choose good-4x3.pptx",
+      "View each slide at 100%",
+      "Compare with the previous build"
+    ],
+    "expected": "'Slide 1 / 5'; every slide drawn in 4:3 proportions (not stretched to 16:9), whole and centred, pictures and backgrounds as in the file; same look as before. No text-only note."
+  },
+  {
+    "id": "TC-15",
+    "ac": [
+      "AC-5"
+    ],
+    "title": "One undrawable slide falls back to text; others drawn; reason logged",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Reference deck good-16x9.pptx (python-pptx, 13.333x7.5 in, 5 slides): S1 title 'Design test' on white; S2 two pictures (red square PNG left, blue circle PNG right) with caption 'Two pictures'; S3 solid dark-blue background (#1E3A8A) with white title 'Blue background'; S4 full-slide picture background (yellow/green gradient PNG set as background fill or a full-slide picture sent to back) with title 'Picture background'; S5 formatted text: 'Bold' bold, 'Italic' italic, 'Red 40pt' in red 40 pt, and a 3-item bullet list. Deck partial-bad.pptx: copy of good-16x9.pptx where only slide 3 is broken beyond repair while its text stays readable, e.g. slide3.xml made non-well-formed (remove the closing </p:spTree> tag) keeping its <a:t>Blue background</a:t>, or slide 3's layout target and the layout/master files it needs deleted. If the app draws every variant, record which variants were tried.",
+    "steps": [
+      "Add slides → choose partial-bad.pptx",
+      "View slides 1-5",
+      "Inspect the browser console"
+    ],
+    "expected": "'Slide 1 / 5' (count unchanged, slide 3 still in position 3). Slides 1, 2, 4, 5 are drawn with their design. Slide 3 shows the note 'This slide's design can't be shown here, so here is its text…' followed by its text 'Blue background'. The console has a '[slides]' warning naming slide 3 and the reason it failed. No page crash; navigation past slide 3 works."
+  },
+  {
+    "id": "TC-16",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "Corrupt file renamed .pptx shows a clear error",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. File corrupt.pptx: random bytes (`head -c 50000 /dev/urandom > corrupt.pptx`); also truncated.pptx: first 20 KB of good-16x9.pptx.",
+    "steps": [
+      "Add slides → choose corrupt.pptx",
+      "Observe the panel and console",
+      "Repeat with truncated.pptx",
+      "Afterwards open another deck tab (e.g. good-16x9)"
+    ],
+    "expected": "For each file a clear, human-readable error message is shown (upload refused with a message, or the deck tab shows an error such as 'This file couldn't be opened'), not a blank panel, spinner forever or raw stack trace. The page stays usable; other decks still open and draw. No uncaught page errors."
+  },
+  {
+    "id": "TC-17",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "Non-PowerPoint files are refused with a message (zip, .ppt, .key)",
+    "type": "Negative",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Files: notpptx.pptx (a zip containing only readme.txt, renamed); old.ppt (any legacy .ppt, e.g. `soffice --convert-to ppt good-16x9.pptx`); talk.key (any file with .key extension).",
+    "steps": [
+      "Add slides → choose notpptx.pptx",
+      "Add slides → choose old.ppt",
+      "Add slides → choose talk.key"
+    ],
+    "expected": "notpptx.pptx: clear error message, no crash, no empty deck with 'Slide 1 / 0'. old.ppt and talk.key: refused with the existing message (as before this change); nothing is added to the deck tabs."
+  },
+  {
+    "id": "TC-18",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "No page errors while loading and navigating all test decks",
+    "type": "Negative",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. All decks from TC-01..TC-08 and TC-15 uploaded; console and (if automated) Playwright 'pageerror' listener active.",
+    "steps": [
+      "Open each deck tab in turn",
+      "On each deck go forward and back through at least 5 slides and change zoom once",
+      "Switch quickly between two deck tabs while one is still loading",
+      "Reload the page"
+    ],
+    "expected": "Zero uncaught exceptions / 'pageerror' events and no React error overlay or error boundary screen. Only '[slides]' warnings (console.warn) are allowed. Every deck ends up showing a slide."
+  },
+  {
+    "id": "TC-19",
+    "ac": [
+      "AC-1",
+      "AC-3",
+      "AC-4",
+      "AC-6"
+    ],
+    "title": "Phone width 390px and 360px: full slide counter, no horizontal scroll, all toolbar buttons reachable",
+    "type": "UI",
+    "priority": "Medium",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck recitation-32.pptx (Recitation9 stand-in): python-pptx 32 slides, each with big title 'Slide k of 32' and a different background colour, slide 10 with a picture; round-tripped through `soffice --convert-to pptx`, then damaged (layout Overrides removed from [Content_Types].xml and slide rels rewritten to '/ppt/...'). Also big-128.pptx: python-pptx 128 slides titled 'Slide k of 128' (plain or coloured backgrounds; optionally damaged like recitation-32). dmg-combined.pptx (TC-04) uploaded too. Viewports: 390x844 and 360x740.",
+    "steps": [
+      "At 390x844 open the class page and the Slides panel; open recitation-32",
+      "Go to slide 32 (toolbar '›' / slide jump); read the toolbar counter; check document.documentElement.scrollWidth <= clientWidth",
+      "Tap each toolbar control: '‹', '›', zoom '−' and '+', 'AI overview', 'Bookmark', bookmarks dropdown",
+      "Open big-128 and go to slide 128 (and slide 100); read the counter",
+      "Open dmg-combined and view slides 2-4",
+      "Repeat all steps at 360x740"
+    ],
+    "expected": "At both widths: the toolbar counter is shown in full with no ellipsis or clipping, e.g. 'Slide 32 / 32' and 'Slide 128 / 128' (a compact '32 / 32' / '128 / 128' without the word 'Slide' is acceptable on phones); the counter number always equals the slide drawn. No horizontal page scroll (scrollWidth not greater than clientWidth). Every toolbar button is visible, not overlapping, and tappable, and does its job (navigation changes slide and counter, zoom changes %, AI overview opens, Bookmark shows 'Bookmarked slide N' with the slide shown, dropdown opens). No in-slide 'N/M' counter or in-slide arrows. Slides are drawn with design (pictures, backgrounds) scaled to fit, whole and centred. No page errors."
+  },
+  {
+    "id": "TC-20",
+    "ac": [
+      "AC-4",
+      "AC-6"
+    ],
+    "title": "Regression: PDF slide decks still display",
+    "type": "Regression",
+    "priority": "Low",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. good-16x9.pdf: `soffice --headless --convert-to pdf good-16x9.pptx`.",
+    "steps": [
+      "Add slides → choose good-16x9.pdf",
+      "Navigate through all pages, zoom in and out, add a bookmark"
+    ],
+    "expected": "PDF shows as before: toolbar reads 'Page 1 / 5' (PDF wording unchanged), pages drawn exactly, navigation, zoom and bookmark work; no errors."
+  },
+  {
+    "id": "TC-21",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Slide on screen, counter, Bookmark toast and AI overview agree after every kind of navigation",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in (fake session, mocked backend), enrolled in a test class, class page open with the Slides panel visible, browser DevTools console open. Deck recitation-32.pptx (Recitation9 stand-in): python-pptx 32 slides, each with big title 'Slide k of 32' and a different background colour, slide 10 with a picture; round-tripped through `soffice --convert-to pptx`, then damaged (layout Overrides removed from [Content_Types].xml and slide rels rewritten to '/ppt/...'). Uploaded; AI endpoint mocked (its request payload visible in DevTools Network). Bookmarks already on slides 7 and 21.",
+    "steps": [
+      "Go to slide 5 with toolbar '›'; click Bookmark; open AI overview",
+      "Use slide jump to go to slide 18; Bookmark; AI overview",
+      "Choose slide 7 in the bookmarks dropdown; Bookmark; AI overview",
+      "Use keyboard arrow keys (if supported) to move to slide 8; Bookmark; AI overview",
+      "Zoom to a non-100% value, press '›' to slide 9; Bookmark; AI overview",
+      "Switch to another deck tab and back; check which slide is shown, then Bookmark"
+    ],
+    "expected": "After each step the drawn title 'Slide N of 32', toolbar 'Slide N / 32', toast 'Bookmarked slide N' and the AI overview's slide (overview content / request slide number or text) are the same N: 5, 18, 7, 8, 9 respectively; after switching tabs the counter matches whatever slide is drawn. Never a mismatch, never slide 0."
+  }
+]

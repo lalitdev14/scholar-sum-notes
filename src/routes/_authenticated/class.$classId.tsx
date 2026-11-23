@@ -46,6 +46,8 @@ import {
   type Stroke,
 } from "@/components/HandwritingNotebook";
 import { LectureSlideViewer } from "@/components/LectureSlideViewer";
+import { ensurePdfCopy, forgetDeck } from "@/lib/pptx-to-pdf";
+import { slideStorageFiles } from "@/lib/slide-copy-path";
 import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
@@ -221,6 +223,9 @@ function ClassPage() {
         await supabase.storage.from("lecture-slides").remove([filePath]);
         throw saveError;
       }
+      // Start the exact PDF copy of a PowerPoint right away; the viewer shows the deck meanwhile
+      // and joins this conversion.
+      if (contentType === PPTX_TYPE) void ensurePdfCopy(filePath, file);
       setSelectedSlideId(row.id);
       await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
       toast.success("Slides uploaded");
@@ -254,9 +259,11 @@ function ClassPage() {
     if (!activeSlides) return;
     setRemovingSlideId(activeSlides.id);
     try {
+      forgetDeck(activeSlides.file_path);
       const { error } = await supabase.storage
         .from("lecture-slides")
-        .remove([activeSlides.file_path]);
+        // A PowerPoint's exact PDF copy goes with it.
+        .remove(slideStorageFiles(activeSlides.file_path));
       if (error) throw error;
       const { error: removeError } = await supabase
         .from("lecture_slides")

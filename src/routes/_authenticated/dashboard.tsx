@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
 import { noteToPlainText } from "@/lib/note-format";
+import { slideStorageFiles } from "@/lib/slide-copy-path";
 import { SiteFooter } from "@/components/SiteFooter";
 import {
   INK,
@@ -181,7 +182,9 @@ function Dashboard() {
         if (slidesError) throw slidesError;
         if (pagesError) throw pagesError;
         if (slides?.length) {
-          await supabase.storage.from("lecture-slides").remove(slides.map((x) => x.file_path));
+          await supabase.storage
+            .from("lecture-slides")
+            .remove(slides.flatMap((x) => slideStorageFiles(x.file_path)));
           const { error } = await supabase
             .from("lecture_slides")
             .delete()

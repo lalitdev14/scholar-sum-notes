@@ -58,6 +58,7 @@ const sections: LegalSection[] = [
       "We use service providers to operate the app, and they process data only to provide their service: Supabase (database, sign-in and file storage), Vercel (web hosting), Google Gemini (summaries, handwriting, slide overviews and AI transcription) and, when enabled, Groq (Whisper speech-to-text for AI transcription).",
       "We send account emails (sign-up confirmation and password reset) through an email delivery service, which receives only your email address and the message.",
       "PDF Studio, the PDF tool shown inside My notes, is a separate app (pdfstudioapp.vercel.app). Files you add there are sent to PDF Studio's own server for processing and, as PDF Studio states, deleted automatically. LectureLoop does not send your notes to PDF Studio.",
+      "When you upload a PowerPoint (.pptx) deck, the file is sent once to the PDF Studio server (run by the LectureLoop team) to make an exact PDF copy of the slides, which is saved with your deck in your own storage. PDF Studio does not keep the file: the converted result expires there after an hour.",
       "In Live transcription mode, speech recognition is performed by your browser's built-in service (for example Google in Chrome, or Apple in Safari) under that browser's privacy terms.",
     ],
   },

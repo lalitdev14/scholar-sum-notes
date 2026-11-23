@@ -35,7 +35,12 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { captureAllSlides, captureCurrentSlide, slideCount } from "@/lib/slide-capture";
+import {
+  captureAllSlides,
+  captureCurrentSlide,
+  noSlidesMessage,
+  slideCount,
+} from "@/lib/slide-capture";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -949,7 +954,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   async function writeOnSlide() {
     const img = await captureCurrentSlide().catch(() => null);
     if (!img) {
-      toast.error("Open a PDF slide deck on the Slides side first.");
+      toast.error(noSlidesMessage());
       return;
     }
     addPage({ background: img, backgroundPath: null, dirty: true });
@@ -960,7 +965,7 @@ export const HandwritingNotebook = forwardRef<NotebookHandle, Props>(function Ha
   async function writeOnAllSlides() {
     const total = slideCount();
     if (!total) {
-      toast.error("Open a PDF slide deck on the Slides side first.");
+      toast.error(noSlidesMessage());
       return;
     }
     if (total > 40 && !window.confirm(`Add all ${total} slides as pages?`)) return;
