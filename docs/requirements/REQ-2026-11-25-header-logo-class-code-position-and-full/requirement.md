@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-25-header-logo-class-code-position-and-full |
-| Status       | In test                                                 |
+| Status       | Changes requested                                       |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-25                                              |
 | Branch       | `claude/header-polish`                                  |
@@ -111,17 +111,80 @@ times of day (14 variants, including "?" ones). Headers were compared with the p
 
 ## 9. Product manager verification
 
-| Field       | Value                          |
-| ----------- | ------------------------------ |
-| Decision    | (Approved / Changes requested) |
-| Verified by | Product manager agent          |
-| Date        |                                |
+| Field       | Value                 |
+| ----------- | --------------------- |
+| Decision    | Changes requested     |
+| Verified by | Product manager agent |
+| Date        | 2026-11-25            |
+
+**What I checked myself.** Dev server, branch `claude/header-polish` at `235bdf5`, Chromium at 1440px and
+390px, fake session and mocked Supabase. No real student data was used.
+
+- **/auth and landing (/), signed out:** a white graduation-cap icon before "LectureLoop". Both are inside
+  the link to `/` ("LectureLoop home"), the violet square is gone, there's no horizontal scroll and no page
+  errors.
+- **Class page:**
+  - At 1440px the "CS-101" badge sits immediately before the "New York University" chip, then the account
+    chip.
+  - At 390px the badge sits before the menu button.
+  - No horizontal scroll.
+- **Home greeting** (clock fixed at 14:00):
+
+  | Profile name | Greeting shown |
+  | --- | --- |
+  | "lalit dev jakher" | "How was class, *Lalit Dev Jakher*?" (purple italics, on its own line) |
+  | "LALIT DEV" | "Lalit Dev" |
+  | "Anna McDonald" | kept as is |
+  | empty | no name ("Halfway through the week.") |
+  | "maria rodriguez-villanueva" | **"Maria Rodriguez-villanueva."** |
+  | "sean o'brien" | **"Sean O'brien."** |
+
+  390px had no horizontal scroll, and there were 0 page errors throughout.
+
+**The two failures, judged:**
+
+- **TC-10 (hyphenated name): must be fixed now.**
+  - The user asked for the name "full and in capital letters", and AC-3 says "each word capitalised".
+  - In a name, each part of a hyphenated surname, and the part after an apostrophe, is a word of its own.
+    "Rodriguez-villanueva" and "O'brien" look like typos, in the most visible line of the home page.
+  - Hyphenated and apostrophe names are common in a university class, and the fix is a few lines in
+    `formatFullName()`.
+- **TC-11 (purple header logo goes to `/dashboard`, not `/`): not a defect, not blocking.**
+  - AC-4 is about regressions. The pre-change build links to `/dashboard` too.
+  - AC-1's "link to the home page" covers only the black sign-in and landing headers, which do link to `/`.
+  - For a signed-in student, going to their dashboard from the app logo is reasonable and out of this
+    request's scope.
+  - The test case should be corrected to expect `/dashboard`, or to check only that the link is unchanged
+    from the previous build.
 
 Notes per acceptance criterion:
 
-| AC   | Met? | Notes |
-| ---- | ---- | ----- |
-| AC-1 |      |       |
+| AC   | Met?   | Notes |
+| ---- | ------ | ----- |
+| AC-1 | Yes    | Tester's AC-1 cases pass. I checked myself: white graduation-cap logo before "LectureLoop" on /auth and /, at 1440px and 390px; link to `/` kept; violet square gone. |
+| AC-2 | Yes    | Tester's AC-2 cases pass. I checked myself: "CS-101" immediately before "New York University" at 1440px; before the menu button at 390px. |
+| AC-3 | Partly | Full name, purple italics, line break, punctuation, already-capitalised names and the empty name are all correct (I checked myself). **TC-10 fails**: hyphenated parts aren't capitalised ("Rodriguez-villanueva"), and I reproduced the same with an apostrophe ("O'brien"). |
+| AC-4 | Yes    | Account menu, mobile menu, greeting variations, purple header, 390px without horizontal scroll and 0 page errors: the other AC-4 cases pass. TC-11 is pre-existing behaviour, not a regression (see above); fix the test case's expectation. |
+
+**Required changes** (back to the developer; then the test master updates TC-10/TC-11 and the tester
+re-runs them):
+
+1. **Capitalise every part of a name.** In `src/components/WelcomeHome.tsx` `formatFullName()`, when the
+   name is all lower case or all upper case, also capitalise the first letter after a hyphen and after an
+   apostrophe (`'` and `’`).
+   - Examples: "maria rodriguez-villanueva" → "Maria Rodriguez-Villanueva", "sean o'brien" → "Sean O'Brien",
+     "JEAN-LUC D'ARCY" → "Jean-Luc D'Arcy".
+   - Mixed-case names stay exactly as typed ("Anna McDonald", "Anne-marie" if typed that way).
+   - "lalit dev jakher" → "Lalit Dev Jakher" and "LALIT DEV" → "Lalit Dev" are unchanged.
+2. **No other behaviour changes.** The empty, spaces-only and null name show no name; long names still wrap
+   without horizontal scroll at 390px.
+3. **Test-case update** (test master), then re-run TC-10 and TC-11 plus the other AC-3 cases.
+   - TC-10 expects the results in change 1, including an apostrophe example.
+   - TC-11 expects the signed-in purple-header logo to link to `/dashboard`, unchanged from the previous
+     build.
+
+**Follow-up, not blocking:** the account chip still shows the raw stored name ("lalit dev jakher"). §3 keeps
+it out of scope, but the product owner may want the same capitalisation there in a later request.
 
 ## 10. Audit trail
 
@@ -135,3 +198,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-25T19:14:06Z | Developer           | Build complete              | Logo on sign-in/landing headers, class code badge before university chip, full capitalised name in home greeting; typecheck/build/lint pass; verified in Chromium at 1440/390 with mocked data. Commit 45b3bb7 |
 | 2026-11-25T19:24:32Z | Tester | Tests executed | 10/12 passed, 2 failed (TC-10 hyphenated name capitalisation; TC-11 purple logo goes to /dashboard, pre-existing), 0 blocked |
 | 2026-11-25T19:24:32Z | Tester | Evidence generated | test-evidence.xlsx with 12 screenshots |
+| 2026-11-25T19:27:04Z | Product manager | PM requested changes | AC-1, AC-2, AC-4 met; AC-3 partly: capitalise after hyphen/apostrophe in formatFullName (Rodriguez-Villanueva, O'Brien); TC-11 is pre-existing (logo -> /dashboard), fix test expectation; re-run TC-10, TC-11, AC-3 cases |
