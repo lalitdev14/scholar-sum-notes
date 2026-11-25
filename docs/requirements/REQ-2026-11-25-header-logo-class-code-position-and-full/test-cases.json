@@ -1,0 +1,204 @@
+[
+  {
+    "id": "TC-01",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "Sign-in page header shows the white graduation-cap logo instead of the violet square",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed out (no session), app running locally with mocked Supabase, desktop viewport 1440px, browser DevTools console open",
+    "steps": [
+      "Open /auth",
+      "Look at the black header at the top left",
+      "Inspect the element(s) before the word 'LectureLoop'",
+      "Hover the logo, then click the graduation-cap icon",
+      "Go back to /auth and click the word 'LectureLoop'"
+    ],
+    "expected": "The black header shows a white graduation-cap icon immediately before the word 'LectureLoop'. No violet/purple square or dot is shown anywhere in the header. Both the icon and the text are part of one link: the cursor is a pointer on hover and each click navigates to the home page '/'. No console errors."
+  },
+  {
+    "id": "TC-02",
+    "ac": [
+      "AC-1"
+    ],
+    "title": "Landing page header shows the white graduation-cap logo instead of the violet square",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed out (no session), app running locally with mocked Supabase, desktop viewport 1440px, browser DevTools console open",
+    "steps": [
+      "Open / (landing page)",
+      "Look at the black header at the top left",
+      "Click the graduation-cap icon",
+      "Scroll down, then click the word 'LectureLoop'"
+    ],
+    "expected": "The black header shows a white graduation-cap icon immediately before 'LectureLoop', matching the icon used in the purple signed-in app header. No violet square is visible. Logo and text are one link to '/' (clicking returns to / top). No console errors."
+  },
+  {
+    "id": "TC-03",
+    "ac": [
+      "AC-1",
+      "AC-4"
+    ],
+    "title": "Sign-in and landing header logo at phone width (390px)",
+    "type": "Responsive",
+    "priority": "Medium",
+    "preconditions": "Signed out, mocked Supabase, viewport 390x844",
+    "steps": [
+      "Open /auth and look at the header",
+      "Check for horizontal scroll (document.documentElement.scrollWidth vs clientWidth)",
+      "Open / and repeat both checks"
+    ],
+    "expected": "On both pages the white graduation-cap icon is shown before 'LectureLoop', not clipped or overlapping other header items; no violet square; scrollWidth equals clientWidth (no horizontal scroll); no console errors."
+  },
+  {
+    "id": "TC-04",
+    "ac": [
+      "AC-2"
+    ],
+    "title": "Class page: class code badge sits immediately before the university chip on desktop",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Fake signed-in session; mocked profile full_name 'Lalit Dev Jakher', university 'New York University'; mocked class with code 'CS-101' that the user is enrolled in; viewport 1440px",
+    "steps": [
+      "Open /class/<id> for the CS-101 class",
+      "Read the purple header items from left to right",
+      "Inspect the DOM order of the header's right-hand items"
+    ],
+    "expected": "Order is: LectureLoop logo, nav, then the 'CS-101' badge, then directly the 'New York University' chip (torch icon), then the account chip with the user's name. No other element sits between the 'CS-101' badge and the university chip, and the badge no longer appears after the user's name (it appears only once). Header stays on one line without overlap. No console errors."
+  },
+  {
+    "id": "TC-05",
+    "ac": [
+      "AC-2",
+      "AC-4"
+    ],
+    "title": "Signed-in pages without a class code keep their header unchanged",
+    "type": "Regression",
+    "priority": "Medium",
+    "preconditions": "Fake signed-in session; profile university 'New York University'; viewport 1440px",
+    "steps": [
+      "Open the dashboard page",
+      "Open My notes",
+      "Open / (signed-in home)",
+      "On each page, read the purple header items left to right"
+    ],
+    "expected": "Each page shows the purple header: LectureLoop logo, nav, 'New York University' chip, account chip. No class code badge, no empty placeholder or extra gap where a badge would be. Layout matches the pre-change header. No console errors."
+  },
+  {
+    "id": "TC-06",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Home greeting shows full lower-case profile name capitalised",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Fake signed-in session; mocked profile full_name 'lalit dev jakher'; viewport 1440px",
+    "steps": [
+      "Open / (signed-in home)",
+      "Read the greeting heading",
+      "Inspect the name element's computed style (color, font-style)",
+      "Reload several times / adjust the clock so different greeting variants appear (e.g. 'Good afternoon', 'Rise and revise')"
+    ],
+    "expected": "The greeting reads e.g. 'Good afternoon, Lalit Dev Jakher.' with the full name (all three words) each capitalised; not 'lalit' and not first name only. The name is in purple italics on the line after the greeting text (line break kept), followed directly by the greeting's own punctuation ('.' or '?' depending on the variant). Every greeting variant shows 'Lalit Dev Jakher'. No console errors."
+  },
+  {
+    "id": "TC-07",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Home greeting: all-caps name is shown with each word capitalised",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Fake signed-in session; mocked profile full_name 'LALIT DEV'; viewport 1440px",
+    "steps": [
+      "Open / (signed-in home)",
+      "Read the greeting heading"
+    ],
+    "expected": "Name is shown as 'Lalit Dev' (each word capitalised, rest lower case), in purple italics, followed by the greeting's punctuation, e.g. 'Good afternoon, Lalit Dev.'"
+  },
+  {
+    "id": "TC-08",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Home greeting: already capitalised / mixed-case names stay as they are",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Fake signed-in session; viewport 1440px; profile full_name configurable",
+    "steps": [
+      "Set profile full_name to 'Lalit Dev Jakher', open / and read the greeting",
+      "Set profile full_name to 'Anna McDonald', reload / and read the greeting"
+    ],
+    "expected": "First: 'Lalit Dev Jakher' shown unchanged. Second: 'Anna McDonald' shown exactly as stored (the capital D in McDonald is kept, not changed to 'Mcdonald'). Both in purple italics followed by the greeting's punctuation."
+  },
+  {
+    "id": "TC-09",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Home greeting: single name and no name",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Fake signed-in session; viewport 1440px; profile full_name configurable",
+    "steps": [
+      "Set profile full_name to 'lalit', open / and read the greeting",
+      "Set profile full_name to empty/null (also try whitespace only '   '), reload / and read the greeting"
+    ],
+    "expected": "Single name: 'Lalit' shown in purple italics followed by the punctuation, e.g. 'Good afternoon, Lalit.'. No name: the greeting shows no name and no leftover artefacts (no 'undefined', 'null', empty italic gap, dangling comma like 'Good afternoon, .'); greeting still ends with its punctuation. No console errors."
+  },
+  {
+    "id": "TC-10",
+    "ac": [
+      "AC-3",
+      "AC-4"
+    ],
+    "title": "Home greeting: capitalisation after hyphens and apostrophes; long full name wraps without breaking the layout (desktop and phone)",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Fake signed-in session; profile full_name configurable; viewport 1440px unless stated",
+    "steps": [
+      "Set profile full_name to \"maria rodriguez-villanueva\", open / and read the greeting",
+      "Set profile full_name to \"sean o'brien\", reload / and read the greeting",
+      "Set profile full_name to \"JEAN-LUC D'ARCY\", reload / and read the greeting",
+      "Set profile full_name to \"maria fernanda de los angeles gonzalez rodriguez-villanueva\", reload / at 1440px and read the greeting",
+      "Resize to 390x844, reload / and compare document.documentElement.scrollWidth with clientWidth"
+    ],
+    "expected": "Names shown as \"Maria Rodriguez-Villanueva\", \"Sean O'Brien\" and \"Jean-Luc D'Arcy\" (letter after each hyphen and apostrophe capitalised, the rest lower case), each in purple italics followed by the greeting's punctuation. The long name shows as \"Maria Fernanda De Los Angeles Gonzalez Rodriguez-Villanueva\" and wraps onto several lines inside the content area, not cut off and not overlapping other elements. At 390px there is no horizontal scroll (scrollWidth equals clientWidth)."
+  },
+  {
+    "id": "TC-11",
+    "ac": [
+      "AC-4"
+    ],
+    "title": "Regression: account menu and purple header on signed-in pages",
+    "type": "Regression",
+    "priority": "Medium",
+    "preconditions": "Fake signed-in session; profile full_name 'Lalit Dev Jakher', university 'New York University'; class 'CS-101'; viewport 1440px",
+    "steps": [
+      "Open /class/<id> and click the account chip",
+      "Check the menu items, then close it with Escape / clicking outside",
+      "Open the dashboard and check the 'Welcome back, <first name>.' text and account chip name",
+      "Click the LectureLoop logo in the purple (signed-in) header on the class page and on My notes"
+    ],
+    "expected": "Account menu opens with its usual items and closes normally. Purple header appears on class, dashboard and My notes pages. Account chip and dashboard welcome text are unchanged by this requirement (dashboard still uses first name). The purple header logo links to /dashboard, as in the previous build (not \"/\"); each click lands on the dashboard. No console errors."
+  },
+  {
+    "id": "TC-12",
+    "ac": [
+      "AC-2",
+      "AC-4"
+    ],
+    "title": "Regression: phone width 390px on class page, mobile menu and home",
+    "type": "Responsive",
+    "priority": "High",
+    "preconditions": "Fake signed-in session; profile full_name 'Lalit Dev Jakher', university 'New York University'; class 'CS-101'; viewport 390x844; DevTools console open",
+    "steps": [
+      "Open /class/<id>",
+      "Check scrollWidth vs clientWidth",
+      "Open the mobile menu (hamburger), check its items incl. class code / university / account if present, then close it",
+      "Open / (home) and the dashboard; check scrollWidth vs clientWidth on each"
+    ],
+    "expected": "Header fits at 390px without overlapping items; the 'CS-101' code is still visible on the class page (header or mobile menu); mobile menu opens and closes and its links work; no horizontal scroll on any page; no console errors or error screens."
+  }
+]

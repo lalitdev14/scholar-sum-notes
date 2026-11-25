@@ -1,0 +1,123 @@
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "/auth black header (rgb(13, 13, 18)): link href \"/\" holds a lucide graduation-cap svg (colour rgb(255, 255, 255)) directly before \"LectureLoop\" (true), icon and text in one link true; small violet square/dot elements in header: 0; link cursor \"pointer\"; click icon → \"/\", click text → \"/\"; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-01-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:06Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Pass",
+    "actual": "landing black header: graduation-cap svg (rgb(255, 255, 255)) before \"LectureLoop\" true, one link to \"/\" true; purple app header uses \"lucide lucide-graduation-cap\" (same icon true); small violet square/dot elements 0 (the violet \"Get started\" button on the right is the existing CTA, not the logo); click icon → \"/\"; scrolled to y=936 (header scrolled away, not sticky: scrolled back up to reach it), click text → \"/\" at y=0; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-02-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:18Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "390px /auth: icon graduation-cap 16,24,20,20 (rgb(255, 255, 255)) before text true, overlapping header items 0, violet 0, scrollWidth 390/390; 390px /: icon graduation-cap 16,24,20,20 (rgb(255, 255, 255)) before text true, overlapping header items 0, violet 0, scrollWidth 390/390; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-03-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 390x844, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:24Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "class page header: logo, nav [Home, My notes, Plans, About, Feedback], right group in DOM/visual order [CS-101 | New York University | L Lalit Dev Jakher]; \"CS-101\" occurs 1× in the header, ends at x=985, university chip starts at x=993 (gap 8px, nothing between), account chip at x=1191; one row true, header height 79px, overlaps 0; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-04-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:32Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "/dashboard: purple header rgb(87, 6, 140), right group [New York University | L Lalit Dev Jakher], class code badge 0, header pixel difference vs pre-change build 0.0 (same size True), 0 page errors, 0 console errors; /notes: purple header rgb(87, 6, 140), right group [New York University | L Lalit Dev Jakher], class code badge 0, header pixel difference vs pre-change build 0.0 (same size True), 0 page errors, 0 console errors; /: purple header rgb(87, 6, 140), right group [New York University | L Lalit Dev Jakher], class code badge 0, header pixel difference vs pre-change build 0.0 (same size True), 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-05-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:52Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 006db59): 12 different greetings seen (clock fixed at 08:30, 14:30, 19:30, 23:30, 02:30 and reloads): \"Halfway through the week, / Lalit Dev Jakher.\", \"Early bird, / Lalit Dev Jakher.\", \"What are we learning today, / Lalit Dev Jakher?\", \"Back at it, / Lalit Dev Jakher.\", \"Afternoon focus, / Lalit Dev Jakher.\", \"How was class, / Lalit Dev Jakher?\", \"Good evening, / Lalit Dev Jakher.\", \"Ready to review, / Lalit Dev Jakher?\", \"Let's make today's notes stick, / Lalit Dev Jakher.\", \"Night shift, / Lalit Dev Jakher.\", \"Still up, / Lalit Dev Jakher.\", \"Burning the midnight oil, / Lalit Dev Jakher.\"; name element \"Lalit Dev Jakher\" in italic rgb(87, 6, 140) (NYU purple), on the line after the greeting text (<br> present, name starts on a new line: true), followed directly by the punctuation; '?' variant seen: true; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-06-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 23dc5dd), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:32:07Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 006db59): profile \"LALIT DEV\" → \"Halfway through the week, / Lalit Dev.\" (name \"Lalit Dev\", italic, rgb(87, 6, 140)); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-07-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 23dc5dd), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:32:10Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 006db59): profile \"Lalit Dev Jakher\" → \"Halfway through the week, / Lalit Dev Jakher.\" (name \"Lalit Dev Jakher\", italic, rgb(87, 6, 140)); profile \"Anna McDonald\" → \"Let's make today's notes stick, / Anna McDonald.\" (name \"Anna McDonald\", italic, rgb(87, 6, 140)); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-08-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 23dc5dd), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:32:18Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 006db59): profile \"lalit\" → \"Good evening, / Lalit.\" (name \"Lalit\", italic, rgb(87, 6, 140)); profile \"\" → \"Ready to review?\" (no name element); profile \"   \" → \"Evening review time.\" (no name element); profile null → \"Let's make today's notes stick.\" (no name element); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-09-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 23dc5dd), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:32:32Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 006db59): \"maria rodriguez-villanueva\" → \"Halfway through the week, / Maria Rodriguez-Villanueva.\" (name \"Maria Rodriguez-Villanueva\", italic, rgb(87, 6, 140)); \"sean o'brien\" → \"Let's make today's notes stick, / Sean O'Brien.\" (name \"Sean O'Brien\", italic, rgb(87, 6, 140)); \"JEAN-LUC D'ARCY\" → \"Evening review time, / Jean-Luc D'Arcy.\" (name \"Jean-Luc D'Arcy\", italic, rgb(87, 6, 140)); 1440px long name: \"Let's make today's notes stick, / Maria Fernanda De Los Angeles Gonzalez Rodriguez-Villanueva.\"; name \"Maria Fernanda De Los Angeles Gonzalez Rodriguez-Villanueva\" (italic) wraps over 5 lines, inside the content column true (h1 right 696 ≤ section right 696), overlaps the next block false; scrollWidth 1440/1440; 0 page errors; 390px long name: \"Let's make today's notes stick, / Maria Fernanda De Los Angeles Gonzalez Rodriguez-Villanueva.\"; name \"Maria Fernanda De Los Angeles Gonzalez Rodriguez-Villanueva\" (italic) wraps over 5 lines, inside the content column true (h1 right 374 ≤ section right 374), overlaps the next block false; scrollWidth 390/390; 0 page errors",
+    "evidence": [
+      "evidence/TC-10-1.png",
+      "evidence/TC-10-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 23dc5dd), Chromium 1440x900 and 390x844, mocked Supabase",
+    "testedAt": "2026-11-25T19:32:52Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 006db59): class page account menu: \"Lalit Dev Jakher New York University Sign out\" (items [Sign out]); closes with Escape (true) and with a click outside (true); purple header background: class rgb(87, 6, 140), dashboard rgb(87, 6, 140), notes rgb(87, 6, 140); dashboard \"Welcome back, Lalit.\" (before the change: \"Welcome back, Lalit.\"), account chip \"L Lalit Dev Jakher\" (before: \"L Lalit Dev Jakher\"); purple header logo: class: href \"/dashboard\" → \"/dashboard\" (dashboard content true); notes: href \"/dashboard\" → \"/dashboard\" (dashboard content true); previous build's logo href \"/dashboard\" (same); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-11-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 23dc5dd), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:33:30Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Pass",
+    "actual": "390px class page: header height 69px, overlaps 0, \"CS-101\" visible in the header true, scrollWidth 390/390; mobile menu shows \"Close LectureLoop Lalit Dev Jakher New York University Home My notes Plans About Feedback Sign out\", closes with Escape true, its \"My notes\" link → \"/notes\"; /: scrollWidth 390/390; /dashboard: scrollWidth 390/390; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-12-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 390x844, mocked Supabase",
+    "testedAt": "2026-11-25T19:21:51Z"
+  }
+]

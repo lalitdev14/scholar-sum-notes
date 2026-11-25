@@ -5,6 +5,28 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { pickGreeting, rememberGreeting } from "@/lib/greetings";
 
+/**
+ * Full name for the greeting with each word capitalised.
+ * All-lower or all-upper names are title-cased ("lalit dev" / "LALIT DEV" → "Lalit Dev"),
+ * including after a hyphen or apostrophe ("sean o'brien" → "Sean O'Brien");
+ * mixed-case names keep their casing apart from the first letter ("McDonald" stays).
+ */
+function formatFullName(raw: string): string {
+  const name = raw.trim().replace(/\s+/g, " ");
+  if (!name) return "";
+  const uniformCase = name === name.toLowerCase() || name === name.toUpperCase();
+  if (uniformCase) {
+    // Title-case, also after a hyphen or apostrophe: "jean-luc d'arcy" → "Jean-Luc D'Arcy".
+    return name
+      .toLowerCase()
+      .replace(/(^|[ \-'\u2019])(\S)/g, (_, sep: string, ch: string) => sep + ch.toUpperCase());
+  }
+  return name
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 type Activity = "typed" | "handwriting" | "opened";
 const ACTIVITY_LABEL: Record<Activity, string> = {
   typed: "You last typed notes here",
@@ -99,7 +121,7 @@ export function WelcomeHome() {
     },
   });
 
-  const first = (data?.name ?? "").trim().split(/\s+/)[0];
+  const fullName = formatFullName(data?.name ?? "");
   const classes = data?.classes ?? [];
   const last = classes[0]?.lastAt ? classes[0] : null;
 
@@ -134,11 +156,11 @@ export function WelcomeHome() {
               className="mt-4 text-[2.75rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#17151c] sm:text-6xl"
             >
               {greeting.lead}
-              {first ? (
+              {fullName ? (
                 <>
                   ,<br />
-                  <span className="italic" style={{ color: accent }}>
-                    {first}
+                  <span className="italic break-words" style={{ color: accent }}>
+                    {fullName}
                   </span>
                 </>
               ) : null}

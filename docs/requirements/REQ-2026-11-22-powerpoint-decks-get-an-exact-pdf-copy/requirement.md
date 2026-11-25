@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-22-powerpoint-decks-get-an-exact-pdf-copy   |
-| Status       | PR raised                                               |
+| Status       | Released                                                |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-22                                              |
 | Branch       | `claude/pptx-pdf-copy`                                  |
@@ -279,3 +279,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T17:37:00Z | Tester              | Evidence generated          | test-evidence.xlsx with 33 screenshots                                                                                                                                                                                                                                                                                                |
 | 2026-11-22T17:41:02Z | Product manager     | PM approved                 | AC-1..AC-7 met, verified on dev server (upload, switch on same slide, Exact slides ready, Write on slide, reopen without conversion, quiet fallbacks); observations accepted; follow-ups: hidden-slide decks, arrows on PDF view, pre-prod check                                                                                      |
 | 2026-11-22T17:42:10Z | Release             | PR raised                   | https://github.com/lalitdev14/scholar-sum-notes/pull/69 into preprod (after PM approval)                                                                                                                                                                                                                                              |
+| 2026-11-23T03:26:18Z | Release             | Merged to preprod           | PR #69 merged; pre-prod deployed (CSP and privacy page verified)                                                                                                                                                                                                                                                                      |
+| 2026-11-23T03:26:18Z | Release             | Released to production      | Release PR #70 merged; live check on lectureloop.org with the real PDF Studio converter: upload -> 'Preparing exact slides' -> converted in 15 s -> saved .converted.pdf -> switched, 'Exact slides ready', 0 page errors                                                                                                             |

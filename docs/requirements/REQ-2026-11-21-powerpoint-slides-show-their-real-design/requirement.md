@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-21-powerpoint-slides-show-their-real-design |
-| Status       | PR raised                                               |
+| Status       | Released                                                |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-21                                              |
 | Branch       | `claude/pptx-faithful-slides`                           |
@@ -301,3 +301,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-22T04:45:41Z | Tester              | Evidence regenerated               | test-evidence.xlsx, 54 screenshots                                                                                                                                                                                                                                                                                                                                       |
 | 2026-11-22T04:52:32Z | Product manager     | PM approved                        | Re-verified after 5178a72: no library in-slide controls; slide drawn, counter, bookmark and AI overview agree; full counter at 390/360px (128 / 128); AC-1..AC-6 met; 21/21 Pass                                                                                                                                                                                         |
 | 2026-11-22T04:53:50Z | Release             | PR raised                          | https://github.com/lalitdev14/scholar-sum-notes/pull/68 into preprod (after PM approval)                                                                                                                                                                                                                                                                                 |
+| 2026-11-23T03:26:18Z | Release             | Merged to preprod                  | PR #68 merged; pre-prod checked by the product owner (Recitation9 slides look fine)                                                                                                                                                                                                                                                                                      |
+| 2026-11-23T03:26:18Z | Release             | Released to production             | Release PR #70 merged to main; lectureloop.org deployed                                                                                                                                                                                                                                                                                                                  |

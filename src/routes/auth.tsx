@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { EmailSentNotice } from "@/components/EmailSentNotice";
 import { SiteFooter } from "@/components/SiteFooter";
 import { INK, SOFT_GREY, VIOLET, boldOutline, boldPrimary, grotesk } from "@/lib/bold-theme";
@@ -146,7 +146,11 @@ function AuthPage() {
       <header className="text-white" style={{ backgroundColor: INK }}>
         <div className="mx-auto flex w-full max-w-[100rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-10 xl:px-16">
           <Link to="/" className="flex items-center gap-2.5" aria-label="LectureLoop home">
-            <span className="h-3 w-3 rounded-[4px]" style={{ backgroundColor: VIOLET }} />
+            <GraduationCap
+              className="h-5 w-5 shrink-0"
+              style={{ color: "#fff" }}
+              aria-hidden="true"
+            />
             <span className="text-xl font-bold tracking-tight" style={grotesk}>
               LectureLoop
             </span>
