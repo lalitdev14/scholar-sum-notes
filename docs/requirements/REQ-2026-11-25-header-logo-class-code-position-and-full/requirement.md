@@ -87,6 +87,16 @@ Code commit: `45b3bb7` on `claude/header-polish`.
   "Ronald McDonald", a 4-word long name and an empty name; no page errors, no horizontal scroll.
   `bun run typecheck`, `bun run build`, eslint and prettier on touched files pass.
 
+**Changes after PM review** (commit `006db59`)
+
+- `formatFullName()` in `src/components/WelcomeHome.tsx`: for all-lower or all-upper names, the letter after a
+  hyphen or apostrophe (`'` and `’`) is also capitalised: "maria rodriguez-villanueva" → "Maria Rodriguez-Villanueva",
+  "sean o'brien" → "Sean O'Brien", "JEAN-LUC D'ARCY" → "Jean-Luc D'Arcy". Mixed-case names, "lalit dev jakher",
+  "LALIT DEV" and empty/blank names behave as before.
+- Verified in Chromium at 1440px and 390px (mocked data): the names above plus "sean o’brien", "lalit dev jakher",
+  a blank name and a long hyphenated name (wraps, no horizontal scroll); no page errors. Typecheck, build, eslint
+  and prettier pass.
+
 ## 8. Test summary (tester)
 
 | Total | Pass | Fail | Blocked | Evidence             |
@@ -130,14 +140,14 @@ times of day (14 variants, including "?" ones). Headers were compared with the p
   - No horizontal scroll.
 - **Home greeting** (clock fixed at 14:00):
 
-  | Profile name | Greeting shown |
-  | --- | --- |
-  | "lalit dev jakher" | "How was class, *Lalit Dev Jakher*?" (purple italics, on its own line) |
-  | "LALIT DEV" | "Lalit Dev" |
-  | "Anna McDonald" | kept as is |
-  | empty | no name ("Halfway through the week.") |
-  | "maria rodriguez-villanueva" | **"Maria Rodriguez-villanueva."** |
-  | "sean o'brien" | **"Sean O'brien."** |
+  | Profile name                 | Greeting shown                                                         |
+  | ---------------------------- | ---------------------------------------------------------------------- |
+  | "lalit dev jakher"           | "How was class, _Lalit Dev Jakher_?" (purple italics, on its own line) |
+  | "LALIT DEV"                  | "Lalit Dev"                                                            |
+  | "Anna McDonald"              | kept as is                                                             |
+  | empty                        | no name ("Halfway through the week.")                                  |
+  | "maria rodriguez-villanueva" | **"Maria Rodriguez-villanueva."**                                      |
+  | "sean o'brien"               | **"Sean O'brien."**                                                    |
 
   390px had no horizontal scroll, and there were 0 page errors throughout.
 
@@ -159,12 +169,12 @@ times of day (14 variants, including "?" ones). Headers were compared with the p
 
 Notes per acceptance criterion:
 
-| AC   | Met?   | Notes |
-| ---- | ------ | ----- |
-| AC-1 | Yes    | Tester's AC-1 cases pass. I checked myself: white graduation-cap logo before "LectureLoop" on /auth and /, at 1440px and 390px; link to `/` kept; violet square gone. |
-| AC-2 | Yes    | Tester's AC-2 cases pass. I checked myself: "CS-101" immediately before "New York University" at 1440px; before the menu button at 390px. |
+| AC   | Met?   | Notes                                                                                                                                                                                                                                                                         |
+| ---- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | Yes    | Tester's AC-1 cases pass. I checked myself: white graduation-cap logo before "LectureLoop" on /auth and /, at 1440px and 390px; link to `/` kept; violet square gone.                                                                                                         |
+| AC-2 | Yes    | Tester's AC-2 cases pass. I checked myself: "CS-101" immediately before "New York University" at 1440px; before the menu button at 390px.                                                                                                                                     |
 | AC-3 | Partly | Full name, purple italics, line break, punctuation, already-capitalised names and the empty name are all correct (I checked myself). **TC-10 fails**: hyphenated parts aren't capitalised ("Rodriguez-villanueva"), and I reproduced the same with an apostrophe ("O'brien"). |
-| AC-4 | Yes    | Account menu, mobile menu, greeting variations, purple header, 390px without horizontal scroll and 0 page errors: the other AC-4 cases pass. TC-11 is pre-existing behaviour, not a regression (see above); fix the test case's expectation. |
+| AC-4 | Yes    | Account menu, mobile menu, greeting variations, purple header, 390px without horizontal scroll and 0 page errors: the other AC-4 cases pass. TC-11 is pre-existing behaviour, not a regression (see above); fix the test case's expectation.                                  |
 
 **Required changes** (back to the developer; then the test master updates TC-10/TC-11 and the tester
 re-runs them):
@@ -190,13 +200,14 @@ it out of scope, but the product owner may want the same capitalisation there in
 
 Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Details>"`.
 
-| Time (UTC)           | Role                | Action                      | Details                                                                                                                                                                                                        |
-| -------------------- | ------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-25T19:07:41Z | Requirement analyst | Requirement created         | Header logo, class code position and full name greeting                                                                                                                                                        |
-| 2026-11-25T19:07:41Z | Requirement analyst | Requirement ready for build | 3 small header/greeting fixes from screenshots; 4 acceptance criteria                                                                                                                                          |
-| 2026-11-25T19:08:51Z | Test master         | Test cases written          | 12 test cases covering AC-1..AC-4                                                                                                                                                                              |
-| 2026-11-25T19:14:06Z | Developer           | Build complete              | Logo on sign-in/landing headers, class code badge before university chip, full capitalised name in home greeting; typecheck/build/lint pass; verified in Chromium at 1440/390 with mocked data. Commit 45b3bb7 |
-| 2026-11-25T19:24:32Z | Tester | Tests executed | 10/12 passed, 2 failed (TC-10 hyphenated name capitalisation; TC-11 purple logo goes to /dashboard, pre-existing), 0 blocked |
-| 2026-11-25T19:24:32Z | Tester | Evidence generated | test-evidence.xlsx with 12 screenshots |
-| 2026-11-25T19:27:04Z | Product manager | PM requested changes | AC-1, AC-2, AC-4 met; AC-3 partly: capitalise after hyphen/apostrophe in formatFullName (Rodriguez-Villanueva, O'Brien); TC-11 is pre-existing (logo -> /dashboard), fix test expectation; re-run TC-10, TC-11, AC-3 cases |
-| 2026-11-25T19:27:45Z | Test master | Test cases updated after PM review | TC-10 now expects capitals after hyphens and apostrophes (Maria Rodriguez-Villanueva, Sean O'Brien, Jean-Luc D'Arcy) plus the long-name wrap check; TC-11 expects the purple header logo to link to /dashboard; still 12 cases, ids unchanged |
+| Time (UTC)           | Role                | Action                             | Details                                                                                                                                                                                                                                       |
+| -------------------- | ------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-25T19:07:41Z | Requirement analyst | Requirement created                | Header logo, class code position and full name greeting                                                                                                                                                                                       |
+| 2026-11-25T19:07:41Z | Requirement analyst | Requirement ready for build        | 3 small header/greeting fixes from screenshots; 4 acceptance criteria                                                                                                                                                                         |
+| 2026-11-25T19:08:51Z | Test master         | Test cases written                 | 12 test cases covering AC-1..AC-4                                                                                                                                                                                                             |
+| 2026-11-25T19:14:06Z | Developer           | Build complete                     | Logo on sign-in/landing headers, class code badge before university chip, full capitalised name in home greeting; typecheck/build/lint pass; verified in Chromium at 1440/390 with mocked data. Commit 45b3bb7                                |
+| 2026-11-25T19:24:32Z | Tester              | Tests executed                     | 10/12 passed, 2 failed (TC-10 hyphenated name capitalisation; TC-11 purple logo goes to /dashboard, pre-existing), 0 blocked                                                                                                                  |
+| 2026-11-25T19:24:32Z | Tester              | Evidence generated                 | test-evidence.xlsx with 12 screenshots                                                                                                                                                                                                        |
+| 2026-11-25T19:27:04Z | Product manager     | PM requested changes               | AC-1, AC-2, AC-4 met; AC-3 partly: capitalise after hyphen/apostrophe in formatFullName (Rodriguez-Villanueva, O'Brien); TC-11 is pre-existing (logo -> /dashboard), fix test expectation; re-run TC-10, TC-11, AC-3 cases                    |
+| 2026-11-25T19:27:45Z | Test master         | Test cases updated after PM review | TC-10 now expects capitals after hyphens and apostrophes (Maria Rodriguez-Villanueva, Sean O'Brien, Jean-Luc D'Arcy) plus the long-name wrap check; TC-11 expects the purple header logo to link to /dashboard; still 12 cases, ids unchanged |
+| 2026-11-25T19:29:38Z | Developer           | Changes after PM review complete   | Greeting capitalises after hyphen/apostrophe (' and ’) for uniform-case names; mixed case unchanged; verified in Chromium 1440/390; typecheck/build/lint pass. Commit 006db59                                                                 |
