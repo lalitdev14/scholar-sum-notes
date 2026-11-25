@@ -1,1 +1,122 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "/auth black header (rgb(13, 13, 18)): link href \"/\" holds a lucide graduation-cap svg (colour rgb(255, 255, 255)) directly before \"LectureLoop\" (true), icon and text in one link true; small violet square/dot elements in header: 0; link cursor \"pointer\"; click icon → \"/\", click text → \"/\"; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-01-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:06Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Pass",
+    "actual": "landing black header: graduation-cap svg (rgb(255, 255, 255)) before \"LectureLoop\" true, one link to \"/\" true; purple app header uses \"lucide lucide-graduation-cap\" (same icon true); small violet square/dot elements 0 (the violet \"Get started\" button on the right is the existing CTA, not the logo); click icon → \"/\"; scrolled to y=936 (header scrolled away, not sticky: scrolled back up to reach it), click text → \"/\" at y=0; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-02-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:18Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "390px /auth: icon graduation-cap 16,24,20,20 (rgb(255, 255, 255)) before text true, overlapping header items 0, violet 0, scrollWidth 390/390; 390px /: icon graduation-cap 16,24,20,20 (rgb(255, 255, 255)) before text true, overlapping header items 0, violet 0, scrollWidth 390/390; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-03-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 390x844, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:24Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "class page header: logo, nav [Home, My notes, Plans, About, Feedback], right group in DOM/visual order [CS-101 | New York University | L Lalit Dev Jakher]; \"CS-101\" occurs 1× in the header, ends at x=985, university chip starts at x=993 (gap 8px, nothing between), account chip at x=1191; one row true, header height 79px, overlaps 0; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-04-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:32Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "/dashboard: purple header rgb(87, 6, 140), right group [New York University | L Lalit Dev Jakher], class code badge 0, header pixel difference vs pre-change build 0.0 (same size True), 0 page errors, 0 console errors; /notes: purple header rgb(87, 6, 140), right group [New York University | L Lalit Dev Jakher], class code badge 0, header pixel difference vs pre-change build 0.0 (same size True), 0 page errors, 0 console errors; /: purple header rgb(87, 6, 140), right group [New York University | L Lalit Dev Jakher], class code badge 0, header pixel difference vs pre-change build 0.0 (same size True), 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-05-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:19:52Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "14 different greetings seen (clock fixed at 08:30, 14:30, 19:30, 23:30, 02:30 and reloads): \"Good morning, / Lalit Dev Jakher.\", \"What are we learning today, / Lalit Dev Jakher?\", \"Keep the momentum going, / Lalit Dev Jakher.\", \"Afternoon focus, / Lalit Dev Jakher.\", \"Halfway through the week, / Lalit Dev Jakher.\", \"Good afternoon, / Lalit Dev Jakher.\", \"Back at it, / Lalit Dev Jakher.\", \"How was class, / Lalit Dev Jakher?\", \"Ready to review, / Lalit Dev Jakher?\", \"Good evening, / Lalit Dev Jakher.\", \"Late study session, / Lalit Dev Jakher.\", \"A little revision before bed, / Lalit Dev Jakher?\", \"Still up, / Lalit Dev Jakher.\", \"Burning the midnight oil, / Lalit Dev Jakher.\"; name element \"Lalit Dev Jakher\" in italic rgb(87, 6, 140) (NYU purple), on the line after the greeting text (<br> present, name starts on a new line: true), followed directly by the punctuation; '?' variant seen: true; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-06-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:23:14Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "profile \"LALIT DEV\" → \"Evening review time, / Lalit Dev.\" (name \"Lalit Dev\", italic, rgb(87, 6, 140)); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-07-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:20:49Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "profile \"Lalit Dev Jakher\" → \"Good evening, / Lalit Dev Jakher.\" (name \"Lalit Dev Jakher\", italic, rgb(87, 6, 140)); profile \"Anna McDonald\" → \"Ready to review, / Anna McDonald?\" (name \"Anna McDonald\", italic, rgb(87, 6, 140)); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-08-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:20:56Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "profile \"lalit\" → \"Let's make today's notes stick, / Lalit.\" (name \"Lalit\", italic, rgb(87, 6, 140)); profile \"\" → \"Winding down.\" (no name element); profile \"   \" → \"Evening review time.\" (no name element); profile null → \"Halfway through the week.\" (no name element); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-09-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:21:09Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Fail",
+    "actual": "1440px: \"Good evening, / Maria Fernanda De Los Angeles Gonzalez Rodriguez-villanueva.\"; name \"Maria Fernanda De Los Angeles Gonzalez Rodriguez-villanueva\" (italic) wraps over 5 lines, inside the content column true (h1 right 696 ≤ section right 696), overlaps the next block false; scrollWidth 1440/1440; 0 page errors; 390px: \"Let's make today's notes stick, / Maria Fernanda De Los Angeles Gonzalez Rodriguez-villanueva.\"; name \"Maria Fernanda De Los Angeles Gonzalez Rodriguez-villanueva\" (italic) wraps over 5 lines, inside the content column true (h1 right 374 ≤ section right 374), overlaps the next block false; scrollWidth 390/390; 0 page errors. FAIL: the hyphenated part is capitalised only at its start: \"rodriguez-villanueva\" is shown as \"Rodriguez-villanueva\", expected \"Rodriguez-Villanueva\" (formatFullName capitalises words split on spaces only). Wrapping and layout are fine at both widths (no overflow, no overlap, no horizontal scroll)",
+    "evidence": [
+      "evidence/TC-10-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900 and 390x844, mocked Supabase",
+    "testedAt": "2026-11-25T19:23:21Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Fail",
+    "actual": "class page account menu: \"Lalit Dev Jakher New York University Sign out\" (items [Sign out]); closes with Escape (true) and with a click outside (true); purple header background: class rgb(87, 6, 140), dashboard rgb(87, 6, 140), notes rgb(87, 6, 140); dashboard \"Welcome back, Lalit.\" (before the change: \"Welcome back, Lalit.\"), account chip \"L Lalit Dev Jakher\" (before: \"L Lalit Dev Jakher\"); purple header logo click → \"/dashboard\" (the logo link goes to /dashboard; before the change it also pointed to \"/dashboard\", so this is unchanged by this build; the \"Home\" nav item goes to \"/\"); 0 page errors, 0 console errors. ISSUES: logo navigates to /dashboard, not home \"/\" (pre-existing: same in the pre-change build /dashboard; not touched by this requirement)",
+    "evidence": [
+      "evidence/TC-11-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 1440x900, mocked Supabase",
+    "testedAt": "2026-11-25T19:23:47Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Pass",
+    "actual": "390px class page: header height 69px, overlaps 0, \"CS-101\" visible in the header true, scrollWidth 390/390; mobile menu shows \"Close LectureLoop Lalit Dev Jakher New York University Home My notes Plans About Feedback Sign out\", closes with Escape true, its \"My notes\" link → \"/notes\"; /: scrollWidth 390/390; /dashboard: scrollWidth 390/390; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-12-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/header-polish @ 60c57c6), Chromium 390x844, mocked Supabase",
+    "testedAt": "2026-11-25T19:21:51Z"
+  }
+]

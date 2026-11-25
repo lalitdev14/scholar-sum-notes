@@ -91,7 +91,23 @@ Code commit: `45b3bb7` on `claude/header-polish`.
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-|       |      |      |         | `test-evidence.xlsx` |
+| 12    | 10   | 2    | 0       | `test-evidence.xlsx` |
+
+Run on the dev server (branch `claude/header-polish` @ `60c57c6`), Chromium 1440x900 and 390x844,
+fake session and mocked Supabase (profile returned as a one-element list for `maybeSingle()`), with
+names "lalit dev jakher", "LALIT DEV", "Lalit Dev Jakher", "Anna McDonald", "lalit", empty, spaces only,
+null and a long hyphenated name. Greeting variants were collected with Playwright's clock fixed at five
+times of day (14 variants, including "?" ones). Headers were compared with the pre-change build
+(`b2a7666`) on a second dev server. 12 screenshots in `evidence/`.
+
+**Failures**
+
+- **TC-10** (AC-3): a hyphenated name is capitalised only at the start: "rodriguez-villanueva" is shown
+  as "Rodriguez-villanueva" (expected "Rodriguez-Villanueva"); `formatFullName` splits words on spaces
+  only. Wrapping and layout are fine at 1440px and 390px (no overflow, no overlap, no horizontal scroll).
+- **TC-11** (AC-4): the purple header's LectureLoop logo goes to `/dashboard`, not home `/`. This is
+  pre-existing (the pre-change build links to `/dashboard` too) and not touched by this requirement; the
+  account menu, purple header, dashboard "Welcome back, Lalit." and account chip are unchanged and work.
 
 ## 9. Product manager verification
 
@@ -117,3 +133,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-25T19:07:41Z | Requirement analyst | Requirement ready for build | 3 small header/greeting fixes from screenshots; 4 acceptance criteria                                                                                                                                          |
 | 2026-11-25T19:08:51Z | Test master         | Test cases written          | 12 test cases covering AC-1..AC-4                                                                                                                                                                              |
 | 2026-11-25T19:14:06Z | Developer           | Build complete              | Logo on sign-in/landing headers, class code badge before university chip, full capitalised name in home greeting; typecheck/build/lint pass; verified in Chromium at 1440/390 with mocked data. Commit 45b3bb7 |
+| 2026-11-25T19:24:32Z | Tester | Tests executed | 10/12 passed, 2 failed (TC-10 hyphenated name capitalisation; TC-11 purple logo goes to /dashboard, pre-existing), 0 blocked |
+| 2026-11-25T19:24:32Z | Tester | Evidence generated | test-evidence.xlsx with 12 screenshots |
