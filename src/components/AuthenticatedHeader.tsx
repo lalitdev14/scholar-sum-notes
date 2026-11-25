@@ -100,6 +100,8 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
         </div>
 
         <div className="flex items-center justify-end gap-1">
+          {/* Page-specific item (e.g. the class code) sits just before the university chip. */}
+          {trailing && <span className="mr-1 flex shrink-0 items-center">{trailing}</span>}
           {universityName && (
             <span className="hidden items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm font-semibold text-white lg:inline-flex">
               {isNyu ? (
@@ -151,8 +153,6 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {trailing}
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
