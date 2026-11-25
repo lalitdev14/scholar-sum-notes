@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-25-header-logo-class-code-position-and-full |
-| Status       | Ready for build                                         |
+| Status       | In test                                                 |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-25                                              |
 | Branch       | `claude/header-polish`                                  |
@@ -68,6 +68,25 @@ Each criterion is testable and has an ID that test cases refer to.
 
 What was changed and how each acceptance criterion is met.
 
+Code commit: `45b3bb7` on `claude/header-polish`.
+
+- **AC-1** — `src/routes/auth.tsx` and `src/components/LandingBold.tsx`: the violet square in the black
+  header is replaced by lucide `GraduationCap` (`h-5 w-5 shrink-0`, white, same as the purple app header),
+  still inside the `/` link with aria-label "LectureLoop home" and the "LectureLoop" text.
+- **AC-2** — `src/components/AuthenticatedHeader.tsx`: the `trailing` slot (class page passes the class code
+  badge) now renders first in the right-hand group, immediately before the university chip, with a small
+  gap. Below `lg` the chip is hidden, so on phones the badge sits just before the menu button. Pages without
+  `trailing` render exactly as before.
+- **AC-3** — `src/components/WelcomeHome.tsx`: `formatFullName()` shows the whole profile name, capitalising
+  the first letter of each word; all-lower or all-upper names are title-cased ("lalit dev jakher" →
+  "Lalit Dev Jakher", "LALIT DEV" → "Lalit Dev"), mixed-case names keep their casing ("McDonald").
+  Purple italic span, line break and greeting punctuation unchanged; `break-words` lets long names wrap.
+  Empty name → no name, as before.
+- **AC-4** — Developer check in Chromium (dev server, fake session + mocked Supabase) at 1440px and 390px:
+  /auth, /, /dashboard, /class/<id> and home greeting with names "lalit dev jakher", "LALIT DEV",
+  "Ronald McDonald", a 4-word long name and an empty name; no page errors, no horizontal scroll.
+  `bun run typecheck`, `bun run build`, eslint and prettier on touched files pass.
+
 ## 8. Test summary (tester)
 
 | Total | Pass | Fail | Blocked | Evidence             |
@@ -92,8 +111,9 @@ Notes per acceptance criterion:
 
 Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Details>"`.
 
-| Time (UTC)           | Role                | Action                      | Details                                                               |
-| -------------------- | ------------------- | --------------------------- | --------------------------------------------------------------------- |
-| 2026-11-25T19:07:41Z | Requirement analyst | Requirement created         | Header logo, class code position and full name greeting               |
-| 2026-11-25T19:07:41Z | Requirement analyst | Requirement ready for build | 3 small header/greeting fixes from screenshots; 4 acceptance criteria |
-| 2026-11-25T19:08:51Z | Test master | Test cases written | 12 test cases covering AC-1..AC-4 |
+| Time (UTC)           | Role                | Action                      | Details                                                                                                                                                                                                        |
+| -------------------- | ------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-25T19:07:41Z | Requirement analyst | Requirement created         | Header logo, class code position and full name greeting                                                                                                                                                        |
+| 2026-11-25T19:07:41Z | Requirement analyst | Requirement ready for build | 3 small header/greeting fixes from screenshots; 4 acceptance criteria                                                                                                                                          |
+| 2026-11-25T19:08:51Z | Test master         | Test cases written          | 12 test cases covering AC-1..AC-4                                                                                                                                                                              |
+| 2026-11-25T19:14:06Z | Developer           | Build complete              | Logo on sign-in/landing headers, class code badge before university chip, full capitalised name in home greeting; typecheck/build/lint pass; verified in Chromium at 1440/390 with mocked data. Commit 45b3bb7 |
