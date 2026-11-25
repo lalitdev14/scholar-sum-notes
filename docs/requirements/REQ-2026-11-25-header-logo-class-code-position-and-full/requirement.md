@@ -199,3 +199,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-25T19:24:32Z | Tester | Tests executed | 10/12 passed, 2 failed (TC-10 hyphenated name capitalisation; TC-11 purple logo goes to /dashboard, pre-existing), 0 blocked |
 | 2026-11-25T19:24:32Z | Tester | Evidence generated | test-evidence.xlsx with 12 screenshots |
 | 2026-11-25T19:27:04Z | Product manager | PM requested changes | AC-1, AC-2, AC-4 met; AC-3 partly: capitalise after hyphen/apostrophe in formatFullName (Rodriguez-Villanueva, O'Brien); TC-11 is pre-existing (logo -> /dashboard), fix test expectation; re-run TC-10, TC-11, AC-3 cases |
+| 2026-11-25T19:27:45Z | Test master | Test cases updated after PM review | TC-10 now expects capitals after hyphens and apostrophes (Maria Rodriguez-Villanueva, Sean O'Brien, Jean-Luc D'Arcy) plus the long-name wrap check; TC-11 expects the purple header logo to link to /dashboard; still 12 cases, ids unchanged |
