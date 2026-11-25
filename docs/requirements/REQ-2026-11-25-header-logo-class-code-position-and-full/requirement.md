@@ -96,3 +96,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | -------------------- | ------------------- | --------------------------- | --------------------------------------------------------------------- |
 | 2026-11-25T19:07:41Z | Requirement analyst | Requirement created         | Header logo, class code position and full name greeting               |
 | 2026-11-25T19:07:41Z | Requirement analyst | Requirement ready for build | 3 small header/greeting fixes from screenshots; 4 acceptance criteria |
+| 2026-11-25T19:08:51Z | Test master | Test cases written | 12 test cases covering AC-1..AC-4 |
