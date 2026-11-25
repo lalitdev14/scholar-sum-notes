@@ -1,13 +1,13 @@
 # REQ-2026-11-25-header-logo-class-code-position-and-full: Header logo, class code position and full name greeting
 
-| Field        | Value                                                   |
-| ------------ | ------------------------------------------------------- |
-| ID           | REQ-2026-11-25-header-logo-class-code-position-and-full |
-| Status       | PR raised                                               |
-| Requested by | Product owner                                           |
-| Created      | 2026-11-25                                              |
-| Branch       | `claude/header-polish`                                  |
-| PR           | (added in step 6)                                       |
+| Field        | Value                                                                  |
+| ------------ | ---------------------------------------------------------------------- |
+| ID           | REQ-2026-11-25-header-logo-class-code-position-and-full                |
+| Status       | PR raised                                                              |
+| Requested by | Product owner                                                          |
+| Created      | 2026-11-25                                                             |
+| Branch       | `claude/header-polish`                                                 |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/72 (release: #73) |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -221,5 +221,6 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-25T19:27:45Z | Test master         | Test cases updated after PM review     | TC-10 now expects capitals after hyphens and apostrophes (Maria Rodriguez-Villanueva, Sean O'Brien, Jean-Luc D'Arcy) plus the long-name wrap check; TC-11 expects the purple header logo to link to /dashboard; still 12 cases, ids unchanged |
 | 2026-11-25T19:29:38Z | Developer           | Changes after PM review complete       | Greeting capitalises after hyphen/apostrophe (' and ’) for uniform-case names; mixed case unchanged; verified in Chromium 1440/390; typecheck/build/lint pass. Commit 006db59                                                                 |
 | 2026-11-25T19:33:28Z | Product owner       | PR requested before final PM re-review | Owner asked to raise the PRs now (preprod and production); the re-test of TC-06..TC-11 runs in parallel and its evidence is added to the same branch                                                                                          |
-| 2026-11-25T19:33:53Z | Tester | Re-test executed | Re-test after PM review: TC-06..TC-11 6/6 passed (hyphen/apostrophe names, logo to /dashboard); total 12/12 passed, 0 failed, 0 blocked |
-| 2026-11-25T19:33:54Z | Tester | Evidence regenerated | test-evidence.xlsx, 13 screenshots |
+| 2026-11-25T19:33:53Z | Tester              | Re-test executed                       | Re-test after PM review: TC-06..TC-11 6/6 passed (hyphen/apostrophe names, logo to /dashboard); total 12/12 passed, 0 failed, 0 blocked                                                                                                       |
+| 2026-11-25T19:33:54Z | Tester              | Evidence regenerated                   | test-evidence.xlsx, 13 screenshots                                                                                                                                                                                                            |
+| 2026-11-25T19:34:13Z | Release             | PR raised                              | #72 into preprod and release #73 preprod -> main (at the product owner's request); re-test now 12/12 Pass                                                                                                                                     |
