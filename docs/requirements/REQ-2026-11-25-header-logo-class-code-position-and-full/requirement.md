@@ -101,7 +101,7 @@ Code commit: `45b3bb7` on `claude/header-polish`.
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-| 12    | 10   | 2    | 0       | `test-evidence.xlsx` |
+| 12    | 12   | 0    | 0       | `test-evidence.xlsx` |
 
 Run on the dev server (branch `claude/header-polish` @ `60c57c6`), Chromium 1440x900 and 390x844,
 fake session and mocked Supabase (profile returned as a one-element list for `maybeSingle()`), with
@@ -118,6 +118,15 @@ times of day (14 variants, including "?" ones). Headers were compared with the p
 - **TC-11** (AC-4): the purple header's LectureLoop logo goes to `/dashboard`, not home `/`. This is
   pre-existing (the pre-change build links to `/dashboard` too) and not touched by this requirement; the
   account menu, purple header, dashboard "Welcome back, Lalit." and account chip are unchanged and work.
+
+**Re-test after PM review** (2026-11-25, dev server at `23dc5dd`, code `006db59`): re-ran TC-06..TC-11,
+all pass, so 12/12 passed in total (TC-01..05 and TC-12 not re-run, earlier Pass kept). TC-10:
+"maria rodriguez-villanueva" → "Maria Rodriguez-Villanueva", "sean o'brien" → "Sean O'Brien",
+"JEAN-LUC D'ARCY" → "Jean-Luc D'Arcy"; the long name shows as "Maria Fernanda De Los Angeles Gonzalez
+Rodriguez-Villanueva" and wraps inside the column at 1440px and 390px with no horizontal scroll. TC-11
+(revised): the purple header logo links to `/dashboard` (as in the previous build) and lands on the
+dashboard from the class page and My notes. TC-06..TC-09 unchanged: still pass. The two failures listed
+above are resolved. 13 screenshots in `evidence/`.
 
 ## 9. Product manager verification
 
@@ -212,3 +221,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-25T19:27:45Z | Test master         | Test cases updated after PM review     | TC-10 now expects capitals after hyphens and apostrophes (Maria Rodriguez-Villanueva, Sean O'Brien, Jean-Luc D'Arcy) plus the long-name wrap check; TC-11 expects the purple header logo to link to /dashboard; still 12 cases, ids unchanged |
 | 2026-11-25T19:29:38Z | Developer           | Changes after PM review complete       | Greeting capitalises after hyphen/apostrophe (' and ’) for uniform-case names; mixed case unchanged; verified in Chromium 1440/390; typecheck/build/lint pass. Commit 006db59                                                                 |
 | 2026-11-25T19:33:28Z | Product owner       | PR requested before final PM re-review | Owner asked to raise the PRs now (preprod and production); the re-test of TC-06..TC-11 runs in parallel and its evidence is added to the same branch                                                                                          |
+| 2026-11-25T19:33:53Z | Tester | Re-test executed | Re-test after PM review: TC-06..TC-11 6/6 passed (hyphen/apostrophe names, logo to /dashboard); total 12/12 passed, 0 failed, 0 blocked |
+| 2026-11-25T19:33:54Z | Tester | Evidence regenerated | test-evidence.xlsx, 13 screenshots |
