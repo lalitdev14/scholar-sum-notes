@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { classTransitionName } from "@/lib/motion";
+import { formatFullName } from "@/lib/format-name";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,6 +88,8 @@ function Dashboard() {
       return data;
     },
   });
+
+  const fullName = formatFullName(me?.full_name ?? "");
 
   const { data: enrollments } = useQuery({
     queryKey: ["my-enrollments"],
@@ -310,15 +313,15 @@ function Dashboard() {
 
       <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 pb-20 pt-12 sm:px-6 sm:pt-16 lg:px-10 xl:px-16">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-          <div className="max-w-3xl">
+          <div className="min-w-0 max-w-3xl">
             <h1
-              className="text-[2.5rem] font-bold leading-[1] tracking-[-0.035em] text-balance text-bold-ink sm:text-6xl"
+              className="text-[2.5rem] font-bold leading-[1] tracking-[-0.035em] text-balance wrap-anywhere text-bold-ink sm:text-6xl"
               style={grotesk}
             >
               Welcome back
-              {me?.full_name ? (
+              {fullName ? (
                 <>
-                  , <span style={{ color: VIOLET_TEXT }}>{me.full_name.split(" ")[0]}</span>
+                  , <span style={{ color: VIOLET_TEXT }}>{fullName}</span>
                 </>
               ) : null}
               .
