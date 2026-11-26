@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-manual-class-times            |
-| Status       | Changes requested |
+| Status       | In test           |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/manual-class-times` |
@@ -172,3 +172,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:45:25Z | Tester | Tests executed | 22 run: 22 passed, 0 failed, 0 blocked (local production build, mocked Supabase and NYU) |
 | 2026-11-26T22:45:25Z | Tester | Evidence generated | test-evidence.xlsx with 57 screenshots in evidence/ |
 | 2026-11-26T22:47:26Z | Product manager | PM requested changes | AC-1..AC-9 met on evidence (22/22). Changes: 1) clear-manual-times toast copy; 2) NextLectureCard theme tokens for dark mode (card shows the manual label on Home); 3) show one Enter times manually link in error/no-sections states. Hydration warning and touched-only errors accepted. |
+| 2026-11-26T22:48:58Z | Developer | Changes after PM review | 1) clearing manual times toasts 'Cleared your class times for <subject>'; 2) NextLectureCard uses home theme tokens (home-block/line/ink/label/body/muted, home-accent) in all states, light unchanged, dark text >= 4.5:1; 3) footer 'Enter times manually' hidden in NYU error/no-sections states. typecheck, bun test (84), build pass |
