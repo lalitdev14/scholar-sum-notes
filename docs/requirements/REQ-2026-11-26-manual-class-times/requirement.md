@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-manual-class-times            |
-| Status       | In test           |
+| Status       | In PM review      |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/manual-class-times` |
@@ -115,7 +115,17 @@ No database migration; `class_sections` is reused.
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-|       |      |      |         | `test-evidence.xlsx` |
+| 22    | 22   | 0    | 0       | `test-evidence.xlsx` |
+
+Run on 2026-11-26 against a local production build (`bun run build`, `node .output/server/index.mjs`
+on port 8093) with a fake session and Playwright mocks for Supabase REST/auth and the NYU server
+functions (no real accounts, no real Supabase or NYU). Home-card cases fake "now" in New York time
+with the browser time zone set to UTC; TC-20 at 390×844 in light and dark. TC-22: typecheck, 84 unit
+tests (19 in `manual-schedule.test.ts`) and build pass.
+
+Observations (not failures): clearing manual times shows the toast "Section cleared for …"; the
+home "Next lecture" card keeps its white background in dark theme (pre-existing, readable); a new
+untouched meeting shows its errors once the student works on it (Save stays disabled meanwhile).
 
 ## 9. Product manager verification
 
@@ -141,3 +151,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:27:03Z | Requirement analyst | Requirement ready for build | 9 ACs; reuse class_sections, no migration |
 | 2026-11-26T22:28:10Z | Test master | Test cases written | 22 cases covering AC-1..AC-9 |
 | 2026-11-26T22:32:29Z | Developer | Build complete | Manual times form in SectionPicker, saved as section_no Manual/schedule_type MANUAL; manual-schedule.ts + 19 unit tests; typecheck, bun test (84), build pass |
+| 2026-11-26T22:45:25Z | Tester | Tests executed | 22 run: 22 passed, 0 failed, 0 blocked (local production build, mocked Supabase and NYU) |
+| 2026-11-26T22:45:25Z | Tester | Evidence generated | test-evidence.xlsx with 56 screenshots in evidence/ |
