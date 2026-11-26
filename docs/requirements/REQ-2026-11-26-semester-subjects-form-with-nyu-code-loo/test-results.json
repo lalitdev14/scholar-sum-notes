@@ -2,32 +2,32 @@
   {
     "id": "TC-01",
     "result": "Pass",
-    "actual": "Home opened with no click: dialog \"Your subjects this semester\" visible true (163 ms after load); subject search field true; term selector shows \"Fall 2026\" (marked current by the server's term list); chosen list: \"not shown (nothing chosen yet)\"; button \"Done\"; 0 page errors, 0 console errors",
+    "actual": "Re-test after PM review (code 8ef15eb, regression): Home opened with no click: dialog \"Your subjects this semester\" visible true (140 ms after load); subject search field true; term selector shows \"Fall 2026\" (marked current by the server's term list); chosen list: \"not shown (nothing chosen yet)\"; button \"Done\"; 0 page errors, 0 console errors",
     "evidence": [
       "evidence/TC-01-1.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:18:11Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:30:39Z"
   },
   {
     "id": "TC-02",
-    "result": "Fail",
-    "actual": "B with one class + enrollment (as in the precondition), no notes: pop-up after 5 s false; home shows B's class false (card: \"Open a class to begin \"); \"Update my subjects\" visible true; 0 page errors, 0 console errors; B with the class AND a note in it: pop-up after 5 s false; home shows B's class true (card: \"\"); \"Update my subjects\" visible true; 0 page errors, 0 console errors. AC-1 part (no automatic pop-up for a student with classes) passes in both variants. ISSUES: home does not show B's existing class: with a class but no notes/activity the home shows the generic \"Open a class to begin / Find a class\" card (the \"Continue where you left off\" card appears only for a class with activity, see second variant); same cause as TC-12; pre-existing home behaviour",
+    "result": "Pass",
+    "actual": "Re-test after PM review (code 8ef15eb): 1440px: pop-up after 5 s false; \"Your classes\" card true [CS-GY 6033 Design and Analysis of Algorithms I Open → /class/<id>] + \"See them on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 1440/1440; \"My subjects\" button visible true; 0 page errors, 0 console errors; 390px: pop-up after 5 s false; \"Your classes\" card true [CS-GY 6033 Design and Analysis of Algorithms I Open → /class/<id>] + \"See them on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 390/390; \"My subjects\" button visible true; 0 page errors, 0 console errors",
     "evidence": [
       "evidence/TC-02-1.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:20:29Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900 and 390x844, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:28:25Z"
   },
   {
     "id": "TC-03",
     "result": "Pass",
-    "actual": "closed with the X button: dialog gone true, home usable, \"Update my subjects\" visible true, device flag lectureloop:subjects-done:<A> = \"1\"; after reload pop-up shown again: false; after dashboard → Home (in-app link): false; Escape variant (fresh browser): closed true, shown again after reload false; inserts into classes/enrollments: 0/0; 0 page errors, 0 console errors",
+    "actual": "Re-test after PM review (code 8ef15eb, regression): closed with the X button: dialog gone true, home usable, \"Update my subjects\" visible true, device flag lectureloop:subjects-done:<A> = \"1\"; after reload pop-up shown again: false; after dashboard → Home (in-app link): false; Escape variant (fresh browser): closed true, shown again after reload false; inserts into classes/enrollments: 0/0; 0 page errors, 0 console errors",
     "evidence": [
       "evidence/TC-03-1.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:19:08Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:31:04Z"
   },
   {
     "id": "TC-04",
@@ -82,12 +82,12 @@
   {
     "id": "TC-09",
     "result": "Pass",
-    "actual": "chosen list with 3: \"To add (3) CS-GY 6033 · Design and Analysis of Algorithms I BMIN-GA 1170 · Fundamental Algorithms ACCT-UB 1 · Principles of Financial Accounting\"; after removing ACCT-UB 1: \"To add (2) CS-GY 6033 · Design and Analysis of Algorithms I BMIN-GA 1170 · Fundamental Algorithms\"; pressed \"Done · add 2 subjects\"; classes inserted: [{\"subject\":\"Design and Analysis of Algorithms I\",\"code\":\"CS-GY 6033\",\"term\":\"Fall 2026\",\"professor\":\"Test Instructor B\",\"created_by\":\"<A>\",\"university_id\":\"u1\"},{\"subject\":\"Fundamental Algorithms\",\"code\":\"BMIN-GA 1170\",\"term\":\"Fall 2026\",\"professor\":\"TBA\",\"created_by\":\"<A>\",\"university_id\":\"u1\"}]; enrollments inserted: [{\"user_id\":\"<A>\",\"class\":\"CS-GY 6033\"},{\"user_id\":\"<A>\",\"class\":\"BMIN-GA 1170\"}]; toast \"Added 2 subjects\"; dialog closed true; 0 page errors, 0 console errors",
+    "actual": "Re-test after PM review (code 8ef15eb, regression): chosen list with 3: \"To add (3) CS-GY 6033 · Design and Analysis of Algorithms I BMIN-GA 1170 · Fundamental Algorithms ACCT-UB 1 · Principles of Financial Accounting\"; after removing ACCT-UB 1: \"To add (2) CS-GY 6033 · Design and Analysis of Algorithms I BMIN-GA 1170 · Fundamental Algorithms\"; pressed \"Done · add 2 subjects\"; classes inserted: [{\"subject\":\"Design and Analysis of Algorithms I\",\"code\":\"CS-GY 6033\",\"term\":\"Fall 2026\",\"professor\":\"Test Instructor B\",\"created_by\":\"<A>\",\"university_id\":\"u1\"},{\"subject\":\"Fundamental Algorithms\",\"code\":\"BMIN-GA 1170\",\"term\":\"Fall 2026\",\"professor\":\"TBA\",\"created_by\":\"<A>\",\"university_id\":\"u1\"}]; enrollments inserted: [{\"user_id\":\"<A>\",\"class\":\"CS-GY 6033\"},{\"user_id\":\"<A>\",\"class\":\"BMIN-GA 1170\"}]; toast \"Added 2 subjects\"; dialog closed true; 0 page errors, 0 console errors",
     "evidence": [
       "evidence/TC-09-1.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:19:47Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:31:11Z"
   },
   {
     "id": "TC-10",
@@ -112,23 +112,23 @@
   {
     "id": "TC-12",
     "result": "Fail",
-    "actual": "home without reload lists 0/2 new classes (); dashboard (in-app navigation) shows titles [Design and Analysis of Algorithms I,Fundamental Algorithms] and codes [CS-GY 6033,BMIN-GA 1170]; opened \"Fundamental Algorithms\" → /class/<id> with heading \"Welcome back, Test.\"; 0 page errors, 0 console errors. FAIL: right after Done the home page does not show the new classes: it still shows the generic \"Open a class to begin / Find your class by name or code on the dashboard\" card (screenshot left), because the home lists a class only in \"Continue where you left off\" once it has activity (notes, handwriting or a visit). The dashboard part passes: both classes listed with NYU title and code without a reload, and opening one goes to its class page. Requirement §3 says the class list (dashboard / \"Continue where you left off\") reflects the new classes immediately",
+    "actual": "Re-test after PM review (code 8ef15eb): right after Done (no reload, no navigation): \"Your classes\" card true [BMIN-GA 1170 Fundamental Algorithms Open → /class/<id> ; CS-GY 6033 Design and Analysis of Algorithms I Open → /class/<id>] + \"See them on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 1440/1440; reloaded before opening any class: \"Your classes\" card true [BMIN-GA 1170 Fundamental Algorithms Open → /class/<id> ; CS-GY 6033 Design and Analysis of Algorithms I Open → /class/<id>] + \"See them on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 1440/1440; Open on CS-GY 6033 → /class/<id of the new CS-GY 6033 class>; back on home after visiting CS-GY 6033, reloaded: \"Your classes\" card false; generic \"Get started\" card false; \"Continue where you left off\" true; scrollWidth 1440/1440; BMIN-GA 1170 on the home page false; dashboard lists [CS-GY 6033,BMIN-GA 1170]; 0 page errors, 0 console errors. ISSUES: after visiting CS-GY 6033 and reloading, the home shows only the \"Continue where you left off\" card for CS-GY 6033; BMIN-GA 1170 is no longer on the home page (the visit counts as activity, and with activity the home shows only the Continue card; the \"Your classes\" list appears only when no class has activity). The test case expects both still shown after the reload",
     "evidence": [
       "evidence/TC-12-1.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:19:51Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:30:00Z"
   },
   {
     "id": "TC-13",
     "result": "Pass",
-    "actual": "reload: auto pop-up false; form lists current classes \"Your classes BMIN-GA 1170 Fundamental Algorithms Remove CS-GY 6033 Design and Analysis of Algorithms I Remove\"; confirmation: \"Remove Fundamental Algorithms? The class is removed from your dashboard. Your notes are kept and come back if you enroll in it again. Cancel Remove class\"; confirmed → toast \"Class removed from your dashboard\"; delete calls: [{\"op\":\"delete enrollments\",\"filter\":[\"class_id=eq.<BMIN class>\",\"user_id=eq.<A>\"]}]; classes still has BMIN-GA 1170 row true; A's note still present true; form now lists \"Your classes CS-GY 6033 Design and Analysis of Algorithms I Remove\"; added ACCT-UB 1 → toast \"Added 1 subject\", classes inserted [ACCT-UB 1]; home: Fundamental Algorithms (\"Continue where you left off\" card) gone true, \"Update my subjects\" still present true; dashboard lists [Design and Analysis of Algorithms I,Principles of Financial Accounting]; 0 page errors, 0 console errors",
+    "actual": "Re-test after PM review (code 8ef15eb, regression): reload: auto pop-up false; form lists current classes \"Your classes BMIN-GA 1170 Fundamental Algorithms Remove CS-GY 6033 Design and Analysis of Algorithms I Remove\"; confirmation: \"Remove Fundamental Algorithms? The class is removed from your dashboard. Your notes are kept and come back if you enroll in it again. Cancel Remove class\"; confirmed → toast \"Class removed from your dashboard\"; delete calls: [{\"op\":\"delete enrollments\",\"filter\":[\"class_id=eq.<BMIN class>\",\"user_id=eq.<A>\"]}]; classes still has BMIN-GA 1170 row true; A's note still present true; form now lists \"Your classes CS-GY 6033 Design and Analysis of Algorithms I Remove\"; added ACCT-UB 1 → toast \"Added 1 subject\", classes inserted [ACCT-UB 1]; home: Fundamental Algorithms (\"Continue where you left off\" card) gone true, \"Update my subjects\" still present true; dashboard lists [Design and Analysis of Algorithms I,Principles of Financial Accounting]; 0 page errors, 0 console errors",
     "evidence": [
       "evidence/TC-13-1.png",
       "evidence/TC-13-2.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:22:30Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:31:27Z"
   },
   {
     "id": "TC-14",
@@ -163,12 +163,12 @@
   {
     "id": "TC-17",
     "result": "Pass",
-    "actual": "on open the focus is in the subject field (INPUT, inside dialog true); Tab to \"Add CS-GY 6033 Design and Analysis of Algorithms I\" (visible focus ring true), Enter → \"To add (1) CS-GY 6033 · Design and Analysis of Algorithms I\"; Shift+Tab to the term selector (ring true), Enter opens it, ArrowUp ×2 + Enter → \"Spring 2027\"; Tab to \"Remove CS-GY 6033 from the list\" (ring true), Enter → chosen list \"empty (section hidden)\"; back to \"Fall 2026\" with the keyboard and re-added CS-GY 6033 → \"To add (1) CS-GY 6033 · Design and Analysis of Algorithms I\"; 15 more Tabs: focus stayed inside the dialog true; Tab to \"Done · add 1 subject\" (ring true), Enter → toast \"Added 1 subject\", dialog closed true, classes inserted [CS-GY 6033]; Tab to the icon button (accessible name \"Update my subjects\", ring true), Enter → form reopened true; Escape → closed true, focus is on the page yes: <BODY> (not moved back to the icon button); 0 page errors, 0 console errors",
+    "actual": "Re-test after PM review (code 8ef15eb): on open the focus is in the subject field (INPUT, inside dialog true); Tab to \"Add CS-GY 6033 Design and Analysis of Algorithms I\" (visible focus ring true), Enter → \"To add (1) CS-GY 6033 · Design and Analysis of Algorithms I\"; Shift+Tab to the term selector (ring true), Enter opens it, ArrowUp ×2 + Enter → \"Spring 2027\"; Tab to \"Remove CS-GY 6033 from the list\" (ring true), Enter → chosen list \"empty (section hidden)\"; back to \"Fall 2026\" with the keyboard and re-added CS-GY 6033 → \"To add (1) CS-GY 6033 · Design and Analysis of Algorithms I\"; 15 more Tabs: focus stayed inside the dialog true; Tab to \"Done · add 1 subject\" (ring true), Enter → toast \"Added 1 subject\", dialog closed true, classes inserted [CS-GY 6033]; focus after the first-time pop-up's Done: <BODY> \"page body\"; icon button accessible name \"Update my subjects\" (focus ring true); Enter → Escape: opened true, closed true, document.activeElement <BUTTON> \"Update my subjects\"; Enter → Tab to X + Enter: opened true, closed true, document.activeElement <BUTTON> \"Update my subjects\"; Enter → search, add BMIN-GA 1170, Done: opened true, closed true, document.activeElement <BUTTON> \"Update my subjects\" (classes inserted now [CS-GY 6033,BMIN-GA 1170]); 0 page errors, 0 console errors",
     "evidence": [
       "evidence/TC-17-1.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:27:01Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:27:02Z"
   },
   {
     "id": "TC-18",
@@ -183,11 +183,51 @@
   {
     "id": "TC-19",
     "result": "Pass",
-    "actual": "Enroll in subject → searched \"Data Struct\", Enroll: enrollments inserted 1 (CS-UY 1134), toast \"Enrolled\"; Add class → classes inserted [{\"subject\":\"Test Seminar in Pedagogy\",\"code\":\"TEST-UA 101\",\"professor\":\"Prof. Example\",\"term\":\"Fall 2026\",\"created_by\":\"<A>\"}], enrollments now 2, toast \"Class added\"; dashboard list shows Data Structures true and Test Seminar in Pedagogy true; console review across all 19 test cases (every browser run on home and dashboard): 0 page errors and 0 console errors in every run",
+    "actual": "Re-test after PM review (code 8ef15eb, regression): Enroll in subject → searched \"Data Struct\", Enroll: enrollments inserted 1 (CS-UY 1134), toast \"Enrolled\"; Add class → classes inserted [{\"subject\":\"Test Seminar in Pedagogy\",\"code\":\"TEST-UA 101\",\"professor\":\"Prof. Example\",\"term\":\"Fall 2026\",\"created_by\":\"<A>\"}], enrollments now 2, toast \"Class added\"; dashboard list shows Data Structures true and Test Seminar in Pedagogy true; console review across all browser runs of the re-test (home + dashboard): 0 page errors, 0 console errors",
     "evidence": [
       "evidence/TC-19-1.png"
     ],
-    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
-    "testedAt": "2026-11-26T05:24:01Z"
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:31:37Z"
+  },
+  {
+    "id": "TC-20",
+    "result": "Pass",
+    "actual": "Re-test after PM review (new case, code 8ef15eb): start: \"Your classes\" card true [BMIN-GA 1170 Fundamental Algorithms Open → /class/<id> ; CS-GY 6033 Design and Analysis of Algorithms I Open → /class/<id>] + \"See them on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 1440/1440; removed BMIN-GA 1170 and closed (no reload): \"Your classes\" card true [CS-GY 6033 Design and Analysis of Algorithms I Open → /class/<id>] + \"See them on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 1440/1440; delete calls 1 (class_id=eq.<BMIN>&user_id=eq.<A>); classes table still has BMIN-GA 1170 true; removed CS-GY 6033 (last class) and closed (no reload): \"Your classes\" card false; generic \"Get started\" card true (\"Join your first class\"); \"Continue where you left off\" false; scrollWidth 1440/1440; enrollments left 0; class rows kept 2; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-20-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:28:54Z"
+  },
+  {
+    "id": "TC-21",
+    "result": "Pass",
+    "actual": "Re-test after PM review (new case, code 8ef15eb): 1440px: pop-up false; generic \"Get started\" card true (\"Join your first class\"); \"Your classes\" card false; \"Find a class\" → href \"/dashboard\", click lands on /dashboard; \"My subjects\" visible true; scrollWidth 1440/1440; 0 page errors, 0 console errors; 390px: pop-up false; generic \"Get started\" card true (\"Join your first class\"); \"Your classes\" card false; \"Find a class\" → href \"/dashboard\", click lands on /dashboard; \"My subjects\" visible true; scrollWidth 390/390; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-21-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900 and 390x844, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:29:06Z"
+  },
+  {
+    "id": "TC-22",
+    "result": "Pass",
+    "actual": "Re-test after PM review (new case, code 8ef15eb): 1440px, 5 classes enrolled 10-14 Nov, no activity: \"Your classes\" card true [MATH-UA 120 Discrete Mathematics Open → /class/<id> ; CSCI-UA 310 Basic Algorithms Open → /class/<id> ; ACCT-UB 1 Principles of Financial Accounting Open → /class/<id>] + \"See all 5 classes on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 1440/1440; 390px, 5 classes enrolled 10-14 Nov, no activity: \"Your classes\" card true [MATH-UA 120 Discrete Mathematics Open → /class/<id> ; CSCI-UA 310 Basic Algorithms Open → /class/<id> ; ACCT-UB 1 Principles of Financial Accounting Open → /class/<id>] + \"See all 5 classes on your dashboard\" (/dashboard); generic \"Get started\" card false; \"Continue where you left off\" false; scrollWidth 390/390; with notes in BMIN-GA 1170: \"CONTINUE WHERE YOU LEFT OFF Yesterday BMIN-GA 1170 Fundamental Algorithms TBA Open note Go to your dashboard All your classes, notes and summa\" shown true, generic card false, \"Your classes\" card false; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-22-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects-fix @ ff98ec7, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900 and 390x844, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T14:29:20Z"
+  },
+  {
+    "id": "TC-23",
+    "result": "Pass",
+    "actual": "Re-test after PM review (new case, code 8ef15eb): bun test src: 6 pass, 0 fail (18 expect calls) in src/lib/nyu-courses.schema.test.ts (accepts a normal query and trims it; accepts exactly 2 and exactly 80 characters; rejects fewer than 2 characters after trimming; rejects more than 80 characters after trimming; rejects an invalid term id; rejects missing or non-string fields); the schema is the one searchNyuCourses.inputValidator uses. Independent check against the same schema: q \"  a  \" (1 char after trim) rejected, 81 chars rejected, spaces only rejected, term \"abc\" and \"\" rejected, \" algorithms \" + 9999 accepted and trimmed to \"algorithms\"",
+    "evidence": [
+      "evidence/TC-23-1.png"
+    ],
+    "environment": "Branch claude/semester-subjects-fix @ ff98ec7, bun 1.4.4",
+    "testedAt": "2026-11-26T14:25:25Z"
   }
 ]

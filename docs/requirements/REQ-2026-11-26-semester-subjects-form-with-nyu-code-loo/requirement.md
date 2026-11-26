@@ -185,7 +185,7 @@ Code commit: `8ef15eb` (branch `claude/semester-subjects-fix`).
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-| 19    | 17   | 2    | 0       | `test-evidence.xlsx` |
+| 23    | 22   | 1    | 0       | `test-evidence.xlsx` |
 
 Run on the dev server (branch `claude/semester-subjects` @ `5679665`) started with `NYU_CLASS_SEARCH_URL`
 pointing at a local NYU class-search mock (FOSE format; terms page with Spring 2027 / January 2027 /
@@ -218,6 +218,26 @@ Developer unit tests: 6/6 pass. 20 screenshots in `evidence/`.
 - TC-17: after Escape, focus goes to the page body rather than back to the "Update my subjects" button.
 - TC-11: a course already in the student's classes can't be picked at all ("In your classes", no Add
   button), so the summary only reports what was added.
+
+**Re-test after PM review** (2026-11-26, branch `claude/semester-subjects-fix` @ `ff98ec7`, code `8ef15eb`;
+same environment and mocks). Re-ran TC-02, TC-12, TC-17, the new TC-20..TC-23 and the regression set
+TC-01, TC-03, TC-09, TC-13, TC-19: **11 pass, 1 fail**. TC-04..08, TC-10, TC-11 and TC-14..18 were not
+re-run; their earlier Pass results are kept. Total: **22/23 passed**. 24 screenshots in `evidence/`.
+
+- TC-02 now passes: a student with a class and no notes sees a "Your classes" card (code, title, Open link to
+  `/class/<id>`) at 1440px and 390px; no Get started card.
+- TC-17 now passes: after opening from "My subjects", Escape, X and Done each return focus to that button.
+  After the first-time pop-up's Done, focus goes to the page body.
+- TC-20 passes: removals update the home without a reload, and after the last one the Get started card
+  ("Join your first class") is back. TC-21 passes. TC-22 passes: 3 most recently added classes plus "See all 5
+  classes on your dashboard"; a class with notes shows the Continue card. TC-23 passes: `bun test src` 6/6,
+  plus an independent check of the schema.
+- **TC-12 fails at its last step.** Right after Done and after a plain reload, both new classes are on the home
+  page (the earlier failure is fixed). But after Open on CS-GY 6033, going back and reloading, the home shows only
+  the "Continue where you left off" card for CS-GY 6033, and BMIN-GA 1170 is no longer on the home page. The
+  visit counts as activity, and with any activity the home shows only the Continue card. That matches the
+  documented rule ("a class with activity keeps the Continue card"), but TC-12 expects both classes still shown
+  after that reload. The PM decides between the test case and the design.
 
 ## 9. Product manager verification
 
@@ -330,3 +350,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T05:30:16Z | Product manager     | PM requested changes                      | Already live (#74/#75); follow-up fix required: home must show the student's classes right after Done (no Open a class to begin card when enrolled), focus back to My subjects after Escape, unit test for server input limits; AC-1,2,4,5 met; AC-3, AC-6 partly                                                                                                                                                         |
 | 2026-11-26T05:31:25Z | Test master         | Test cases updated after PM review        | TC-02, TC-12 now expect the student's classes (code, title, Open) on the home page with no generic card, immediately after Done without reload; TC-17 checks focus returns to My subjects after Escape/X/Done; added TC-20 (removal updates home without reload), TC-21 (no classes keeps Open a class to begin card), TC-22 (max ~3 classes + dashboard link), TC-23 (unit test for input schema limits); 23 cases total |
 | 2026-11-26T05:35:23Z | Developer           | Changes after PM review complete          | Home shows Your classes card (3 most recent, Open links, refreshes after Done/removal); focus returns to My subjects; schema unit tests + bun run test; Chromium mock checks 32/32; commit 8ef15eb                                                                                                                                                                                                                        |
+| 2026-11-26T14:32:08Z | Tester | Re-test executed | Re-test after PM review: TC-02, TC-12, TC-17, TC-20..TC-23, regression TC-01, TC-03, TC-09, TC-13, TC-19: 11/12 passed (TC-12 fails at its last step: after visiting one class, home shows only the Continue card); total 22/23 passed, 1 failed, 0 blocked |
+| 2026-11-26T14:32:08Z | Tester | Evidence regenerated | test-evidence.xlsx, 24 screenshots |
