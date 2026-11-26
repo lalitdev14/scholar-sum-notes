@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-26-semester-subjects-form-with-nyu-code-loo |
-| Status       | In test                                                 |
+| Status       | Changes requested                                       |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-26                                              |
 | Branch       | `claude/semester-subjects`                              |
@@ -188,17 +188,98 @@ Developer unit tests: 6/6 pass. 20 screenshots in `evidence/`.
 
 ## 9. Product manager verification
 
-| Field       | Value                          |
-| ----------- | ------------------------------ |
-| Decision    | (Approved / Changes requested) |
-| Verified by | Product manager agent          |
-| Date        |                                |
+| Field       | Value                 |
+| ----------- | --------------------- |
+| Decision    | Changes requested     |
+| Verified by | Product manager agent |
+| Date        | 2026-11-26            |
+
+**Context.** At the product owner's request this was merged (#74) and released to production (#75)
+before testing and this review (see the audit trail). This decision therefore asks for a **follow-up fix**
+through the normal flow (developer, then test master, tester and PM), raised as a new PR into `preprod`. It is
+not a rollback: nothing found here breaks existing features or loses data.
+
+**What I checked myself.** Dev server with `NYU_CLASS_SEARCH_URL` pointing at the tester's local NYU mock,
+the real `nyu-courses.server.ts` behind the tester's bridge, Chromium at 1440px and 390px, fake session and
+mocked Supabase. No real student data was used.
+
+- **New student (no classes):**
+  - The "Your subjects this semester" pop-up opened automatically.
+  - "algorithms" gave "BMIN-GA 1170 · Fundamental Algorithms" and "CS-GY 6033 · Design and Analysis of
+    Algorithms I", each with Add.
+  - I picked both, and the chosen list and "Done · add 2 subjects" were correct. Done gave the message
+    "Added 2 subjects", with 2 classes created and 2 enrollments.
+  - The pop-up didn't come back after a reload, and the "My subjects" icon button was shown.
+  - The dashboard listed both classes.
+- **NYU down (503):** the form showed "We couldn't reach NYU's class search. Please try again in a moment,
+  or add the class yourself on the Dashboard → Add class.", with a link to `/dashboard`. The home page kept
+  working.
+- **Student with a class, at 390px:** no automatic pop-up. "My subjects" opened the form, which listed
+  "Your classes: CS-GY 6033 … Remove". No horizontal scroll and 0 page errors.
+- **TC-12 / TC-02 reproduced:**
+  - Right after Done, and again after a reload, the home page still says **"Get started · Open a class to
+    begin · Find your class by name or code on the dashboard · Find a class"**, while the message says
+    "Added 2 subjects".
+  - The new classes appear nowhere on the home page until the student has notes, handwriting or a visit
+    in them.
+  - The 390px home page for a student with a class shows the same generic card.
+- **Focus after Escape:** after opening the form from the "My subjects" button and pressing Escape,
+  focus lands on `BODY`, not back on the button.
+
+**Judgement.**
+
+- **TC-12 / TC-02 block approval.**
+  - The user's goal is to set up classes from the home page in one step, and §3 says the class list
+    ("Continue where you left off") reflects the new classes immediately.
+  - What the student actually sees after pressing Done is the home page telling them to go and find a
+    class. That contradicts the success message and sends a brand-new student, on their first visit, to
+    the dashboard to look for something they just added.
+  - This is the core moment of the feature, so it must be fixed.
+- **Focus after Escape: fix in the same change.** AC-6 requires the form to work with the keyboard;
+  returning focus to the button that opened it is the expected dialog behaviour, and it's a small fix.
+- **Server input limits: accepted.** The limits exist in the server function's schema
+  (`q` trimmed, 2–80 characters; term id), and the client caps the field at 80. The tester could only see
+  them as rejected because auth runs first. Add a unit test as evidence (required change 3).
+- **Already-enrolled courses can't be picked, so they are never reported as "skipped": accepted.**
+  Showing "In your classes" instead of an Add button prevents duplicates even earlier than AC-3 asks, and
+  no duplicate is ever created.
 
 Notes per acceptance criterion:
 
-| AC   | Met? | Notes |
-| ---- | ---- | ----- |
-| AC-1 |      |       |
+| AC   | Met?   | Notes |
+| ---- | ------ | ----- |
+| AC-1 | Yes    | The automatic pop-up rules are correct: shown for a new student, not for one with classes, not again after Done or closing (TC-01, TC-03, TC-04 and the AC-1 part of TC-02; I checked myself). TC-02's failure is about the home card, which is covered under AC-3 / required change 1. |
+| AC-2 | Yes    | NYU results show code and title, de-duplicated, with a term switch and "No NYU courses found" (TC-05..TC-08; I checked "algorithms" myself). |
+| AC-3 | Partly | Picking, removing, Done, reusing an existing class, creating with NYU title/code/term, no duplicates and the summary message all work (TC-09..TC-11; I checked myself), and the dashboard shows the classes. **TC-12 fails**: the home page doesn't show the new classes and still says "Open a class to begin". |
+| AC-4 | Yes    | The "My subjects" icon reopens the form with the current classes; Remove un-enrolls with confirmation and keeps notes (TC-13; I checked the reopen at 390px myself). |
+| AC-5 | Yes    | NYU 503 or dropped connection or timeout gives a clear message with the Dashboard → Add class link, and the home page keeps working (TC-14, TC-15; I checked the 503 case myself). |
+| AC-6 | Partly | The request is made server-side, only for signed-in users (TC-16); 390px works; 0 page errors; dashboard Enroll/Add class unchanged (TC-17..TC-19). Keyboard: focus isn't returned to "My subjects" after Escape (TC-17 observation; I reproduced it). Server limits are only evidenced indirectly. |
+
+**Required changes** (follow-up fix: developer, then test master, tester and PM; new PR into `preprod`):
+
+1. **The home page shows the student's classes as soon as they have any.** In `src/components/WelcomeHome.tsx`,
+   when the student is enrolled in at least one class:
+   - Never show the generic "Get started · Open a class to begin / Find a class" card.
+   - Show their classes instead: code, title and an "Open" link to `/class/<id>`.
+     - A class with activity keeps today's "Continue where you left off" card.
+     - Without activity, show the most recently added class(es), at most about 3, plus a link to the
+       dashboard for the rest.
+   - It must update **right after Done**, without a reload. Refresh the home data when the dialog finishes,
+     and also after a removal in the form.
+   - Students with no classes still see the "Open a class to begin" card.
+   - The layout must work at 1440px and 390px, with no horizontal scroll.
+2. **Focus returns to the button.** Closing the form (Escape, X or Done) after opening it from the "My
+   subjects" button returns focus to that button. After the automatic first-time pop-up, focus may go to
+   that button too.
+3. **Evidence for the server input limits.** Add a unit test for the search input schema: rejects `q`
+   shorter than 2 or longer than 80 characters after trimming, and an invalid term id; accepts a normal
+   query.
+4. **Retest** (test master and tester):
+   - TC-12 expects both new classes on the home page right after Done, without a reload, and no "Open a
+     class to begin" card.
+   - TC-02 expects a student with a class and no notes to see that class on the home page.
+   - TC-17 also checks focus after Escape.
+   - Then re-run TC-01, TC-03, TC-09, TC-13 and TC-19 as regression.
 
 ## 10. Audit trail
 
@@ -213,3 +294,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T05:13:38Z | Product owner | PR requested before testing and PM review | Owner asked to raise the PR now; tester run (19 cases) continues and its evidence is added to the same branch; PM review still to follow |
 | 2026-11-26T05:27:36Z | Tester | Tests executed | 17/19 passed, 2 failed (TC-12 home doesn't show new classes after Done; TC-02 home shows no class without activity), 0 blocked |
 | 2026-11-26T05:27:36Z | Tester | Evidence generated | test-evidence.xlsx with 20 screenshots |
+| 2026-11-26T05:30:16Z | Product manager | PM requested changes | Already live (#74/#75); follow-up fix required: home must show the student's classes right after Done (no Open a class to begin card when enrolled), focus back to My subjects after Escape, unit test for server input limits; AC-1,2,4,5 met; AC-3, AC-6 partly |
