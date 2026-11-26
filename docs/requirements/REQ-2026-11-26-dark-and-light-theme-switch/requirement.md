@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-dark-and-light-theme-switch            |
-| Status       | In test           |
+| Status       | PR raised |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/theme-toggle` |
@@ -172,3 +172,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T17:26:43Z | Requirement analyst | Requirement ready for build | 9 ACs; whole app incl. bold pages; device default, saved per device |
 | 2026-11-26T17:27:36Z | Test master | Test cases written | 24 cases covering AC-1..AC-9 |
 | 2026-11-26T20:33:28Z | Developer | Build complete | Commit 113d6d2: ThemeToggle in all headers, no-flash head script, bold/home palettes as CSS vars with dark values; typecheck, 20 unit tests, build pass; landing/sign-in screenshots checked in both themes |
+| 2026-11-26T20:34:03Z | Product owner | Steps 4-5 waived | Product owner asked for the PR before testing ('generate pr'); test cases written, test run and PM review not done |
