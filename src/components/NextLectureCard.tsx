@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { SplitFlap } from "@/components/SplitFlap";
 import { useMySections } from "@/lib/class-sections";
+import { isManualSection, manualLabel } from "@/lib/manual-schedule";
 import {
   clockDigits,
   durationWords,
@@ -57,8 +58,9 @@ export function NextLectureCard({
               classId: c.id,
               name: c.subject,
               code: c.code,
-              sectionNo: s.sectionNo,
-              meets: s.meets,
+              // Times the student entered themselves read "Your times · Tue, Thu 2:00–3:15 pm".
+              sectionNo: isManualSection(s) ? "" : s.sectionNo,
+              meets: isManualSection(s) ? manualLabel(s.meets) : s.meets,
               meetings: s.meetings,
               startDate: s.startDate,
               endDate: s.endDate,
@@ -78,7 +80,9 @@ export function NextLectureCard({
   else if (next.start.getTime() - now.getTime() <= DAY_MS) status = "soon";
   else status = "later";
 
-  const accent = "var(--uni-primary, #57068c)";
+  // Text/icon colour (lightened in dark theme) and the button fill (white text on it).
+  const accent = "var(--home-accent)";
+  const fill = "var(--uni-primary, #57068c)";
   const left = now && next ? timeLeft(next.status === "now" ? next.end : next.start, now) : null;
   const when = now && next ? formatLectureTime(next.start, now) : "";
   const name = next?.item.name ?? "";
@@ -100,7 +104,7 @@ export function NextLectureCard({
 
   return (
     <section
-      className="mt-10 rounded-2xl border border-[#ebe8f0] bg-white p-5 sm:p-6"
+      className="mt-10 rounded-2xl border border-home-line bg-home-block p-5 sm:p-6"
       aria-labelledby="next-lecture-title"
       data-testid="next-lecture-card"
       data-status={status}
@@ -108,7 +112,7 @@ export function NextLectureCard({
       <div className="flex items-center justify-between gap-3">
         <h2
           id="next-lecture-title"
-          className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#6b6874]"
+          className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-home-label"
         >
           <CalendarClock className="h-4 w-4" style={{ color: accent }} aria-hidden="true" />
           Next lecture
@@ -117,7 +121,7 @@ export function NextLectureCard({
           <button
             type="button"
             onClick={onSetSections}
-            className="shrink-0 text-xs font-medium text-[#6b6874] underline-offset-4 hover:text-[#17151c] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="shrink-0 text-xs font-medium text-home-label underline-offset-4 hover:text-home-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
             style={{ outlineColor: accent }}
             data-testid="next-lecture-change-sections"
           >
@@ -127,24 +131,24 @@ export function NextLectureCard({
       </div>
 
       {status === "loading" && (
-        <p className="mt-3 h-[4.5rem] text-sm text-[#77737f]" aria-busy="true">
+        <p className="mt-3 h-[4.5rem] text-sm text-home-muted" aria-busy="true">
           Loading your timetable…
         </p>
       )}
 
       {status === "invite" && (
         <div className="mt-3" data-testid="next-lecture-invite">
-          <p className="text-lg font-semibold text-[#17151c]">See when your next lecture starts</p>
-          <p className="mt-1 text-sm text-[#5c5965]">
+          <p className="text-lg font-semibold text-home-ink">See when your next lecture starts</p>
+          <p className="mt-1 text-sm text-home-body">
             {classes.length
-              ? "Pick your NYU section for each class and we'll count down to your next lecture."
-              : "Add your subjects and pick your NYU section, and we'll count down to your next lecture."}
+              ? "Pick your NYU section (or enter your class times) for each class and we'll count down to your next lecture."
+              : "Add your subjects and pick your NYU section or enter your class times, and we'll count down to your next lecture."}
           </p>
           <button
             type="button"
             onClick={onSetSections}
             className="mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ backgroundColor: accent, outlineColor: accent }}
+            style={{ backgroundColor: fill, outlineColor: accent }}
             data-testid="next-lecture-set-sections"
           >
             Set your sections
@@ -154,8 +158,8 @@ export function NextLectureCard({
 
       {status === "none" && (
         <div className="mt-3" data-testid="next-lecture-none">
-          <p className="text-lg font-semibold text-[#17151c]">No upcoming lectures</p>
-          <p className="mt-1 text-sm text-[#5c5965]">
+          <p className="text-lg font-semibold text-home-ink">No upcoming lectures</p>
+          <p className="mt-1 text-sm text-home-body">
             Your sections have no more lectures this term. Pick next term's sections when you have
             them.
           </p>
@@ -165,7 +169,7 @@ export function NextLectureCard({
       {(status === "soon" || status === "now") && left && (
         <div className="mt-3" data-testid="next-lecture-countdown">
           <p
-            className="text-[0.95rem] font-semibold text-[#17151c]"
+            className="text-[0.95rem] font-semibold text-home-ink"
             data-testid="next-lecture-title"
             aria-hidden="true"
           >
@@ -180,7 +184,7 @@ export function NextLectureCard({
           <div className="mt-2.5 max-w-full overflow-hidden">
             <SplitFlap value={clockDigits(left.total, status === "now")} />
           </div>
-          <p className="mt-2.5 text-sm text-[#77737f]" data-testid="next-lecture-when">
+          <p className="mt-2.5 text-sm text-home-muted" data-testid="next-lecture-when">
             {status === "now" ? `Started ${when}` : when}
             {detail ? ` · ${detail}` : ""}
           </p>
@@ -190,7 +194,7 @@ export function NextLectureCard({
       {status === "later" && (
         <div className="mt-3" data-testid="next-lecture-later" aria-hidden="true">
           <p
-            className="truncate text-lg font-semibold text-[#17151c]"
+            className="truncate text-lg font-semibold text-home-ink"
             data-testid="next-lecture-title"
           >
             {name}
@@ -202,7 +206,7 @@ export function NextLectureCard({
           >
             {when}
           </p>
-          {detail && <p className="mt-1 text-sm text-[#77737f]">{detail}</p>}
+          {detail && <p className="mt-1 text-sm text-home-muted">{detail}</p>}
         </div>
       )}
 

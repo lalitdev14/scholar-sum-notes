@@ -1,0 +1,270 @@
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "Re-test after PM review (0f3f212): Class page \"Set your section\": picker \"Your section of CSCI-GA 2433\" mode=nyu, 2 NYU sections listed, footer link \"Enter times manually\". Subjects dialog \"Your classes\": picker \"Your section of CSCI-GA 2433\" mode=nyu, 2 NYU sections listed, footer link \"Enter times manually\". \"To add\" (MATH-GA 1002, which the NYU mock lists no sections for): picker \"Your section of MATH-GA 1002\", \"no sections\" state with inline link \"Enter times manually\", footer link hidden, \"Enter times manually\" buttons in the picker: 1. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-01-1.png",
+      "evidence/TC-01-2.png",
+      "evidence/TC-01-3.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 0f3f212; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:51:32Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Pass",
+    "actual": "Re-test after PM review (0f3f212): NYU sections mock failing: error box \"We couldn't reach NYU's class search. Your class is still added. Try again in a moment, set your section later, or enter your class times yourself. Try again Enter times manually\" with link \"Enter times manually\"; \"Enter times manually\" buttons in the picker: 1, footer link (section-manual) present: false. Mock switched to zero sections (reopening the picker refetched the sections): \"NYU lists no sections of CSCI-GA 2433 in this term. Try another term, or enter your class times yourself. Enter times manually\" with link \"Enter times manually\"; \"Enter times manually\" buttons: 1, footer link present: false. Clicking it switched the picker to data-mode=manual with the manual form visible=true. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-02-1.png",
+      "evidence/TC-02-2.png",
+      "evidence/TC-02-3.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 0f3f212; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:51:37Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "Day chips: Mon, Tue, Wed, Thu, Fri, Sat, Sun. Empty form: Save enabled=false. After toggling Tue and Thu and entering 14:00–15:15 with no term dates: pressed chips [Tue, Thu], start \"14:00\", end \"15:15\", first/last day \"\"/\"\", no errors shown (0), \"Save times\" enabled=true. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-03-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:40:31Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "After adding to 5: 5 meetings, \"Add another meeting\" enabled=false, note \"You can add up to 5 meetings.\". Forced click on the disabled add button: still 5 meetings. After removing meeting 3 (Wed 12:00–12:45): 4 meetings — meeting 1 [Mon] 09:00–10:00; meeting 2 [Tue] 11:00–11:45; meeting 3 [Thu] 13:00–13:45; meeting 4 [Fri] 14:00–14:45; add enabled=true, max note shown=false. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-04-1.png",
+      "evidence/TC-04-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:40:37Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "Form: meeting 1 [Mon,Wed] 09:30–10:45; meeting 2 [Fri] 13:00–14:00, 2026-09-02 → 2026-12-15, Save enabled=true. Saved; toast \"Saved your class times for Database Systems\"; class header button now \"Your times · Mon, Wed 9:30–10:45 am; Fri 1:00–2:00 pm\" (53 chars; meets 40 chars). Stored row: {\"section_no\":\"Manual\",\"schedule_type\":\"MANUAL\",\"meets\":\"Mon, Wed 9:30–10:45 am; Fri 1:00–2:00 pm\",\"meetings\":[{\"day\":0,\"start\":570,\"end\":645},{\"day\":2,\"start\":570,\"end\":645},{\"day\":4,\"start\":780,\"end\":840}],\"term\":\"1268\",\"start_date\":\"2026-09-02\",\"end_date\":\"2026-12-15\"}. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-05-1.png",
+      "evidence/TC-05-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:40:43Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "Times 14:00–15:15, no day: error under the day chips \"Pick at least one day.\" (day-chip group aria-describedby → \"Pick at least one day.\"), \"Save times\" enabled=false. After selecting Tue: errors [], Save enabled=true. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-06-1.png",
+      "evidence/TC-06-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:40:47Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "Tue 15:00–14:00: error under the end time \"End time must be after the start time.\" (end input aria-invalid=true), Save enabled=false. 15:00–15:00: \"End time must be after the start time.\", Save enabled=false. 15:00–16:00: errors [], aria-invalid=null, Save enabled=true. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-07-1.png",
+      "evidence/TC-07-2.png",
+      "evidence/TC-07-3.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:40:51Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "First 2026-12-10, last 2026-12-01: error under the last-day field \"Last day can't be before the first day.\" (aria-invalid=true), Save enabled=false. Last day 2026-12-10 (same day): error \"\", Save enabled=true. Added meeting 2: right after adding (untouched) no error is shown yet but Save enabled=false; after entering its times 16:00–17:00 with no day: meeting 2 errors [Pick at least one day.], meeting 1 errors [], Save enabled=false. After picking Fri for meeting 2: errors [], Save enabled=true. 0 page errors, 0 console errors. (An untouched new meeting shows its errors once the student works on it; Save stays disabled meanwhile.)",
+    "evidence": [
+      "evidence/TC-08-1.png",
+      "evidence/TC-08-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:40:56Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "Saved, toast \"Saved your class times for Database Systems\". Class header button \"Your times · Tue, Thu 2:00–3:15 pm\"; after reload \"Your times · Tue, Thu 2:00–3:15 pm\"; \"Your classes\" button \"Your times · Tue, Thu 2:00–3:15 pm\"; home card status=soon; title \"Database Systems starts in\"; when \"Thu 2:00 pm · CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm\"; screen-reader text \"Database Systems starts in 4 hours. CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm.\". Upsert sent on_conflict=user_id,class_id; stored rows for the student: 1: {\"section_no\":\"Manual\",\"schedule_type\":\"MANUAL\",\"meets\":\"Tue, Thu 2:00–3:15 pm\",\"meetings\":[{\"day\":1,\"start\":840,\"end\":915},{\"day\":3,\"start\":840,\"end\":915}],\"term\":\"1268\",\"start_date\":null,\"end_date\":null}. Migration files changed by the manual-times commit: none. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-09-1.png",
+      "evidence/TC-09-2.png",
+      "evidence/TC-09-3.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:41:09Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Pass",
+    "actual": "Before: button \"Section 001 · MW 9:30-10:45a\"; picker opened in mode=nyu with Section 001 aria-pressed=true; manual form started empty (meeting 1 [] --–--). Saved Mon 10:00–11:00: button \"Your times · Mon 10:00–11:00 am\"; student's rows: 1 ({\"section_no\":\"Manual\",\"schedule_type\":\"MANUAL\",\"meets\":\"Mon 10:00–11:00 am\",\"meetings\":[{\"day\":0,\"start\":600,\"end\":660}],\"term\":\"1268\",\"start_date\":null,\"end_date\":null}); other student's row unchanged: true (section 002). 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-10-1.png",
+      "evidence/TC-10-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:41:14Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Pass",
+    "actual": "Re-test after PM review (0f3f212): Browser clock faked to Thu 2026-12-03 10:00 New York (15:00 UTC); browser time zone: UTC Thu Dec 03 2026 15:00:00 GMT+0000 (Coordinated Universal Time). Manual times card: status=soon; title \"Database Systems starts in\"; when \"Thu 2:00 pm · CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm\"; screen-reader text \"Database Systems starts in 4 hours. CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm.\"; split-flap text \"DatabaseSystemsstartsin00003333:55559999:55557887Thu2:00pm·CSCI-GA2433·Yourtimes·Tue,Thu2:00–3:15pm\". For comparison, NYU Section 002 (TR 11a) card at the same time: status=soon; title \"Database Systems starts in\"; when \"Thu 11:00 am · CSCI-GA 2433 · Section 002 · TR 11a-12:15p\"; screen-reader text \"Database Systems starts in 1 hour. CSCI-GA 2433 · Section 002 · TR 11a-12:15p.\"; split-flap \"DatabaseSystemsstartsin00000000:55559999:55559999Thu11:00am·CSCI-GA2433·Section002·TR11a-12:15p\" — same layout (title \"… starts in\", HH:MM:SS flaps, when · detail line). 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-11-1.png",
+      "evidence/TC-11-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 0f3f212; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:51:41Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Pass",
+    "actual": "Thu 2026-12-03 14:30 NY: status=now; title \"Database Systems · happening now · ends in\"; when \"Started Thu 2:00 pm · CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm\"; screen-reader text \"Database Systems is happening now and ends in 45 minutes. CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm.\". Fri 2026-12-04 10:00 NY: status=later; title \"Database Systems\"; when \"Tue 2:00 pm\"; detail \"CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm\"; screen-reader text \"Next lecture: Database Systems, Tue 2:00 pm. CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm.\" (no split-flap countdown). 0 page errors, 0 console errors, 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-12-1.png",
+      "evidence/TC-12-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:41:21Z"
+  },
+  {
+    "id": "TC-13",
+    "result": "Pass",
+    "actual": "Saved first day 2027-01-20 through the form (stored start_date 2027-01-20, end_date null); now Tue 2027-01-05 10:00 NY: status=later; title \"Database Systems\"; when \"Thu, Jan 21 · 2:00 pm\"; detail \"CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm\"; screen-reader text \"Next lecture: Database Systems, Thu, Jan 21 · 2:00 pm. CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm.\". Changed to no first day, last day 2026-12-15 (stored null/2026-12-15); now Wed 2026-12-16 10:00 NY: status=none; title \"\"; when \"\"; screen-reader text \"\". Now Tue 2026-12-15 10:00 NY: status=soon; title \"Database Systems starts in\"; when \"Tue 2:00 pm · CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm\"; screen-reader text \"Database Systems starts in 4 hours. CSCI-GA 2433 · Your times · Tue, Thu 2:00–3:15 pm.\". 1 page errors, 0 console errors (the one page error is React hydration warning #418 on the home page when the browser clock alone is faked to 2027 while the server renders in 2026 — e.g. the footer year; a test-setup artefact, not seen with any Dec 2026 time); 0 page errors, 0 console errors; 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-13-1.png",
+      "evidence/TC-13-2.png",
+      "evidence/TC-13-3.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:42:35Z"
+  },
+  {
+    "id": "TC-14",
+    "result": "Pass",
+    "actual": "Header button \"Your times · Mon, Wed 9:30–10:45 am; Fri 1:00–2:00 pm\"; picker opened directly in mode=manual, pre-filled: meeting 1 [Mon,Wed] 09:30–10:45; meeting 2 [Fri] 13:00–14:00; first day 2026-09-02, last day 2026-12-15. Changed Fri end to 14:30 and saved: button \"Your times · Mon, Wed 9:30–10:45 am; Fri 1:00–2:30 pm\"; stored rows 1: {\"section_no\":\"Manual\",\"schedule_type\":\"MANUAL\",\"meets\":\"Mon, Wed 9:30–10:45 am; Fri 1:00–2:30 pm\",\"meetings\":[{\"day\":0,\"start\":570,\"end\":645},{\"day\":2,\"start\":570,\"end\":645},{\"day\":4,\"start\":780,\"end\":870}],\"term\":\"1268\",\"start_date\":\"2026-09-02\",\"end_date\":\"2026-12-15\"}. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-14-1.png",
+      "evidence/TC-14-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:41:39Z"
+  },
+  {
+    "id": "TC-15",
+    "result": "Pass",
+    "actual": "Picker opened in mode=manual; \"Pick an NYU section instead\" → mode=nyu with the NYU list. Picked Section 002: button \"Section 002 · TR 11a-12:15p\"; stored rows 1: {\"section_no\":\"002\",\"schedule_type\":\"LEC\",\"meets\":\"TR 11a-12:15p\",\"meetings\":[{\"day\":1,\"start\":660,\"end\":735},{\"day\":3,\"start\":660,\"end\":735}],\"term\":\"1268\",\"start_date\":\"2026-09-02\",\"end_date\":\"2026-12-15\"}. Home card (Thu 2026-12-03 10:00 NY): status=soon; title \"Database Systems starts in\"; when \"Thu 11:00 am · CSCI-GA 2433 · Section 002 · TR 11a-12:15p\"; screen-reader text \"Database Systems starts in 1 hour. CSCI-GA 2433 · Section 002 · TR 11a-12:15p.\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-15-1.png",
+      "evidence/TC-15-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:41:45Z"
+  },
+  {
+    "id": "TC-16",
+    "result": "Pass",
+    "actual": "Re-test after PM review (0f3f212): Before: home card status=soon. Picker (manual form) \"Clear times\" clicked: DELETE ?user_id=eq.00000000-0000-4000-8000-0000000000a1&class_id=eq.00000000-0000-4000-8000-0000000c0001 (1 row); toast \"Cleared your class times for Database Systems\"; header button \"Set your section\"; stored rows 0; home card status=invite; title \"\"; when \"\"; screen-reader text \"\" (the class no longer contributes; it was the only class with times). NYU path for comparison: saved Section 001, picker \"No section\" → toast \"Section cleared for Database Systems\", button \"Set your section\", rows 0. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-16-1.png",
+      "evidence/TC-16-2.png",
+      "evidence/TC-16-3.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 0f3f212; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:51:52Z"
+  },
+  {
+    "id": "TC-17",
+    "result": "Pass",
+    "actual": "\"To add\" row button before Done: \"Your times · Tue, Thu 2:00–3:15 pm\"; database writes before Done: 0. After Done: class MATH-GA 1002 created (true), enrolled (true), class_sections row saved: {\"section_no\":\"Manual\",\"schedule_type\":\"MANUAL\",\"meets\":\"Tue, Thu 2:00–3:15 pm\",\"meetings\":[{\"day\":1,\"start\":840,\"end\":915},{\"day\":3,\"start\":840,\"end\":915}],\"term\":\"1268\",\"start_date\":null,\"end_date\":null}. \"Your classes\" button \"Your times · Tue, Thu 2:00–3:15 pm\"; class page button \"Your times · Tue, Thu 2:00–3:15 pm\"; home card status=soon; title \"Multivariable Analysis starts in\"; when \"Thu 2:00 pm · MATH-GA 1002 · Your times · Tue, Thu 2:00–3:15 pm\"; screen-reader text \"Multivariable Analysis starts in 4 hours. MATH-GA 1002 · Your times · Tue, Thu 2:00–3:15 pm.\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-17-1.png",
+      "evidence/TC-17-2.png",
+      "evidence/TC-17-3.png",
+      "evidence/TC-17-4.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:42:51Z"
+  },
+  {
+    "id": "TC-18",
+    "result": "Pass",
+    "actual": "Manual times set for MATH-GA 1002 under \"To add\" (\"Your times · Tue, Thu 2:00–3:15 pm\"); removed from the list → its section row gone (0 left), footer button \"Done\". Done closed the dialog (open after: false); database writes: none (no class, enrollment or class_sections row). 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-18-1.png",
+      "evidence/TC-18-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:42:59Z"
+  },
+  {
+    "id": "TC-19",
+    "result": "Pass",
+    "actual": "Tab reached \"Set your section\": true; Tab reached \"Enter times manually\": true (focus-visible true, outline none 1px, ring true); Tab to Tuesday chip true (focus-visible true, outline solid 2px); Space, Tab×2, Space → Monday=false, Tuesday=true, Wednesday=false, Thursday=true, Friday=false, Saturday=false, Sunday=false; typed times by keyboard → start \"14:00\", end \"15:15\"; \"Add another meeting\" by Enter → 2 meetings; meeting 2 start focused and left (true) → days error described as \"Pick at least one day.\", start error \"Enter a start time.\" (aria-invalid=true); \"Remove meeting 2\" by Enter → 1 meeting(s); Tab to \"Save times\" true, Enter → saved, button \"Your times · Tue, Thu 2:00–3:15 pm\". Accessibility tree (excerpt, meeting 1 + 2): - group \"Meeting 1\": / - group \"Days\": / - button \"Monday\": Mon / - button \"Tuesday\" [pressed]: Tue / - button \"Sunday\": Sun / - text: Start time / - textbox \"Start time\": 14:00 / - text: End time / - textbox \"End time\": 15:15 / - group \"Meeting 2\": / - group \"Days\": / - button \"Monday\": Mon / - button \"Tuesday\": Tue / - button \"Sunday\": Sun / - paragraph: Pick at least one day. / - text: Start time / - textbox \"Start time\" [invalid] / - paragraph: Enter a start time. / - text: End time / - textbox \"End time\" / - group \"Term dates (optional)\": / - text: Term dates (optional) First day of classes / - textbox \"First day of classes\" / - text: Last day of classes / - textbox \"Last day of classes\". Time/date inputs are labelled \"Start time\"/\"End time\" inside a group named \"Weekly meeting\" / \"Meeting N\", and \"First day of classes\"/\"Last day of classes\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-19-1.png",
+      "evidence/TC-19-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:44:14Z"
+  },
+  {
+    "id": "TC-20",
+    "result": "Pass",
+    "actual": "Re-test after PM review (0f3f212): light (html.dark=false): manual form with 5 meetings + term dates — document scrollWidth 390 / viewport 390, body 390, form scrollWidth 348 = clientWidth 348, dialog x 0–390, elements outside viewport 0, day chips of meeting 1 on 2 row(s); chip contrast selected 11.12:1 (rgba(252, 248, 240, 255) on rgba(30, 56, 94, 255)), unselected 15.42:1 (rgba(24, 31, 46, 255) on rgba(251, 247, 239, 255)). Saved: header label \"Your times · Mon, Wed 9:30–10:45 am; Tue, Thu 11:05–11:55 am; Wed, Fri 12:05–12:55 pm; Thu, Sat 1:05–1:55 pm; Fri, Sun 2:05–2:55 pm\" truncated with ellipsis=true, button right edge 366, page scrollWidth 390. Home card: scrollWidth 390, card right 374, when line wraps (scrollWidth 316 ≤ clientWidth 316), card bg rgb(255, 255, 255), text rgb(119, 115, 127). \"Your classes\" button truncated=true, right edge 270, page scrollWidth 390, dialog scrollWidth 388/388. dark (html.dark=true): manual form with 5 meetings + term dates — document scrollWidth 390 / viewport 390, body 390, form scrollWidth 348 = clientWidth 348, dialog x 0–390, elements outside viewport 0, day chips of meeting 1 on 2 row(s); chip contrast selected 14.46:1 (rgba(15, 23, 43, 255) on rgba(226, 232, 240, 255)), unselected 19.27:1 (rgba(248, 250, 252, 255) on rgba(2, 6, 24, 255)). Saved: header label \"Your times · Mon, Wed 9:30–10:45 am; Tue, Thu 11:05–11:55 am; Wed, Fri 12:05–12:55 pm; Thu, Sat 1:05–1:55 pm; Fri, Sun 2:05–2:55 pm\" truncated with ellipsis=true, button right edge 366, page scrollWidth 390. Home card: scrollWidth 390, card right 374, when line wraps (scrollWidth 316 ≤ clientWidth 316), card bg rgb(26, 24, 32), text rgb(161, 156, 171). \"Your classes\" button truncated=true, right edge 270, page scrollWidth 390, dialog scrollWidth 388/388. Home \"Next lecture\" card at 390 px, every reachable state (loading caught by delaying the class_sections response): light:loading: status=loading, card bg rgb(255, 255, 255) on page rgb(255, 255, 255), lowest body-text contrast 4.62:1, scrollWidth 390 (TC-20-9.png); light:invite: status=invite, card bg rgb(255, 255, 255) on page rgb(255, 255, 255), lowest body-text contrast 5.44:1, scrollWidth 390 (TC-20-10.png); light:none: status=none, card bg rgb(255, 255, 255) on page rgb(255, 255, 255), lowest body-text contrast 5.44:1, scrollWidth 390 (TC-20-11.png); light:soon: status=soon, card bg rgb(255, 255, 255) on page rgb(255, 255, 255), lowest body-text contrast 4.62:1 (30 px split-flap colons 3.41/3.41:1), scrollWidth 390 (TC-20-12.png); light:now: status=now, card bg rgb(255, 255, 255) on page rgb(255, 255, 255), lowest body-text contrast 4.62:1 (30 px split-flap colons 3.41:1), scrollWidth 390 (TC-20-13.png); light:later: status=later, card bg rgb(255, 255, 255) on page rgb(255, 255, 255), lowest body-text contrast 4.62:1, scrollWidth 390 (TC-20-14.png); dark:loading: status=loading, card bg rgb(26, 24, 32) on page rgb(2, 6, 24), lowest body-text contrast 6.57:1, scrollWidth 390 (TC-20-15.png); dark:invite: status=invite, card bg rgb(26, 24, 32) on page rgb(2, 6, 24), lowest body-text contrast 6.98:1, scrollWidth 390 (TC-20-16.png); dark:none: status=none, card bg rgb(26, 24, 32) on page rgb(2, 6, 24), lowest body-text contrast 6.98:1, scrollWidth 390 (TC-20-17.png); dark:soon: status=soon, card bg rgb(26, 24, 32) on page rgb(2, 6, 24), lowest body-text contrast 6.57:1, scrollWidth 390 (TC-20-18.png); dark:now: status=now, card bg rgb(26, 24, 32) on page rgb(2, 6, 24), lowest body-text contrast 6.57:1, scrollWidth 390 (TC-20-19.png); dark:later: status=later, card bg rgb(26, 24, 32) on page rgb(2, 6, 24), lowest body-text contrast 6.57:1, scrollWidth 390 (TC-20-20.png). In dark theme the card is dark (rgb(26, 24, 32)) in all 6 states, with body text at 5.15:1 or more. Light theme keeps the white card with the same colours as before (lowest body text 4.62:1). The only items under 4.5:1 are the split-flap colon separators in light theme (30 px large text at 3.41:1, which meets the 3:1 large-text rule; they sit in the unchanged SplitFlap component).",
+    "evidence": [
+      "evidence/TC-20-1.png",
+      "evidence/TC-20-2.png",
+      "evidence/TC-20-3.png",
+      "evidence/TC-20-4.png",
+      "evidence/TC-20-5.png",
+      "evidence/TC-20-6.png",
+      "evidence/TC-20-7.png",
+      "evidence/TC-20-8.png",
+      "evidence/TC-20-9.png",
+      "evidence/TC-20-10.png",
+      "evidence/TC-20-11.png",
+      "evidence/TC-20-12.png",
+      "evidence/TC-20-13.png",
+      "evidence/TC-20-14.png",
+      "evidence/TC-20-15.png",
+      "evidence/TC-20-16.png",
+      "evidence/TC-20-17.png",
+      "evidence/TC-20-18.png",
+      "evidence/TC-20-19.png",
+      "evidence/TC-20-20.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 0f3f212; Chromium 390x844 (phone), browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:52:15Z"
+  },
+  {
+    "id": "TC-21",
+    "result": "Pass",
+    "actual": "\"To add\" CSCI-GA 2433 → picked Section 002, row label \"Section 002 · TR 11a-12:15p\"; after Done: enrolled true, row {\"section_no\":\"002\",\"schedule_type\":\"LEC\",\"meets\":\"TR 11a-12:15p\",\"meetings\":[{\"day\":1,\"start\":660,\"end\":735},{\"day\":3,\"start\":660,\"end\":735}],\"term\":\"1268\",\"start_date\":\"2026-09-02\",\"end_date\":\"2026-12-15\"}; home card status=soon; title \"Database Systems starts in\"; when \"Thu 11:00 am · CSCI-GA 2433 · Section 002 · TR 11a-12:15p\"; screen-reader text \"Database Systems starts in 1 hour. CSCI-GA 2433 · Section 002 · TR 11a-12:15p.\". Class page picker showed Section 002 aria-pressed=true; picked Section 001 → button \"Section 001 · MW 9:30-10:45a\", rows 1 ({\"section_no\":\"001\",\"schedule_type\":\"LEC\",\"meets\":\"MW 9:30-10:45a\",\"meetings\":[{\"day\":0,\"start\":570,\"end\":645},{\"day\":2,\"start\":570,\"end\":645}],\"term\":\"1268\",\"start_date\":\"2026-09-02\",\"end_date\":\"2026-12-15\"}); home card status=later; title \"Database Systems\"; when \"Mon 9:30 am\"; detail \"CSCI-GA 2433 · Section 001 · MW 9:30-10:45a\"; screen-reader text \"Next lecture: Database Systems, Mon 9:30 am. CSCI-GA 2433 · Section 001 · MW 9:30-10:45a.\". Subjects dialog: added MATH-GA 1002, removed it (0 chips left), added again, Done with no section → writes [insert classes, insert enrollments], toast \"Added 1 subject\", MATH-GA 1002 enrolled true, no class_sections row for it true. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-21-1.png",
+      "evidence/TC-21-2.png",
+      "evidence/TC-21-3.png",
+      "evidence/TC-21-4.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU (node .output/server/index.mjs on localhost:8093, branch claude/manual-class-times @ 64f7bc4; Chromium 1280x900, browser time zone UTC; fake session; Supabase REST/auth and NYU server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T22:43:46Z"
+  },
+  {
+    "id": "TC-22",
+    "result": "Pass",
+    "actual": "Re-test after PM review (0f3f212): bun run typecheck exit 0; bun test src 84 pass, 0 fail; bun run build exit 0. Earlier run: bun run typecheck (tsc --noEmit) exit 0; bun test src: 84 pass, 0 fail across 8 files, exit 0; src/lib/manual-schedule.test.ts: 19 pass, incl. \"Tue/Thu 2:00–3:15 pm → two meetings\" expecting [{day:1,start:840,end:915},{day:3,start:840,end:915}], merge/sort/de-dup and Sunday=6 conversion tests, and validation tests for no day, end equal to/before start, last day before first day, no meetings and more than five meetings; bun run build exit 0 (nitro .output generated).",
+    "evidence": [
+      "evidence/TC-22-1.png"
+    ],
+    "environment": "Local checkout of claude/manual-class-times @ 0f3f212, bun 1.4.4, Node 22",
+    "testedAt": "2026-11-26T22:52:34Z"
+  }
+]
