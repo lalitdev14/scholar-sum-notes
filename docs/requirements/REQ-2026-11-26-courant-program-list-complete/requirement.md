@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-courant-program-list-complete            |
-| Status       | Ready for build   |
+| Status       | In build          |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/courant-programs` |
@@ -51,6 +51,18 @@ Data-only change in `src/lib/nyu-schools.ts` (+ unit test asserting the new name
 
 What was changed and how each acceptance criterion is met.
 
+Changed `src/lib/nyu-schools.ts` (Courant entry only) and `src/lib/nyu-schools.test.ts`.
+
+- **AC-1:** `name` is now "Courant Institute School of Mathematics, Computing, and Data Science";
+  `shortName` stays "Courant". New unit test asserts both.
+- **AC-2:** `programs` now has 22 entries (9 existing + 13 new), grouped BA (7) → minors (4) →
+  MS (7) → PhD (4). "Other / undeclared" is still appended by `programsFor` (not duplicated in
+  the data; test asserts it is absent from the raw list and last in `programsFor`). Test asserts
+  "Information Systems (MS)" is listed and the count is 22.
+- **AC-3:** `prefixes`/`suffixes` untouched; existing code → school tests unchanged and passing.
+  `bun run typecheck` pass, `bun test src` 17/17 pass, `bun run build` pass, prettier check pass
+  on changed files.
+
 ## 8. Test summary (tester)
 
 | Total | Pass | Fail | Blocked | Evidence             |
@@ -80,3 +92,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T16:30:50Z | Requirement analyst | Requirement created | Courant program list complete |
 | 2026-11-26T16:30:50Z | Requirement analyst | Requirement ready for build | 3 ACs; data-only change |
 | 2026-11-26T16:30:50Z | Product owner | Steps 3-5 waived | Trivial data change (program list); user replied 'add all' to the proposal to skip testing and PM review |
+| 2026-11-26T16:31:52Z | Developer | Build complete | Courant name + 22 programs (BA, minors, MS, PhD); prefixes unchanged; typecheck, 17/17 unit tests, build, prettier pass |
