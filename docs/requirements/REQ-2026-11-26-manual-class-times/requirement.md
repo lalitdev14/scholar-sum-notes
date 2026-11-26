@@ -3,11 +3,11 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-manual-class-times            |
-| Status       | Approved          |
+| Status       | PR raised |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/manual-class-times` |
-| PR           | (added in step 6) |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/85 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -200,3 +200,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:48:58Z | Developer | Changes after PM review | 1) clearing manual times toasts 'Cleared your class times for <subject>'; 2) NextLectureCard uses home theme tokens (home-block/line/ink/label/body/muted, home-accent) in all states, light unchanged, dark text >= 4.5:1; 3) footer 'Enter times manually' hidden in NYU error/no-sections states. typecheck, bun test (84), build pass |
 | 2026-11-26T22:52:52Z | Tester | Re-test after PM review | 6 re-run (TC-01, TC-02, TC-11, TC-16, TC-20, TC-22): 6 passed, 0 failed, 0 blocked; overall 22/22 pass |
 | 2026-11-26T22:53:45Z | Product manager | PM approved | Re-review after 8d9c1a5/da363a4: all 3 changes verified (clear-times toast, dark home card in all 6 states, single manual link); AC-1..AC-9 met, 22/22 pass. Light split-flap colons 3.41:1 (30 px large text, pre-existing SplitFlap) accepted. |
+| 2026-11-26T22:54:16Z | Release | PR raised | lalitdev14/scholar-sum-notes#85 into preprod |
