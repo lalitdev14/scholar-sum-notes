@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -39,7 +39,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { friendlyError } from "@/lib/utils";
+import { NYU_SCHOOLS, groupBySchool, programsFor, schoolById } from "@/lib/nyu-schools";
 
 export type CurrentClass = { id: string; subject: string; code: string };
 
@@ -147,8 +149,14 @@ export function SemesterSubjectsDialog({
   const fetchCourses = useServerFn(searchNyuCourses);
   const inputId = useId();
   const termId = useId();
+  const schoolSelectId = useId();
+  const programSelectId = useId();
 
   const [term, setTerm] = useState<string>("");
+  const [school, setSchool] = useState<string>("");
+  const [program, setProgram] = useState<string>("");
+  /** Set once the student picks in this sitting, so a late metadata read can't undo it. */
+  const pickedSchool = useRef(false);
   const [query, setQuery] = useState("");
   const [chosen, setChosen] = useState<NyuCourse[]>([]);
   const [saving, setSaving] = useState(false);
@@ -172,7 +180,7 @@ export function SemesterSubjectsDialog({
 
   const search = useQuery({
     queryKey: ["nyu-search", term, q.toLowerCase()],
-    enabled: open && !!term && q.length >= 2,
+    enabled: open && !!school && !!term && q.length >= 2,
     staleTime: 10 * 60 * 1000,
     retry: false,
     queryFn: async () => (await fetchCourses({ data: { q: q.slice(0, 80), term } })).courses,
@@ -185,6 +193,60 @@ export function SemesterSubjectsDialog({
       setChosen([]);
     }
   }, [open]);
+
+  // Pre-fill the school and program saved on the student's account (auth user metadata).
+  useEffect(() => {
+    if (!open) return;
+    pickedSchool.current = false;
+    let cancelled = false;
+    const apply = (meta: Record<string, unknown> | undefined) => {
+      if (cancelled || pickedSchool.current || !meta) return;
+      const saved = schoolById(typeof meta["nyu_school"] === "string" ? meta["nyu_school"] : null);
+      if (!saved) return;
+      setSchool(saved.id);
+      const p = typeof meta["nyu_program"] === "string" ? meta["nyu_program"] : "";
+      setProgram(programsFor(saved.id).includes(p) ? p : "");
+    };
+    // The stored session answers instantly; the fresh user record covers a change made on
+    // another device.
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        apply(data.session?.user?.user_metadata);
+        const fresh = await supabase.auth.getUser();
+        if (!fresh.error) apply(fresh.data.user?.user_metadata);
+      } catch (err) {
+        console.warn("[subjects] could not read saved school", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  /** Remembers the choice on the account; a failed save never blocks the form. */
+  function rememberSchool(nyu_school: string, nyu_program: string | null) {
+    void supabase.auth
+      .updateUser({ data: { nyu_school, nyu_program } })
+      .then(({ error }) => {
+        if (error) console.warn("[subjects] could not save school", error);
+      })
+      .catch((err: unknown) => console.warn("[subjects] could not save school", err));
+  }
+
+  function chooseSchool(id: string) {
+    if (id === school) return;
+    pickedSchool.current = true;
+    setSchool(id);
+    setProgram("");
+    rememberSchool(id, null);
+  }
+
+  function chooseProgram(p: string) {
+    pickedSchool.current = true;
+    setProgram(p);
+    if (school) rememberSchool(school, p);
+  }
 
   const inClasses = (code: string) => currentClasses.some((c) => sameCode(c.code, code));
   const isChosen = (code: string) => chosen.some((c) => sameCode(c.code, code));
@@ -249,7 +311,70 @@ export function SemesterSubjectsDialog({
   }
 
   const results = search.data ?? [];
-  const showResults = (q.length >= 2 && !!term) || termsQuery.isError;
+  const showResults = (!!school && q.length >= 2 && !!term) || termsQuery.isError;
+  const schoolInfo = schoolById(school);
+  const programs = programsFor(school);
+  const groups = groupBySchool(results, school);
+
+  const renderRow = (c: NyuCourse, tag?: string | null) => {
+    const already = inClasses(c.code);
+    const picked = isChosen(c.code);
+    return (
+      <li key={c.code} className="flex items-center gap-3 px-3 py-2.5">
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="font-mono text-xs text-muted-foreground">{c.code}</span>
+            {tag && (
+              <Badge
+                variant="outline"
+                className="px-1.5 py-0 text-[0.65rem] font-medium text-muted-foreground"
+                data-testid="school-tag"
+              >
+                {tag}
+              </Badge>
+            )}
+          </p>
+          <p className="text-sm font-medium leading-snug">{c.title}</p>
+        </div>
+        {already ? (
+          <span className="shrink-0 text-xs text-muted-foreground">In your classes</span>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant={picked ? "secondary" : "outline"}
+            className="shrink-0"
+            aria-pressed={picked}
+            aria-label={`${picked ? "Added" : "Add"} ${c.code} ${c.title}`}
+            onClick={() =>
+              setChosen((list) =>
+                picked ? list.filter((x) => !sameCode(x.code, c.code)) : [...list, c],
+              )
+            }
+          >
+            {picked ? (
+              <>
+                <Check className="h-4 w-4" aria-hidden="true" /> Added
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" aria-hidden="true" /> Add
+              </>
+            )}
+          </Button>
+        )}
+      </li>
+    );
+  };
+
+  const stepBadge = (n: number) => (
+    <span
+      className="mr-2 inline-grid h-5 w-5 place-items-center rounded-full bg-primary text-[0.7rem] font-semibold text-primary-foreground"
+      aria-hidden="true"
+    >
+      {n}
+    </span>
+  );
 
   return (
     <>
@@ -268,15 +393,82 @@ export function SemesterSubjectsDialog({
           <DialogHeader>
             <DialogTitle>Your subjects this semester</DialogTitle>
             <DialogDescription>
-              Type a subject name and pick your NYU courses. We'll add them to your classes with the
-              official course code.
+              Choose your NYU school and program, then type a subject name and pick your courses.
+              Your school's courses come first; other schools' stay listed for cross-registration.
             </DialogDescription>
           </DialogHeader>
 
           <div className="-mx-1 min-h-0 flex-1 space-y-4 overflow-y-auto px-1">
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="min-w-0 space-y-1.5" data-testid="step-school">
+                <Label htmlFor={schoolSelectId} className="flex items-center">
+                  {stepBadge(1)}Your NYU school
+                </Label>
+                <Select value={school} onValueChange={chooseSchool}>
+                  <SelectTrigger
+                    id={schoolSelectId}
+                    aria-label="Your NYU school"
+                    className="min-w-0 text-left"
+                  >
+                    <SelectValue placeholder="Choose your school" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 max-w-[calc(100vw-2rem)]">
+                    {NYU_SCHOOLS.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-0 space-y-1.5" data-testid="step-program">
+                <Label htmlFor={programSelectId} className="flex items-center">
+                  {stepBadge(2)}Your program
+                </Label>
+                <Select
+                  key={school || "none"}
+                  value={program}
+                  onValueChange={chooseProgram}
+                  disabled={!school}
+                >
+                  <SelectTrigger
+                    id={programSelectId}
+                    aria-label="Your program"
+                    className="min-w-0 text-left"
+                    aria-describedby={school ? undefined : `${inputId}-school-hint`}
+                  >
+                    <SelectValue
+                      placeholder={school ? "Choose your program" : "Choose a school first"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 max-w-[calc(100vw-2rem)]">
+                    {programs.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {!school && (
+              <p
+                id={`${inputId}-school-hint`}
+                className="text-sm text-muted-foreground"
+                data-testid="school-hint"
+              >
+                Choose your school first to search subjects.
+              </p>
+            )}
+
+            <div
+              className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem]"
+              data-testid="step-search"
+            >
               <div className="space-y-1.5">
-                <Label htmlFor={inputId}>Subject name</Label>
+                <Label htmlFor={inputId} className="flex items-center">
+                  {stepBadge(3)}Subject name
+                </Label>
                 <div className="relative">
                   <Search
                     className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -290,7 +482,8 @@ export function SemesterSubjectsDialog({
                     className="pl-9"
                     maxLength={80}
                     autoComplete="off"
-                    aria-describedby={`${inputId}-hint`}
+                    disabled={!school}
+                    aria-describedby={`${inputId}-hint${school ? "" : ` ${inputId}-school-hint`}`}
                   />
                 </div>
                 <p id={`${inputId}-hint`} className="sr-only">
@@ -299,7 +492,7 @@ export function SemesterSubjectsDialog({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor={termId}>Term</Label>
-                <Select value={term} onValueChange={setTerm} disabled={!terms?.length}>
+                <Select value={term} onValueChange={setTerm} disabled={!school || !terms?.length}>
                   <SelectTrigger id={termId} aria-label="Term">
                     <SelectValue placeholder="Loading…" />
                   </SelectTrigger>
@@ -364,55 +557,40 @@ export function SemesterSubjectsDialog({
                   term.
                 </p>
               ) : (
-                <ul
-                  className="divide-y rounded-lg border"
-                  aria-label="NYU courses"
-                  data-testid="nyu-results"
-                >
-                  {results.map((c) => {
-                    const already = inClasses(c.code);
-                    const picked = isChosen(c.code);
-                    return (
-                      <li key={c.code} className="flex items-center gap-3 px-3 py-2.5">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-mono text-xs text-muted-foreground">{c.code}</p>
-                          <p className="text-sm font-medium leading-snug">{c.title}</p>
-                        </div>
-                        {already ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            In your classes
-                          </span>
-                        ) : (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={picked ? "secondary" : "outline"}
-                            className="shrink-0"
-                            aria-pressed={picked}
-                            aria-label={`${picked ? "Added" : "Add"} ${c.code} ${c.title}`}
-                            onClick={() =>
-                              setChosen((list) =>
-                                picked
-                                  ? list.filter((x) => !sameCode(x.code, c.code))
-                                  : [...list, c],
-                              )
-                            }
-                          >
-                            {picked ? (
-                              <>
-                                <Check className="h-4 w-4" aria-hidden="true" /> Added
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-4 w-4" aria-hidden="true" /> Add
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="space-y-3" data-testid="nyu-results">
+                  {groups.own.length > 0 && (
+                    <section aria-labelledby={`${inputId}-own`} data-testid="nyu-group-own">
+                      <h3
+                        id={`${inputId}-own`}
+                        className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        From {schoolInfo?.shortName}
+                      </h3>
+                      <ul
+                        className="divide-y rounded-lg border"
+                        aria-label={`NYU courses from ${schoolInfo?.shortName}`}
+                      >
+                        {groups.own.map((c) => renderRow(c))}
+                      </ul>
+                    </section>
+                  )}
+                  {groups.other.length > 0 && (
+                    <section aria-labelledby={`${inputId}-other`} data-testid="nyu-group-other">
+                      <h3
+                        id={`${inputId}-other`}
+                        className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        Other NYU schools · cross-registration
+                      </h3>
+                      <ul
+                        className="divide-y rounded-lg border"
+                        aria-label="NYU courses from other schools"
+                      >
+                        {groups.other.map(({ item, school: s }) => renderRow(item, s?.shortName))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
               )}
             </div>
 
