@@ -152,7 +152,39 @@ that course is reported as "couldn't be added".
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-|       |      |      |         | `test-evidence.xlsx` |
+| 19    | 17   | 2    | 0       | `test-evidence.xlsx` |
+
+Run on the dev server (branch `claude/semester-subjects` @ `5679665`) started with `NYU_CLASS_SEARCH_URL`
+pointing at a local NYU class-search mock (FOSE format; terms page with Spring 2027 / January 2027 /
+Fall 2026 / Summer 2026; modes: results, empty, HTTP 503, dropped connection, never answering).
+Chromium 1440x900 and 390x844, fake session, stateful mocked Supabase recording class/enrollment
+inserts and deletes. The fake session can't pass the server function's auth check, so in the browser
+the two server functions were answered through `page.route` by the **real** `nyu-courses.server.ts`
+module running against the NYU mock (real request building, 8 s timeout, de-duplication and term
+parsing); the real server functions were called directly with curl for the signed-out checks (TC-16).
+Developer unit tests: 6/6 pass. 20 screenshots in `evidence/`.
+
+**Failures**
+
+- **TC-12** (AC-3): right after Done the **home page does not show the new classes**; it still shows
+  the generic "Open a class to begin / Find your class by name or code on the dashboard" card. The home
+  lists a class only in "Continue where you left off" once it has activity (notes, handwriting or a
+  visit). §3 says the class list (dashboard / "Continue where you left off") reflects the new classes
+  immediately. The dashboard part passes (both classes listed with NYU title and code, no reload).
+- **TC-02** (AC-1): no automatic pop-up for a student with classes (AC-1 part passes), but with a class
+  and no notes the home shows the same generic "Open a class to begin" card instead of the student's
+  class. With a note in the class it shows in "Continue where you left off". Same cause as TC-12;
+  the home card itself is pre-existing behaviour.
+
+**Observations** (not failures)
+
+- TC-16: input limits on the server could not be exercised end to end: without a real Supabase session
+  the auth middleware rejects first ("Unauthorized: No authorization header provided" / "Invalid
+  token"), so oversized input was only seen as rejected and never forwarded to NYU. Client limits:
+  field `maxlength` 80 and q cut to 80 (TC-08).
+- TC-17: after Escape, focus goes to the page body rather than back to the "Update my subjects" button.
+- TC-11: a course already in the student's classes can't be picked at all ("In your classes", no Add
+  button), so the summary only reports what was added.
 
 ## 9. Product manager verification
 
@@ -179,3 +211,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T05:01:00Z | Test master         | Test cases written          | 19 test cases covering AC-1..AC-6                                                                                                                                            |
 | 2026-11-26T05:09:00Z | Developer           | Build complete              | nyu-courses server functions + SemesterSubjectsDialog + WelcomeHome auto-open/Update my subjects; typecheck+build pass; unit 6/6, Chromium mock checks 36/36; commit bfa90a5 |
 | 2026-11-26T05:13:38Z | Product owner | PR requested before testing and PM review | Owner asked to raise the PR now; tester run (19 cases) continues and its evidence is added to the same branch; PM review still to follow |
+| 2026-11-26T05:27:36Z | Tester | Tests executed | 17/19 passed, 2 failed (TC-12 home doesn't show new classes after Done; TC-02 home shows no class without activity), 0 blocked |
+| 2026-11-26T05:27:36Z | Tester | Evidence generated | test-evidence.xlsx with 20 screenshots |
