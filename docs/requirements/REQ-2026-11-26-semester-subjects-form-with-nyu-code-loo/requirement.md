@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-26-semester-subjects-form-with-nyu-code-loo |
-| Status       | Merged to preprod |
+| Status       | Released |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-26                                              |
 | Branch       | `claude/semester-subjects`                              |
@@ -320,3 +320,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T14:32:08Z | Tester | Evidence regenerated | test-evidence.xlsx, 24 screenshots |
 | 2026-11-26T14:34:07Z | Product manager | PM approved | Follow-up fix 8ef15eb re-verified: Your classes card on home right after Done, focus returns to My subjects, schema unit tests 6/6; AC-1..AC-6 met; TC-12 last step: test expectation wrong (Continue card after activity is the intended design) |
 | 2026-11-26T15:54:44Z | Release | PR merged | lalitdev14/scholar-sum-notes#76 merged into preprod |
+| 2026-11-26T16:34:44Z | Release | Released to production | Release PR lalitdev14/scholar-sum-notes#77 (preprod -> main) merged |
