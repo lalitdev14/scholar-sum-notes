@@ -3,11 +3,11 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-subject-search-narrowed-by-nyu-school-an            |
-| Status       | Approved          |
+| Status       | PR raised |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/subject-search-by-school` |
-| PR           | (added in step 6) |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/76 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -238,3 +238,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T15:29:33Z | Tester | Tests executed | 23 passed, 0 failed, 0 blocked (local production build, mocked Supabase and NYU search). TC-20: failed save of school is only console-logged, no UI message |
 | 2026-11-26T15:29:33Z | Tester | Evidence generated | test-results.json, 26 screenshots in evidence/, test-evidence.xlsx |
 | 2026-11-26T15:30:56Z | Product manager | PM approved | All 11 ACs met (23/23 tests, screenshots reviewed); behaves as requested: school first, programs per school, own-school results on top, cross-registration listed and tagged (Courant student sees Stern ACCT-UB), all 22 NYU schools. TC-20 silent save failure accepted (background preference, no AC requires a message). Optional follow-ups: long school names truncated in trigger; possible one-time save-failure note |
+| 2026-11-26T15:31:41Z | Release | PR raised | https://github.com/lalitdev14/scholar-sum-notes/pull/76 into preprod (includes semester-subjects-fix) |
