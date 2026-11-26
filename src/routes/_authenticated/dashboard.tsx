@@ -3,6 +3,7 @@ import { classTransitionName } from "@/lib/motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { CLASS_SECTIONS_KEY, deleteSection } from "@/lib/class-sections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,7 @@ import {
   INK,
   SOFT_GREY,
   VIOLET,
+  VIOLET_TEXT,
   boldBlock,
   boldOutline,
   boldPrimary,
@@ -231,6 +233,8 @@ function Dashboard() {
         .eq("class_id", classId)
         .eq("user_id", userId);
       if (error) throw error;
+      await deleteSection(classId, userId);
+      queryClient.invalidateQueries({ queryKey: CLASS_SECTIONS_KEY });
       toast.success(
         deleteMyData ? "Class and your notes removed" : "Class removed from your dashboard",
       );
@@ -308,21 +312,19 @@ function Dashboard() {
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="max-w-3xl">
             <h1
-              className="text-[2.5rem] font-bold leading-[1] tracking-[-0.035em] text-balance text-[#0d0d12] sm:text-6xl"
+              className="text-[2.5rem] font-bold leading-[1] tracking-[-0.035em] text-balance text-bold-ink sm:text-6xl"
               style={grotesk}
             >
               Welcome back
               {me?.full_name ? (
                 <>
-                  , <span style={{ color: VIOLET }}>{me.full_name.split(" ")[0]}</span>
+                  , <span style={{ color: VIOLET_TEXT }}>{me.full_name.split(" ")[0]}</span>
                 </>
               ) : null}
               .
             </h1>
-            <p className="mt-4 text-[0.95rem] text-[#4a4a56]">
-              <span className="font-semibold text-[#0d0d12]">
-                {uniTheme.name || "Your classes"}
-              </span>
+            <p className="mt-4 text-[0.95rem] text-bold-text">
+              <span className="font-semibold text-bold-ink">{uniTheme.name || "Your classes"}</span>
               <span className="mx-2 opacity-50">·</span>
               Only your enrolled subjects appear here. Search by name or code to add more.
             </p>
@@ -450,12 +452,12 @@ function Dashboard() {
 
         <section className="mt-14" aria-label="Your classes">
           <h2
-            className="flex items-center gap-3 text-3xl font-bold tracking-[-0.03em] text-[#0d0d12]"
+            className="flex items-center gap-3 text-3xl font-bold tracking-[-0.03em] text-bold-ink"
             style={grotesk}
           >
             Your classes
             {classes && classes.length > 0 && (
-              <span className="rounded-full bg-[#0d0d12] px-2.5 py-0.5 text-sm font-semibold tracking-normal text-white">
+              <span className="rounded-full bg-bold-ink px-2.5 py-0.5 text-sm font-semibold tracking-normal text-bold-on-ink">
                 {classes.length}
               </span>
             )}
@@ -482,12 +484,12 @@ function Dashboard() {
                   <BookOpen className="h-6 w-6" aria-hidden="true" />
                 </span>
                 <h3
-                  className="mt-5 text-3xl font-bold tracking-[-0.03em] text-[#0d0d12]"
+                  className="mt-5 text-3xl font-bold tracking-[-0.03em] text-bold-ink"
                   style={grotesk}
                 >
                   No enrolled subjects yet
                 </h3>
-                <p className="mt-2 max-w-md text-[0.95rem] text-[#4a4a56]">
+                <p className="mt-2 max-w-md text-[0.95rem] text-bold-text">
                   Find a subject by name or code, then take your own notes and get an AI summary of
                   them.
                 </p>
@@ -518,12 +520,12 @@ function Dashboard() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h2
-                        className="truncate text-xl font-bold tracking-tight text-[#0d0d12]"
+                        className="truncate text-xl font-bold tracking-tight text-bold-ink"
                         style={grotesk}
                       >
                         {klass.subject}
                       </h2>
-                      <p className="mt-1 flex items-center gap-2 text-sm text-[#5d5d6a]">
+                      <p className="mt-1 flex items-center gap-2 text-sm text-bold-subtle">
                         <User className="h-3.5 w-3.5" />
                         {klass.professor}
                       </p>
@@ -531,7 +533,7 @@ function Dashboard() {
                     <div className="flex items-start gap-1">
                       <Badge
                         variant="secondary"
-                        className="max-w-[9rem] truncate rounded-full bg-[#0d0d12] px-2.5 font-semibold text-white hover:bg-[#0d0d12]"
+                        className="max-w-[9rem] truncate rounded-full bg-bold-ink px-2.5 font-semibold text-bold-on-ink hover:bg-bold-ink"
                         title={klass.code}
                       >
                         {klass.code}
@@ -558,7 +560,7 @@ function Dashboard() {
                     </div>
                   </div>
 
-                  <p className="prose-notes mt-4 line-clamp-3 text-sm leading-relaxed text-[#4a4a56]">
+                  <p className="prose-notes mt-4 line-clamp-3 text-sm leading-relaxed text-bold-text">
                     {preview || "No notes yet — open the class to start writing."}
                   </p>
 
@@ -568,7 +570,7 @@ function Dashboard() {
                         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold",
                         note?.summary
                           ? "bg-[#d6ff5c] text-[#0d0d12]"
-                          : "bg-[#f4f4f1] text-[#5d5d6a]",
+                          : "bg-bold-page text-bold-subtle",
                       )}
                     >
                       <Sparkles className="h-3.5 w-3.5" />
@@ -578,7 +580,7 @@ function Dashboard() {
                           ? "Notes saved · not summarized"
                           : "No notes yet"}
                     </span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#6d4aff]">
+                    <span className="inline-flex items-center gap-1 font-semibold text-bold-violet-text">
                       Open{" "}
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </span>

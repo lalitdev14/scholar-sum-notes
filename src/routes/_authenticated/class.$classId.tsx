@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ClassSectionButton } from "@/components/SectionPicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -1071,6 +1072,16 @@ function ClassPage() {
                   </span>
                 ) : null}
               </p>
+              {klass && (
+                <ClassSectionButton
+                  classId={klass.id}
+                  code={klass.code}
+                  subject={klass.subject}
+                  termLabel={klass.term}
+                  tone="quiet"
+                  className="-ml-2 h-7 px-2 text-muted-foreground"
+                />
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2">

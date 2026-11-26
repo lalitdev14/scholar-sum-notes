@@ -1,3 +1,5 @@
+import { THEME_INIT_SCRIPT } from "./theme";
+
 export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">
@@ -14,7 +16,13 @@ export function renderErrorPage(): string {
       a, button { padding: 0.5rem 1rem; border-radius: 0.375rem; font: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
       .primary { background: #111; color: #fff; }
       .secondary { background: #fff; color: #111; border-color: #d1d5db; }
+      html.dark { color-scheme: dark; }
+      html.dark body { background: #0f0f15; color: #f2f2f5; }
+      html.dark p { color: #b8b8c5; }
+      html.dark .primary { background: #f2f2f5; color: #0f0f15; }
+      html.dark .secondary { background: #1a1a23; color: #f2f2f5; border-color: #363642; }
     </style>
+    <script>${THEME_INIT_SCRIPT}</script>
   </head>
   <body>
     <div class="card">
