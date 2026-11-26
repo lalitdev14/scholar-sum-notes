@@ -152,4 +152,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:28:10Z | Test master | Test cases written | 22 cases covering AC-1..AC-9 |
 | 2026-11-26T22:32:29Z | Developer | Build complete | Manual times form in SectionPicker, saved as section_no Manual/schedule_type MANUAL; manual-schedule.ts + 19 unit tests; typecheck, bun test (84), build pass |
 | 2026-11-26T22:45:25Z | Tester | Tests executed | 22 run: 22 passed, 0 failed, 0 blocked (local production build, mocked Supabase and NYU) |
-| 2026-11-26T22:45:25Z | Tester | Evidence generated | test-evidence.xlsx with 56 screenshots in evidence/ |
+| 2026-11-26T22:45:25Z | Tester | Evidence generated | test-evidence.xlsx with 57 screenshots in evidence/ |
