@@ -252,6 +252,8 @@ export function SectionPickerDialog({
   const termOptions =
     terms ?? (termId ? [{ id: termId, label: `Term ${termId}`, current: true }] : []);
   const list = sections.data ?? [];
+  const lookupFailed = sections.isError || (termsQuery.isError && !term);
+  const noSections = !lookupFailed && !!term && !sections.isPending && list.length === 0;
 
   const manualLink = (testId: string, className?: string) => (
     <Button
@@ -305,7 +307,7 @@ export function SectionPickerDialog({
             </div>
 
             <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1" aria-live="polite">
-              {sections.isError || (termsQuery.isError && !term) ? (
+              {lookupFailed ? (
                 <div
                   role="alert"
                   className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
@@ -338,7 +340,7 @@ export function SectionPickerDialog({
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading sections…
                 </p>
-              ) : list.length === 0 ? (
+              ) : noSections ? (
                 <div className="space-y-2" data-testid="section-empty">
                   <p className="text-sm text-muted-foreground">
                     NYU lists no sections of {code} in this term. Try another term, or enter your
@@ -404,7 +406,8 @@ export function SectionPickerDialog({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">
-              {manualLink("section-manual")}
+              {/* The error and "no sections" states have their own link, with the reason. */}
+              {!lookupFailed && !noSections && manualLink("section-manual")}
               <div className="ml-auto flex flex-wrap justify-end gap-2">
                 {hasSaved && (
                   <Button
@@ -800,7 +803,9 @@ export function ClassSectionButton({
       refresh();
       toast.success(
         !section
-          ? `Section cleared for ${subject}`
+          ? isManualSection(current)
+            ? `Cleared your class times for ${subject}`
+            : `Section cleared for ${subject}`
           : isManualSection(section)
             ? `Saved your class times for ${subject}`
             : `Saved section ${section.no} for ${subject}`,
