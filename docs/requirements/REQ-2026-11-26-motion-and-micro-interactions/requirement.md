@@ -7,7 +7,7 @@
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/motion-polish` |
-| PR           | (added in step 6) |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/83 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -164,3 +164,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T17:27:02Z | Test master | Test cases written | 33 cases covering AC-1..AC-14 |
 | 2026-11-26T20:36:03Z | Developer | Build complete | Commit c953f8e; AC-1..AC-14 built with CSS tokens/keyframes, tab indicator hook, upload progress, record morph + mic meter, transcript follow, view transitions; typecheck, 24 unit tests, build and prettier pass |
 | 2026-11-26T20:36:39Z | Product owner | Steps 4-5 waived | Product owner asked for the PR before testing ('generate pr'); test cases written, test run and PM review not done |
+| 2026-11-26T20:37:03Z | Release | PR raised | lalitdev14/scholar-sum-notes#83 into preprod |
