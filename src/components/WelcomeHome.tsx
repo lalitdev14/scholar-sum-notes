@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookPlus, LayoutGrid, Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SemesterSubjectsDialog } from "@/components/SemesterSubjectsDialog";
+import { NextLectureCard } from "@/components/NextLectureCard";
 import { supabase } from "@/integrations/supabase/client";
 import { pickGreeting, rememberGreeting } from "@/lib/greetings";
 
@@ -345,6 +346,17 @@ export function WelcomeHome() {
             </section>
           )}
         </div>
+
+        {/* Countdown to the next lecture (from the student's saved NYU sections) */}
+        {userId && (
+          <NextLectureCard
+            classes={classes}
+            onSetSections={() => {
+              setOpenedFromButton(false);
+              setSubjectsOpen(true);
+            }}
+          />
+        )}
 
         {/* On to the dashboard */}
         <Link
