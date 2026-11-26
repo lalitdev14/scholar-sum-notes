@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-manual-class-times            |
-| Status       | Ready for build   |
+| Status       | In test           |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/manual-class-times` |
@@ -75,7 +75,41 @@ themselves.
 
 ## 7. Build summary (developer)
 
-What was changed and how each acceptance criterion is met.
+Files: `src/lib/manual-schedule.ts` (new, pure helpers) + `src/lib/manual-schedule.test.ts`
+(19 unit tests), `src/components/SectionPicker.tsx`, `src/components/NextLectureCard.tsx`.
+No database migration; `class_sections` is reused.
+
+- **AC-1** The section picker (class page "Set your section", "Your classes", "To add") has an
+  "Enter times manually" link in its footer (`section-manual`), in the NYU error box
+  (`section-manual-error`) and in the "no sections" state (`section-manual-empty`).
+- **AC-2** Manual form (`manual-form`): per meeting, Mon–Sun day chips, start and end
+  `<input type="time">`; "Add another meeting" up to 5 (then disabled with a note); Remove on
+  each meeting when there is more than one; optional first/last day of classes
+  (`<input type="date">`).
+- **AC-3** `validateManual()`: at least one day, start and end required, end after start,
+  last day not before first day (and real dates). Errors appear under the field once it has
+  been touched (`aria-invalid` + `aria-describedby`); "Save times" is disabled until valid.
+- **AC-4** Save upserts `class_sections` (one row per student + class, replacing any NYU
+  section) with `section_no 'Manual'`, `schedule_type 'MANUAL'`, `meets` = generated text such
+  as "Tue, Thu 2:00–3:15 pm" (≤200 chars), `meetings` = `[{day,start,end}]` (0 = Monday,
+  minutes), `term` = the picker's selected/current term, optional `start_date`/`end_date`.
+  Labels (class page button, "Your classes", "To add" button) read
+  "Your times · Tue, Thu 2:00–3:15 pm".
+- **AC-5** The home card reads the same rows, so `findNextLecture` handles manual times as is
+  (New York time, term dates, now/soon/later). Its detail line shows
+  "CODE · Your times · Tue, Thu 2:00–3:15 pm" instead of a section number.
+- **AC-6** A class with manual times opens the picker on the manual form, pre-filled
+  (meetings with the same times share one row). "Pick an NYU section instead" switches to the
+  NYU list (picking one replaces the manual row via upsert); "Clear times" deletes it.
+- **AC-7** In the subjects dialog the "To add" picker returns the manual schedule as a section
+  object, kept until Done and saved by the existing `savePendingSections` after enrolling.
+- **AC-8** Day chips are `<button aria-pressed>` with full day names as accessible names inside
+  a labelled group; time/date inputs have `<label>`s. Chips wrap and inputs use `min-w-0`, so
+  390 px has no horizontal scroll. Theme tokens (`primary`, `muted`, `card`, `destructive`)
+  for light/dark; the NYU error box got dark variants. Motion uses the shared tokens
+  (`motion-rise`, `motion-fade-in`, chip press scale) and is removed under reduced motion.
+- **AC-9** NYU picking path unchanged apart from the extra link; `bun run typecheck`,
+  `bun test src` (84 pass) and `bun run build` pass; prettier clean on changed files.
 
 ## 8. Test summary (tester)
 
@@ -106,3 +140,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:26:44Z | Requirement analyst | Requirement created | Manual class times |
 | 2026-11-26T22:27:03Z | Requirement analyst | Requirement ready for build | 9 ACs; reuse class_sections, no migration |
 | 2026-11-26T22:28:10Z | Test master | Test cases written | 22 cases covering AC-1..AC-9 |
+| 2026-11-26T22:32:29Z | Developer | Build complete | Manual times form in SectionPicker, saved as section_no Manual/schedule_type MANUAL; manual-schedule.ts + 19 unit tests; typecheck, bun test (84), build pass |
