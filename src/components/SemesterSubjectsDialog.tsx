@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -131,6 +131,7 @@ export function SemesterSubjectsDialog({
   onDone,
   userId,
   currentClasses,
+  returnFocusTo,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -138,6 +139,8 @@ export function SemesterSubjectsDialog({
   onDone: () => void;
   userId: string;
   currentClasses: CurrentClass[];
+  /** Element to focus when the form closes (the button that opened it). */
+  returnFocusTo?: RefObject<HTMLElement | null> | undefined;
 }) {
   const queryClient = useQueryClient();
   const fetchTerms = useServerFn(getNyuTerms);
@@ -254,6 +257,13 @@ export function SemesterSubjectsDialog({
         <DialogContent
           className="flex max-h-[92dvh] flex-col gap-4 overflow-hidden sm:max-w-xl"
           data-testid="subjects-dialog"
+          onCloseAutoFocus={(e) => {
+            const el = returnFocusTo?.current;
+            if (el) {
+              e.preventDefault();
+              el.focus();
+            }
+          }}
         >
           <DialogHeader>
             <DialogTitle>Your subjects this semester</DialogTitle>
