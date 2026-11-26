@@ -1,1 +1,235 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "Dialog labels in DOM order: \"1 Your NYU school\", \"2 Your program\", \"3 Subject name\", \"Term\"; comboboxes in order [Your NYU school, Your program, Term]; step 1 (school select) at x=377,y=375; step 2 (program select) beside it at x=646,y=375 (side by side at desktop width); step 3 (subject search box + Term select) below at y=489; only the hint \"Choose your school first to search subjects.\" sits between steps 2 and 3 (not a step). 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-01-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:25:38Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Pass",
+    "actual": "School select lists 22 options, no duplicates (true), all by full name: College of Arts & Science; Courant Institute of Mathematical Sciences; Graduate School of Arts & Science; Stern School of Business; Tandon School of Engineering; Steinhardt School of Culture, Education, and Human Development; Tisch School of the Arts; Gallatin School of Individualized Study; School of Professional Studies; Silver School of Social Work; Robert F. Wagner Graduate School of Public Service; School of Global Public Health; Rory Meyers College of Nursing; College of Dentistry; Grossman School of Medicine; Grossman Long Island School of Medicine; School of Law; Liberal Studies; Institute of Fine Arts; Institute for the Study of the Ancient World; NYU Abu Dhabi; NYU Shanghai. All 22 schools of 6.1 present (some with longer official names: \"Courant Institute of Mathematical Sciences\", \"Steinhardt School of Culture, Education, and Human Development\", \"Robert F. Wagner Graduate School of Public Service\"). 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-02-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:25:42Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "Before choosing a school: program select disabled=true (shows \"Choose a school first\"), clicking it opened 0 listbox; subject search box disabled=true, after clicking and typing \"accounting\" its value is \"\", 0 search requests sent, results list shown: false; Term select also disabled=true; hint visible: \"Choose your school first to search subjects.\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-03-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:25:47Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "After choosing \"Courant Institute of Mathematical Sciences\": hint shown: false; program select disabled=false, opens with 10 options [Computer Science (BA); Mathematics (BA); Data Science (BA); Computer Science (MS); Mathematics (MS); Scientific Computing (MS); Mathematics in Finance (MS); Computer Science (PhD); Mathematics (PhD); Other / undeclared]; subject search disabled=false and accepted typing (\"ab\"); Term select disabled=false. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-04-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:25:51Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "Courant programs: [Computer Science (BA); Mathematics (BA); Data Science (BA); Computer Science (MS); Mathematics (MS); Scientific Computing (MS); Mathematics in Finance (MS); Computer Science (PhD); Mathematics (PhD); Other / undeclared]; selected \"Computer Science (BA)\". After changing school to Stern the program select shows placeholder \"Choose your program\" (reset); its options are now [Business (BS); Business and Political Economy (BS); Business, Technology and Entrepreneurship (BS); Full-time MBA; Part-time MBA; Executive MBA; Accounting (MS); Business Analytics (MS); Quantitative Finance (MS); Other / undeclared]; Courant-only options remaining: none. Saved metadata after the change: {\"nyu_school\":\"stern\",\"nyu_program\":null}. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-05-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:25:58Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "Institute for the Study of the Ancient World: 2 options [Ancient World Studies (PhD); Other / undeclared], \"Other / undeclared\" selected → select shows \"Other / undeclared\". NYU Shanghai: 7 options [Business and Finance (BS); Computer Science (BS); Data Science (BS); Economics (BS); Interactive Media and Business (BS); Neural Science (BS); Other / undeclared], \"Other / undeclared\" selected → select shows \"Other / undeclared\". Grossman Long Island School of Medicine: 2 options [Doctor of Medicine (MD, primary care); Other / undeclared], \"Other / undeclared\" selected → select shows \"Other / undeclared\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-06-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:05Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "Mocked NYU order: ACCT-UB 1, ACCT-GB 6305, ECON-UA 266, CSCI-GA 2433. Shown: \"From Courant\": [CSCI-GA 2433] then \"Other NYU schools · cross-registration\": [ACCT-UB 1 (Stern), ACCT-GB 6305 (Stern), ECON-UA 266 (CAS)]; each course appears once. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-07-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:11Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "Shown: \"From Stern\": [ACCT-UB 1, ACCT-GB 6305] then \"Other NYU schools · cross-registration\": [ECON-UA 266 (CAS), CSCI-GA 2433 (Courant)]; own-group rows have no tag; NYU order kept inside each group. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-08-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:16Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "School of Law, \"accounting\": own group rendered false, \"From Law\" heading elements 0; shown: \"Other NYU schools · cross-registration\": [ACCT-UB 1 (Stern), ACCT-GB 6305 (Stern), ECON-UA 266 (CAS), CSCI-GA 2433 (Courant)]. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-09-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:22Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Pass",
+    "actual": "Shown: \"From Courant\": [CSCI-GA 2433] then \"Other NYU schools · cross-registration\": [XYZW-QQ 101 (no tag)]. Clicking Add on XYZW-QQ 101 → button \"Added\", To add list: \"To add (1) XYZW-QQ 101 · Special Topics in Something\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-10-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:27Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Pass",
+    "actual": "GSAS student, mocked results in NYU order HIST-GA 1000, MATH-GA 1002, FINH-GA 2000, ISAW-GA 3000, HIST-UA 10, DS-UA 201, SPAN-SHU 101, ARAB-UH 1001. Shown: \"From GSAS\": [HIST-GA 1000] then \"Other NYU schools · cross-registration\": [MATH-GA 1002 (Courant), FINH-GA 2000 (IFA), ISAW-GA 3000 (ISAW), HIST-UA 10 (CAS), DS-UA 201 (Courant), SPAN-SHU 101 (Shanghai), ARAB-UH 1001 (Abu Dhabi)]. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-11-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:32Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Pass",
+    "actual": "Courant results: \"From Courant\": [CSCI-GA 2433] then \"Other NYU schools · cross-registration\": [ACCT-UB 1 (Stern), ACCT-GB 6305 (Stern), ECON-UA 266 (CAS)]. After changing school to Stern (search mock delays answers by 600 ms, so a new request would show a loading state): search text still \"accounting\"; results immediately (read right after the pick) \"From Stern\": [ACCT-UB 1, ACCT-GB 6305] then \"Other NYU schools · cross-registration\": [ECON-UA 266 (CAS), CSCI-GA 2433 (Courant)]; search requests before 1, after 1 (no new request); \"Searching NYU courses…\" seen: false; program select reset to \"Choose your program\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-12-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:40Z"
+  },
+  {
+    "id": "TC-13",
+    "result": "Pass",
+    "actual": "Chose \"Tandon School of Engineering\" + \"Computer Engineering (BS)\", closed, reloaded the page and reopened: school shows \"Tandon School of Engineering\", program shows \"Computer Engineering (BS)\"; hint shown false; subject search disabled false. Saves sent: [{\"nyu_school\":\"tandon\",\"nyu_program\":null},{\"nyu_school\":\"tandon\",\"nyu_program\":\"Computer Engineering (BS)\"}]. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-13-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:50Z"
+  },
+  {
+    "id": "TC-14",
+    "result": "Pass",
+    "actual": "Browser A chose Steinhardt + Other / undeclared; account user metadata (PUT /auth/v1/user) now {\"nyu_school\":\"steinhardt\",\"nyu_program\":\"Other / undeclared\"}. Browser B (separate context, no shared storage, its stored session has no school) opened the dialog: school \"Steinhardt School of Culture, Education, and Human Development\", program \"Other / undeclared\" (pre-filled from GET /auth/v1/user). No database table write involved (only auth user metadata). A: 0 page errors, 0 console errors; B: 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-14-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:26:59Z"
+  },
+  {
+    "id": "TC-15",
+    "result": "Pass",
+    "actual": "Precondition: saved Tandon + \"Computer Science (BS)\" (reopen showed \"Tandon School of Engineering\" / \"Computer Science (BS)\"). Changed to Stern + \"Business and Political Economy (BS)\", closed, reloaded, reopened: school \"Stern School of Business\", program \"Business and Political Economy (BS)\"; old Tandon program not shown. Saved metadata {\"nyu_school\":\"stern\",\"nyu_program\":\"Business and Political Economy (BS)\"}; saves in order [{\"nyu_school\":\"tandon\",\"nyu_program\":null},{\"nyu_school\":\"tandon\",\"nyu_program\":\"Computer Science (BS)\"},{\"nyu_school\":\"stern\",\"nyu_program\":null},{\"nyu_school\":\"stern\",\"nyu_program\":\"Business and Political Economy (BS)\"}]. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-15-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:27:12Z"
+  },
+  {
+    "id": "TC-16",
+    "result": "Pass",
+    "actual": "Typed \"algorithms\" one key every 70 ms: search requests after typing stopped: 1 [algorithms@1268] (term 1268 = Fall 2026); results \"From Courant\": [CSCI-GA 1170] then \"Other NYU schools · cross-registration\": [CS-GY 6033 (Tandon)]. Changed Term to Spring 2027 → requests now [algorithms@1268,algorithms@1274]; results updated, still grouped: \"From Courant\": [CSCI-UA 310] then \"Other NYU schools · cross-registration\": [CS-GY 6043 (Tandon)]. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-16-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:27:20Z"
+  },
+  {
+    "id": "TC-17",
+    "result": "Pass",
+    "actual": "After Add on CSCI-GA 2433 (own group) and ACCT-UB 1 (cross-registration): buttons \"Added\" / \"Added\"; To add list \"To add (2) CSCI-GA 2433 · Database Systems ACCT-UB 1 · Principles of Financial Accounting\"; button \"Done · add 2 subjects\". Clicked it → dialog closed: true; mocked writes: insert classes:CSCI-GA 2433, insert enrollments:, insert classes:ACCT-UB 1, insert enrollments:; enrollments 2. Reopened: Your classes \"Your classes CSCI-GA 2433 Database Systems Remove ACCT-UB 1 Principles of Financial Accounting Remove\"; To add list shown false. Both courses went through the same path. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-17-1.png",
+      "evidence/TC-17-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:27:29Z"
+  },
+  {
+    "id": "TC-18",
+    "result": "Pass",
+    "actual": "Your classes before: \"Your classes CSCI-GA 2433 Database Systems Remove ACCT-UB 1 Principles of Financial Accounting Remove\". Remove on ACCT-UB 1 + confirm \"Remove class\" → Your classes \"Your classes CSCI-GA 2433 Database Systems Remove\"; enrollments left 1. Search \"accounting\": ACCT-UB 1 shows \"Add\", CSCI-GA 2433 shows \"In your classes\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-18-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:28:21Z"
+  },
+  {
+    "id": "TC-19",
+    "result": "Pass",
+    "actual": "First search failed (mocked): error box \"We couldn't reach NYU's class search. Please try again in a moment, or add the class yourself on the Dashboard → Add class. Try again\"; selects kept \"Courant Institute of Mathematical Sciences\" / \"Computer Science (BA)\". After Try again (2 search requests total): \"From Courant\": [CSCI-GA 2433] then \"Other NYU schools · cross-registration\": [ACCT-UB 1 (Stern), ACCT-GB 6305 (Stern), ECON-UA 266 (CAS)]. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-19-1.png",
+      "evidence/TC-19-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:27:42Z"
+  },
+  {
+    "id": "TC-20",
+    "result": "Pass",
+    "actual": "Auth user update (PUT /auth/v1/user) mocked to answer 500; 1 save attempt(s). The dialog did not crash or block: school stays \"Tisch School of the Arts\"; \"film\" search ran and grouped: \"From Tisch\": [CINE-GT 1000, FMTV-UT 1] then \"Other NYU schools · cross-registration\": [ENGL-UA 250 (CAS)]. The save failure is NOT shown to the student (no toast, no inline message: true); it is only logged in the browser console (1x \"[subjects] could not save school\"). Requirement ACs/6.2 do not require a user-visible message (AC-9 covers saving; the developer notes a failed save must never block the form), so judged Pass; discrepancy with the test case wording \"any save failure is reported\" noted for PM. 0 page errors, 1 console errors (the console error is the browser's own \"Failed to load resource: 500\" for the mocked save).",
+    "evidence": [
+      "evidence/TC-20-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:29:02Z"
+  },
+  {
+    "id": "TC-21",
+    "result": "Pass",
+    "actual": "opener reached with 8 Tab presses; dialog opened by Enter, focus on \"Your NYU school\"; focus \"Your NYU school\"; school chosen with Enter/ArrowDown/Enter: \"Tandon School of Engineering\"; Tab → \"Your program\"; program chosen: \"Computer Engineering (BS)\"; Tab → \"3Subject name(input)\"; typed \"accounting\", results \"Other NYU schools · cross-registration\": [ACCT-UB 1 (Stern), ACCT-GB 6305 (Stern), ECON-UA 266 (CAS), CSCI-GA 2433 (Courant)]; Escape → dialog closed true, focus on \"Update my subjects\". 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-21-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 1280x900; fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:28:29Z"
+  },
+  {
+    "id": "TC-22",
+    "result": "Pass",
+    "actual": "390x844: school dropdown opened within the screen (x 22–380 px); chose \"Grossman Long Island School of Medicine\" (fits in trigger 25–365 px inside dialog 0–390 px) and program \"Doctor of Medicine (MD, primary care)\"; \"accounting\" results (no Grossman Long Island course in the TC-07 data, so only the cross-registration group, all tagged) \"Other NYU schools · cross-registration\": [ACCT-UB 1 (Stern), ACCT-GB 6305 (Stern), ECON-UA 266 (CAS), CSCI-GA 2433 (Courant)]; headings, tags and Add buttons visible. Page scrollWidth 390 vs width 390; horizontally scrollable elements in dialog: none; buttons/inputs/headings/tags outside dialog bounds: 0; horizontal wheel scroll → scrollX 0. 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-22-1.png",
+      "evidence/TC-22-2.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 390x844 (phone); fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:29:08Z"
+  },
+  {
+    "id": "TC-23",
+    "result": "Pass",
+    "actual": "390x844, no saved school: steps stacked top to bottom at y=284, 358, 472 (1 school, 2 program, 3 search); program select disabled true; subject search disabled true (greyed out); hint \"Choose your school first to search subjects.\" at x 25–365 px; page scrollWidth 390/390 (no horizontal scroll). 0 page errors, 0 console errors.",
+    "evidence": [
+      "evidence/TC-23-1.png"
+    ],
+    "environment": "Local production build, mocked Supabase and NYU search (node .output/server/index.mjs on localhost:8080, branch claude/subject-search-by-school @ 7d5d7da; Chromium 390x844 (phone); fake session; Supabase REST/auth and server functions answered by Playwright mocks)",
+    "testedAt": "2026-11-26T15:28:04Z"
+  }
+]

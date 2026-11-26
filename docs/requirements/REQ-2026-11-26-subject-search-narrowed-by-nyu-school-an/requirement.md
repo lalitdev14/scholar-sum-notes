@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-subject-search-narrowed-by-nyu-school-an            |
-| Status       | In test           |
+| Status       | In PM review      |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/subject-search-by-school` |
@@ -166,7 +166,13 @@ Code commit `b916579` on `claude/subject-search-by-school`.
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-|       |      |      |         | `test-evidence.xlsx` |
+| 23    | 23   | 0    | 0       | `test-evidence.xlsx` |
+
+Run on 2026-11-26 against a local production build (`node .output/server/index.mjs`, commit `7d5d7da`)
+with mocked Supabase (auth user metadata, REST) and mocked NYU search server functions; Chromium
+1280x900 and 390x844. Note for PM: TC-20 (save of school/program fails) passes against the ACs, but
+the failure is only logged in the browser console (`[subjects] could not save school`); the student
+sees no message, whereas the test case wording says the failure is "reported".
 
 ## 9. Product manager verification
 
@@ -192,3 +198,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T15:15:09Z | Requirement analyst | Requirement ready for build | 11 ACs; all NYU schools; preview approved by user; branch claude/subject-search-by-school stacked on claude/semester-subjects-fix |
 | 2026-11-26T15:16:31Z | Test master | Test cases written | 23 cases covering AC-1..AC-11 |
 | 2026-11-26T15:19:43Z | Developer | Build complete | Commit b916579: nyu-schools.ts (22 schools, schoolForCode, groupBySchool) + bun tests; dialog steps 1-3, grouped results, school/program saved in auth user_metadata; typecheck/tests/build pass |
+| 2026-11-26T15:29:33Z | Tester | Tests executed | 23 passed, 0 failed, 0 blocked (local production build, mocked Supabase and NYU search). TC-20: failed save of school is only console-logged, no UI message |
+| 2026-11-26T15:29:33Z | Tester | Evidence generated | test-results.json, 26 screenshots in evidence/, test-evidence.xlsx |
