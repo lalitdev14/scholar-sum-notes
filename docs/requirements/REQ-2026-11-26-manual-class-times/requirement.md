@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-manual-class-times            |
-| Status       | In test           |
+| Status       | In PM review      |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/manual-class-times` |
@@ -123,9 +123,24 @@ functions (no real accounts, no real Supabase or NYU). Home-card cases fake "now
 with the browser time zone set to UTC; TC-20 at 390×844 in light and dark. TC-22: typecheck, 84 unit
 tests (19 in `manual-schedule.test.ts`) and build pass.
 
-Observations (not failures): clearing manual times shows the toast "Section cleared for …"; the
-home "Next lecture" card keeps its white background in dark theme (pre-existing, readable); a new
-untouched meeting shows its errors once the student works on it (Save stays disabled meanwhile).
+**Re-test after PM review** (2026-11-26, `0f3f212`, after developer commit 8d9c1a5): TC-01, TC-02,
+TC-11, TC-16, TC-20 and TC-22 re-run on a fresh production build. All pass.
+
+- Change 1 (TC-16): clearing manual times now toasts "Cleared your class times for Database
+  Systems". Clearing an NYU section still toasts "Section cleared for Database Systems".
+- Change 2 (TC-20): the home "Next lecture" card was checked at 390 px in light and dark, in every
+  state reachable (loading, invite, none, countdown, happening now, later). In dark theme the card
+  is dark (rgb(26, 24, 32)) with body text at 5.15:1 or more. Light theme is unchanged (white card,
+  lowest body text 4.62:1). Only the 30 px split-flap colons sit below 4.5:1 in light theme
+  (3.41:1). That meets the 3:1 rule for large text, and they come from the unchanged SplitFlap
+  component. Screenshots: `evidence/TC-20-9.png` to `TC-20-20.png`.
+- Change 3 (TC-01, TC-02): the NYU error and "no sections" states each show exactly one "Enter
+  times manually" link (the inline one). The footer link `section-manual` is hidden in those
+  states and still shows when NYU sections are listed.
+- Regressions: TC-11 countdown unchanged. Typecheck, 84 unit tests and build pass.
+
+Remaining observation (not a failure, accepted by the PM): a new untouched meeting shows its errors
+once the student works on it, and Save stays disabled meanwhile.
 
 ## 9. Product manager verification
 
@@ -173,3 +188,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:45:25Z | Tester | Evidence generated | test-evidence.xlsx with 57 screenshots in evidence/ |
 | 2026-11-26T22:47:26Z | Product manager | PM requested changes | AC-1..AC-9 met on evidence (22/22). Changes: 1) clear-manual-times toast copy; 2) NextLectureCard theme tokens for dark mode (card shows the manual label on Home); 3) show one Enter times manually link in error/no-sections states. Hydration warning and touched-only errors accepted. |
 | 2026-11-26T22:48:58Z | Developer | Changes after PM review | 1) clearing manual times toasts 'Cleared your class times for <subject>'; 2) NextLectureCard uses home theme tokens (home-block/line/ink/label/body/muted, home-accent) in all states, light unchanged, dark text >= 4.5:1; 3) footer 'Enter times manually' hidden in NYU error/no-sections states. typecheck, bun test (84), build pass |
+| 2026-11-26T22:52:52Z | Tester | Re-test after PM review | 6 re-run (TC-01, TC-02, TC-11, TC-16, TC-20, TC-22): 6 passed, 0 failed, 0 blocked; overall 22/22 pass |
