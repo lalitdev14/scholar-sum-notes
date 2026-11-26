@@ -148,6 +148,39 @@ the documented format and sample responses (reachability was verified from Verce
 device (localStorage), as specified. If an NYU course code already exists as a class at another university (hidden by RLS),
 that course is reported as "couldn't be added".
 
+### Changes after PM review
+
+Code commit: `8ef15eb` (branch `claude/semester-subjects-fix`).
+
+1. **Home page shows the student's classes** (`src/components/WelcomeHome.tsx`). A class with activity still gets
+   "Continue where you left off". A student with classes but no activity now sees a "Your classes" card instead of
+   "Open a class to begin". It lists the 3 most recently added classes (by enrollment date), each with code, title and an
+   Open link to `/class/<id>`, plus "See all N classes on your dashboard" (or "See them on your dashboard"). The home query
+   (`welcome-home`) is already refreshed by the form, so the card updates right after Done and after a removal, with no
+   reload. Students with no classes keep the existing "Get started" card.
+2. **Focus return** (`src/components/SemesterSubjectsDialog.tsx`). New `returnFocusTo` prop, used in `onCloseAutoFocus`.
+   When the form was opened from "My subjects", Escape, X or Done puts focus back on that button.
+3. **Input validation tests.** The search schema moved to `src/lib/nyu-courses.schema.ts` and is used by
+   `searchNyuCourses`. `src/lib/nyu-courses.schema.test.ts` (bun test) checks:
+   - a normal query is accepted and trimmed, and exactly 2 and 80 characters are accepted;
+   - fewer than 2 or more than 80 characters after trimming is rejected;
+   - invalid term ids are rejected;
+   - missing or wrong-type fields are rejected.
+
+   The new `bun run test` script runs it (6/6 pass). `*.test.ts` is excluded from `tsc`, since bun types aren't
+   installed for the app.
+
+**Verification**
+
+- typecheck, build, eslint and prettier are clean on the touched files.
+- Chromium at 1440px and 390px, with mocks only: 32/32 checks pass.
+  - The card appears after Done without a navigation, and its Open link points to `/class/<id>`.
+  - The card updates after a removal.
+  - With 5 classes it shows the 3 most recent and "See all 5".
+  - A class with activity keeps the Continue card, and a student with no classes gets the Get started card.
+  - Focus returns to "My subjects" after Escape, X and Done.
+  - No horizontal scroll and no page errors.
+
 ## 8. Test summary (tester)
 
 | Total | Pass | Fail | Blocked | Evidence             |
@@ -246,14 +279,14 @@ mocked Supabase. No real student data was used.
 
 Notes per acceptance criterion:
 
-| AC   | Met?   | Notes |
-| ---- | ------ | ----- |
-| AC-1 | Yes    | The automatic pop-up rules are correct: shown for a new student, not for one with classes, not again after Done or closing (TC-01, TC-03, TC-04 and the AC-1 part of TC-02; I checked myself). TC-02's failure is about the home card, which is covered under AC-3 / required change 1. |
-| AC-2 | Yes    | NYU results show code and title, de-duplicated, with a term switch and "No NYU courses found" (TC-05..TC-08; I checked "algorithms" myself). |
+| AC   | Met?   | Notes                                                                                                                                                                                                                                                                                                            |
+| ---- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-1 | Yes    | The automatic pop-up rules are correct: shown for a new student, not for one with classes, not again after Done or closing (TC-01, TC-03, TC-04 and the AC-1 part of TC-02; I checked myself). TC-02's failure is about the home card, which is covered under AC-3 / required change 1.                          |
+| AC-2 | Yes    | NYU results show code and title, de-duplicated, with a term switch and "No NYU courses found" (TC-05..TC-08; I checked "algorithms" myself).                                                                                                                                                                     |
 | AC-3 | Partly | Picking, removing, Done, reusing an existing class, creating with NYU title/code/term, no duplicates and the summary message all work (TC-09..TC-11; I checked myself), and the dashboard shows the classes. **TC-12 fails**: the home page doesn't show the new classes and still says "Open a class to begin". |
-| AC-4 | Yes    | The "My subjects" icon reopens the form with the current classes; Remove un-enrolls with confirmation and keeps notes (TC-13; I checked the reopen at 390px myself). |
-| AC-5 | Yes    | NYU 503 or dropped connection or timeout gives a clear message with the Dashboard → Add class link, and the home page keeps working (TC-14, TC-15; I checked the 503 case myself). |
-| AC-6 | Partly | The request is made server-side, only for signed-in users (TC-16); 390px works; 0 page errors; dashboard Enroll/Add class unchanged (TC-17..TC-19). Keyboard: focus isn't returned to "My subjects" after Escape (TC-17 observation; I reproduced it). Server limits are only evidenced indirectly. |
+| AC-4 | Yes    | The "My subjects" icon reopens the form with the current classes; Remove un-enrolls with confirmation and keeps notes (TC-13; I checked the reopen at 390px myself).                                                                                                                                             |
+| AC-5 | Yes    | NYU 503 or dropped connection or timeout gives a clear message with the Dashboard → Add class link, and the home page keeps working (TC-14, TC-15; I checked the 503 case myself).                                                                                                                               |
+| AC-6 | Partly | The request is made server-side, only for signed-in users (TC-16); 390px works; 0 page errors; dashboard Enroll/Add class unchanged (TC-17..TC-19). Keyboard: focus isn't returned to "My subjects" after Escape (TC-17 observation; I reproduced it). Server limits are only evidenced indirectly.              |
 
 **Required changes** (follow-up fix: developer, then test master, tester and PM; new PR into `preprod`):
 
@@ -285,14 +318,15 @@ Notes per acceptance criterion:
 
 Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Details>"`.
 
-| Time (UTC)           | Role                | Action                      | Details                                                                                                                                                                      |
-| -------------------- | ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-26T04:59:18Z | Requirement analyst | Requirement created         | Semester subjects form with NYU code lookup                                                                                                                                  |
-| 2026-11-26T04:59:18Z | Requirement analyst | Requirement ready for build | 6 acceptance criteria; source chosen by owner: live lookup on bulletins.nyu.edu (verified reachable from Vercel iad1, blocked from the test machine)                         |
-| 2026-11-26T05:01:00Z | Test master         | Test cases written          | 19 test cases covering AC-1..AC-6                                                                                                                                            |
-| 2026-11-26T05:09:00Z | Developer           | Build complete              | nyu-courses server functions + SemesterSubjectsDialog + WelcomeHome auto-open/Update my subjects; typecheck+build pass; unit 6/6, Chromium mock checks 36/36; commit bfa90a5 |
-| 2026-11-26T05:13:38Z | Product owner | PR requested before testing and PM review | Owner asked to raise the PR now; tester run (19 cases) continues and its evidence is added to the same branch; PM review still to follow |
-| 2026-11-26T05:27:36Z | Tester | Tests executed | 17/19 passed, 2 failed (TC-12 home doesn't show new classes after Done; TC-02 home shows no class without activity), 0 blocked |
-| 2026-11-26T05:27:36Z | Tester | Evidence generated | test-evidence.xlsx with 20 screenshots |
-| 2026-11-26T05:30:16Z | Product manager | PM requested changes | Already live (#74/#75); follow-up fix required: home must show the student's classes right after Done (no Open a class to begin card when enrolled), focus back to My subjects after Escape, unit test for server input limits; AC-1,2,4,5 met; AC-3, AC-6 partly |
-| 2026-11-26T05:31:25Z | Test master | Test cases updated after PM review | TC-02, TC-12 now expect the student's classes (code, title, Open) on the home page with no generic card, immediately after Done without reload; TC-17 checks focus returns to My subjects after Escape/X/Done; added TC-20 (removal updates home without reload), TC-21 (no classes keeps Open a class to begin card), TC-22 (max ~3 classes + dashboard link), TC-23 (unit test for input schema limits); 23 cases total |
+| Time (UTC)           | Role                | Action                                    | Details                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------- | ------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-26T04:59:18Z | Requirement analyst | Requirement created                       | Semester subjects form with NYU code lookup                                                                                                                                                                                                                                                                                                                                                                               |
+| 2026-11-26T04:59:18Z | Requirement analyst | Requirement ready for build               | 6 acceptance criteria; source chosen by owner: live lookup on bulletins.nyu.edu (verified reachable from Vercel iad1, blocked from the test machine)                                                                                                                                                                                                                                                                      |
+| 2026-11-26T05:01:00Z | Test master         | Test cases written                        | 19 test cases covering AC-1..AC-6                                                                                                                                                                                                                                                                                                                                                                                         |
+| 2026-11-26T05:09:00Z | Developer           | Build complete                            | nyu-courses server functions + SemesterSubjectsDialog + WelcomeHome auto-open/Update my subjects; typecheck+build pass; unit 6/6, Chromium mock checks 36/36; commit bfa90a5                                                                                                                                                                                                                                              |
+| 2026-11-26T05:13:38Z | Product owner       | PR requested before testing and PM review | Owner asked to raise the PR now; tester run (19 cases) continues and its evidence is added to the same branch; PM review still to follow                                                                                                                                                                                                                                                                                  |
+| 2026-11-26T05:27:36Z | Tester              | Tests executed                            | 17/19 passed, 2 failed (TC-12 home doesn't show new classes after Done; TC-02 home shows no class without activity), 0 blocked                                                                                                                                                                                                                                                                                            |
+| 2026-11-26T05:27:36Z | Tester              | Evidence generated                        | test-evidence.xlsx with 20 screenshots                                                                                                                                                                                                                                                                                                                                                                                    |
+| 2026-11-26T05:30:16Z | Product manager     | PM requested changes                      | Already live (#74/#75); follow-up fix required: home must show the student's classes right after Done (no Open a class to begin card when enrolled), focus back to My subjects after Escape, unit test for server input limits; AC-1,2,4,5 met; AC-3, AC-6 partly                                                                                                                                                         |
+| 2026-11-26T05:31:25Z | Test master         | Test cases updated after PM review        | TC-02, TC-12 now expect the student's classes (code, title, Open) on the home page with no generic card, immediately after Done without reload; TC-17 checks focus returns to My subjects after Escape/X/Done; added TC-20 (removal updates home without reload), TC-21 (no classes keeps Open a class to begin card), TC-22 (max ~3 classes + dashboard link), TC-23 (unit test for input schema limits); 23 cases total |
+| 2026-11-26T05:35:23Z | Developer           | Changes after PM review complete          | Home shows Your classes card (3 most recent, Open links, refreshes after Done/removal); focus returns to My subjects; schema unit tests + bun run test; Chromium mock checks 32/32; commit 8ef15eb                                                                                                                                                                                                                        |
