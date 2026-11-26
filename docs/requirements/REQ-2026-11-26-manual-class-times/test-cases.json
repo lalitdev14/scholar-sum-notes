@@ -1,1 +1,300 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "ac": ["AC-1"],
+    "title": "\"Enter times manually\" offered from all three picker entry points",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student enrolled in an NYU class-search course with no saved section; NYU class search mocked to return sections",
+    "steps": [
+      "Open the class page and click \"Set your section\"",
+      "Close the picker; open \"Your classes\" and open the section picker for the same class",
+      "Close it; open the subjects dialog, add an unenrolled course so it appears under \"To add\", and open its section picker"
+    ],
+    "expected": "In all three places the picker opens and shows an \"Enter times manually\" option alongside the NYU section list"
+  },
+  {
+    "id": "TC-02",
+    "ac": ["AC-1"],
+    "title": "Manual option shown in NYU error and \"no sections\" states",
+    "type": "Error handling",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; NYU class search mocked to (a) fail with a network/server error, then (b) return zero sections",
+    "steps": [
+      "With the NYU mock failing, open \"Set your section\" on the class page",
+      "Observe the error state",
+      "Switch the mock to return zero sections and reopen the picker",
+      "Observe the \"no sections\" state and click \"Enter times manually\""
+    ],
+    "expected": "Both the error state and the \"no sections\" state show an \"Enter times manually\" option; clicking it opens the manual form"
+  },
+  {
+    "id": "TC-03",
+    "ac": ["AC-2"],
+    "title": "Single meeting with multiple days, start and end time",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Manual form open for a class",
+    "steps": [
+      "Toggle day chips Tue and Thu",
+      "Set start time 14:00 and end time 15:15",
+      "Leave term dates empty"
+    ],
+    "expected": "Chips Mon–Sun are all available; Tue and Thu show as selected; times accept the values; Save becomes enabled (term dates are optional)"
+  },
+  {
+    "id": "TC-04",
+    "ac": ["AC-2"],
+    "title": "Add and remove meetings, maximum of 5",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "Manual form open with one valid meeting",
+    "steps": [
+      "Click \"Add meeting\" until 5 meetings are shown",
+      "Try to add a 6th meeting",
+      "Remove meeting 3",
+      "Check that \"Add meeting\" is available again"
+    ],
+    "expected": "Up to 5 meetings can be added; the add control is disabled/hidden at 5 so no 6th appears; removing one leaves 4 with the other meetings' values intact and adding is possible again"
+  },
+  {
+    "id": "TC-05",
+    "ac": ["AC-2", "AC-4"],
+    "title": "Multiple meetings with different times saved together",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Manual form open for a class",
+    "steps": [
+      "Meeting 1: Mon, Wed 09:30–10:45",
+      "Add meeting 2: Fri 13:00–14:00",
+      "Set first day 2026-09-02 and last day 2026-12-15",
+      "Save"
+    ],
+    "expected": "Save succeeds; saved label shows \"Your times · \" followed by both meetings (Mon, Wed 9:30–10:45 am and Fri 1:00–2:00 pm), label ≤ 200 chars"
+  },
+  {
+    "id": "TC-06",
+    "ac": ["AC-3"],
+    "title": "Validation: meeting with no day selected",
+    "type": "Validation",
+    "priority": "High",
+    "preconditions": "Manual form open",
+    "steps": [
+      "Set start 14:00 and end 15:15 without selecting any day",
+      "Then select Tue"
+    ],
+    "expected": "An error next to the day chips says at least one day is required and Save is disabled; after selecting Tue the error clears and Save is enabled"
+  },
+  {
+    "id": "TC-07",
+    "ac": ["AC-3"],
+    "title": "Validation: end time not after start time",
+    "type": "Validation",
+    "priority": "High",
+    "preconditions": "Manual form open, Tue selected",
+    "steps": [
+      "Set start 15:00 and end 14:00",
+      "Set end equal to start (15:00)",
+      "Set end 16:00"
+    ],
+    "expected": "For end before start and end equal to start, an error appears next to the end time and Save is disabled; with end 16:00 the error clears and Save is enabled"
+  },
+  {
+    "id": "TC-08",
+    "ac": ["AC-3"],
+    "title": "Validation: last day before first day; error in one of several meetings",
+    "type": "Validation",
+    "priority": "Medium",
+    "preconditions": "Manual form open with one valid meeting",
+    "steps": [
+      "Set first day 2026-12-10 and last day 2026-12-01",
+      "Fix last day to 2026-12-10 (same day)",
+      "Add a 2nd meeting and leave its days empty"
+    ],
+    "expected": "Last-before-first shows an error next to the last-day field and Save is disabled; same day is accepted; the empty 2nd meeting shows its own error and keeps Save disabled until fixed"
+  },
+  {
+    "id": "TC-09",
+    "ac": ["AC-4"],
+    "title": "Save manual times and label shown everywhere",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Test student enrolled in a class with no saved section",
+    "steps": [
+      "Open \"Set your section\" → \"Enter times manually\"",
+      "Tue, Thu 14:00–15:15, Save",
+      "Check the class page header button, \"Your classes\", and the home Next lecture card",
+      "Reload the page"
+    ],
+    "expected": "Saved without error; every place shows \"Your times · Tue, Thu 2:00–3:15 pm\" (or equivalent); persists after reload; stored row in class_sections has section_no 'Manual', schedule_type 'MANUAL', meetings [{day:1,start:840,end:915},{day:3,start:840,end:915}]; no new migration file in supabase/migrations"
+  },
+  {
+    "id": "TC-10",
+    "ac": ["AC-4"],
+    "title": "Manual times replace an existing NYU section",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Test student has an NYU section saved for the class (mocked NYU data)",
+    "steps": [
+      "Open the picker for the class and choose \"Enter times manually\"",
+      "Enter Mon 10:00–11:00 and Save",
+      "Inspect the label and stored schedule"
+    ],
+    "expected": "Only one schedule exists for that student and class; the NYU section is replaced; label shows \"Your times · Mon 10:00–11:00 am\"; other students' schedules are unaffected"
+  },
+  {
+    "id": "TC-11",
+    "ac": ["AC-5"],
+    "title": "Countdown within 24 h from manual times (fixed now, New York time)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Manual times Tue, Thu 14:00–15:15 saved, no term dates; clock faked to Thu 2026-12-03 10:00 America/New_York (browser timezone set to a non-NY zone, e.g. UTC, to prove NY time is used)",
+    "steps": ["Open the home page", "Read the Next lecture card"],
+    "expected": "Card shows this class with a countdown of about 4 h (starts at 2:00 pm today New York time), identical in format to an NYU section countdown"
+  },
+  {
+    "id": "TC-12",
+    "ac": ["AC-5"],
+    "title": "Happening now and day + time beyond 24 h",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Manual times Tue, Thu 14:00–15:15 saved; clock faked in America/New_York",
+    "steps": [
+      "Set now to Thu 2026-12-03 14:30 and open home",
+      "Set now to Fri 2026-12-04 10:00 and open home"
+    ],
+    "expected": "At 14:30 Thu the card shows the class as happening now; at Fri 10:00 the card shows the next lecture as Tue 2:00 pm (day + time, no countdown)"
+  },
+  {
+    "id": "TC-13",
+    "ac": ["AC-5"],
+    "title": "Term dates respected by the countdown",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "Manual times Tue, Thu 14:00–15:15; clock faked in America/New_York",
+    "steps": [
+      "Save first day 2027-01-20 (Wed); set now to Tue 2027-01-05 10:00 and open home",
+      "Change to last day 2026-12-15 (Tue), no first day; set now to Wed 2026-12-16 10:00 and open home",
+      "Set now to Tue 2026-12-15 10:00 and open home"
+    ],
+    "expected": "Before term: next lecture is Thu Jan 21 2:00 pm (not Jan 5/7); after the last day: no upcoming lecture for this class is shown; on the last day itself: countdown about 4 h"
+  },
+  {
+    "id": "TC-14",
+    "ac": ["AC-6"],
+    "title": "Reopen picker shows pre-filled manual form and edit saves",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Manual times saved: Mon, Wed 09:30–10:45 and Fri 13:00–14:00, first day 2026-09-02, last day 2026-12-15",
+    "steps": [
+      "Click the class header button \"Your times · …\"",
+      "Check the form values",
+      "Change Fri meeting end to 14:30 and Save"
+    ],
+    "expected": "Picker opens directly on the manual form with both meetings, days, times and term dates pre-filled; after save the label shows Fri 1:00–2:30 pm"
+  },
+  {
+    "id": "TC-15",
+    "ac": ["AC-6"],
+    "title": "Switch from manual times back to an NYU section",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Manual times saved for an NYU class-search course; NYU search mocked with sections",
+    "steps": [
+      "Reopen the picker (manual form shown)",
+      "Choose the option to pick an NYU section and select a section",
+      "Check label, stored row and home card"
+    ],
+    "expected": "The NYU section replaces the manual times (one schedule only, schedule_type no longer MANUAL); label shows the NYU section; home countdown uses the NYU meetings"
+  },
+  {
+    "id": "TC-16",
+    "ac": ["AC-6"],
+    "title": "Clear manual times",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Manual times saved for a class",
+    "steps": ["Reopen the picker", "Use Clear", "Check labels and home card"],
+    "expected": "Schedule removed for that student and class; class page shows \"Set your section\" again; class no longer contributes to the Next lecture card"
+  },
+  {
+    "id": "TC-17",
+    "ac": ["AC-7"],
+    "title": "Manual times set under \"To add\" are saved after Done",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Test student; subjects dialog open; a course not yet enrolled",
+    "steps": [
+      "Add the course so it appears under \"To add\"",
+      "Open its section picker → \"Enter times manually\", enter Tue, Thu 14:00–15:15, Save",
+      "Check the \"To add\" row label before Done",
+      "Click Done; open \"Your classes\" and the class page"
+    ],
+    "expected": "The \"To add\" row shows \"Your times · Tue, Thu 2:00–3:15 pm\" before Done; nothing is saved before Done; after Done the class is enrolled and the manual schedule is saved and shown in \"Your classes\", the class page and the home card"
+  },
+  {
+    "id": "TC-18",
+    "ac": ["AC-7"],
+    "title": "Removing a course from \"To add\" discards its manual times",
+    "type": "Edge case",
+    "priority": "Low",
+    "preconditions": "Subjects dialog open with a course under \"To add\" that has manual times set",
+    "steps": ["Remove the course from \"To add\"", "Click Done"],
+    "expected": "Course is not enrolled and no class_sections row is created for it; no error"
+  },
+  {
+    "id": "TC-19",
+    "ac": ["AC-8"],
+    "title": "Keyboard-only and screen-reader use of the manual form",
+    "type": "Accessibility",
+    "priority": "High",
+    "preconditions": "Manual form reachable from the class page",
+    "steps": [
+      "Using only Tab/Shift+Tab/Enter/Space, open the picker, choose \"Enter times manually\", toggle Tue and Thu, enter times, add and remove a meeting, Save",
+      "Inspect the accessibility tree (role/name/state) for day chips, time and date inputs, and error messages"
+    ],
+    "expected": "All actions possible by keyboard with visible focus; day chips are buttons exposing aria-pressed true/false that changes on toggle and have day names; time/date inputs have accessible labels (e.g. \"Start time, meeting 1\"); errors are associated with their fields (e.g. aria-describedby / aria-invalid)"
+  },
+  {
+    "id": "TC-20",
+    "ac": ["AC-8"],
+    "title": "390 px width, light and dark theme",
+    "type": "Responsive / Visual",
+    "priority": "High",
+    "preconditions": "Viewport 390×844; manual form with 5 meetings and term dates filled",
+    "steps": [
+      "Open the manual form in light theme and scroll through it",
+      "Check document scrollWidth equals viewport width",
+      "Switch to dark theme and repeat; also check labels in \"Your classes\" and the home card"
+    ],
+    "expected": "No horizontal scroll; chips wrap; inputs and buttons fit; text and chip selected/unselected states readable with sufficient contrast in both themes; long \"Your times · …\" labels truncate or wrap without overflow"
+  },
+  {
+    "id": "TC-21",
+    "ac": ["AC-9"],
+    "title": "Regression: NYU section picking, countdown and subjects dialog",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Test student; NYU search mocked with sections; clock faked Thu 2026-12-03 10:00 America/New_York",
+    "steps": [
+      "Pick an NYU section for a class from the class page and from \"To add\" in the subjects dialog; finish with Done",
+      "Check the section label and home Next lecture card",
+      "Add and remove a course in the subjects dialog without setting any section"
+    ],
+    "expected": "NYU section picking, labels and countdown behave as before this change; subjects dialog add/remove/Done works unchanged"
+  },
+  {
+    "id": "TC-22",
+    "ac": ["AC-9"],
+    "title": "Typecheck, unit tests and build pass",
+    "type": "Build",
+    "priority": "High",
+    "preconditions": "Branch claude/manual-class-times checked out, dependencies installed",
+    "steps": [
+      "Run bun run typecheck",
+      "Run the unit tests and confirm tests exist for manual schedule → meetings conversion (e.g. Tue, Thu 14:00–15:15 → [{day:1,start:840,end:915},{day:3,start:840,end:915}]) and validation (no day, end ≤ start, last < first, >5 meetings)",
+      "Run bun run build"
+    ],
+    "expected": "All three commands exit 0; conversion and validation unit tests are present and pass"
+  }
+]

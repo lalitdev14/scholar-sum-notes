@@ -105,3 +105,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | ---------- | ---- | ------ | ------- |
 | 2026-11-26T22:26:44Z | Requirement analyst | Requirement created | Manual class times |
 | 2026-11-26T22:27:03Z | Requirement analyst | Requirement ready for build | 9 ACs; reuse class_sections, no migration |
+| 2026-11-26T22:28:10Z | Test master | Test cases written | 22 cases covering AC-1..AC-9 |

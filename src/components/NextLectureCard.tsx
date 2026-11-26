@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarClock } from "lucide-react";
 import { SplitFlap } from "@/components/SplitFlap";
 import { useMySections } from "@/lib/class-sections";
+import { isManualSection, manualLabel } from "@/lib/manual-schedule";
 import {
   clockDigits,
   durationWords,
@@ -57,8 +58,9 @@ export function NextLectureCard({
               classId: c.id,
               name: c.subject,
               code: c.code,
-              sectionNo: s.sectionNo,
-              meets: s.meets,
+              // Times the student entered themselves read "Your times · Tue, Thu 2:00–3:15 pm".
+              sectionNo: isManualSection(s) ? "" : s.sectionNo,
+              meets: isManualSection(s) ? manualLabel(s.meets) : s.meets,
               meetings: s.meetings,
               startDate: s.startDate,
               endDate: s.endDate,
@@ -137,8 +139,8 @@ export function NextLectureCard({
           <p className="text-lg font-semibold text-[#17151c]">See when your next lecture starts</p>
           <p className="mt-1 text-sm text-[#5c5965]">
             {classes.length
-              ? "Pick your NYU section for each class and we'll count down to your next lecture."
-              : "Add your subjects and pick your NYU section, and we'll count down to your next lecture."}
+              ? "Pick your NYU section (or enter your class times) for each class and we'll count down to your next lecture."
+              : "Add your subjects and pick your NYU section or enter your class times, and we'll count down to your next lecture."}
           </p>
           <button
             type="button"
