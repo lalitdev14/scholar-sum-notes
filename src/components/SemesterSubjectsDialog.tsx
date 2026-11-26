@@ -42,6 +42,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { friendlyError } from "@/lib/utils";
 import { NYU_SCHOOLS, groupBySchool, programsFor, schoolById } from "@/lib/nyu-schools";
+import type { NyuSection } from "@/lib/nyu-courses.functions";
+import { ClassSectionButton, PendingSectionsList } from "@/components/SectionPicker";
+import { CLASS_SECTIONS_KEY, deleteSection, savePendingSections } from "@/lib/class-sections";
 
 export type CurrentClass = { id: string; subject: string; code: string };
 
@@ -162,6 +165,8 @@ export function SemesterSubjectsDialog({
   const [saving, setSaving] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<CurrentClass | null>(null);
   const [removing, setRemoving] = useState(false);
+  /** Optional NYU section picked for a course in the "To add" list, by course code. */
+  const [pendingSections, setPendingSections] = useState<Record<string, NyuSection>>({});
   const q = useDebounced(query.trim(), 350);
 
   const termsQuery = useQuery({
@@ -191,6 +196,7 @@ export function SemesterSubjectsDialog({
     if (open) {
       setQuery("");
       setChosen([]);
+      setPendingSections({});
     }
   }, [open]);
 
@@ -280,6 +286,16 @@ export function SemesterSubjectsDialog({
           counts.failed++;
         }
       }
+      // Sections picked for the added courses (optional; a failure never blocks adding).
+      const pending = chosen
+        .filter((c) => pendingSections[c.code])
+        .map((c) => ({ code: c.code, section: pendingSections[c.code]! }));
+      if (pending.length) {
+        const notSaved = await savePendingSections(userId, pending);
+        if (notSaved)
+          toast.error(`${notSaved} section${notSaved === 1 ? "" : "s"} couldn't be saved`);
+        void queryClient.invalidateQueries({ queryKey: CLASS_SECTIONS_KEY });
+      }
       refreshLists();
       const text = summary(counts);
       if (counts.failed) toast.error(text);
@@ -300,6 +316,8 @@ export function SemesterSubjectsDialog({
         .eq("class_id", removeTarget.id)
         .eq("user_id", userId);
       if (error) throw error;
+      await deleteSection(removeTarget.id, userId);
+      void queryClient.invalidateQueries({ queryKey: CLASS_SECTIONS_KEY });
       toast.success("Class removed from your dashboard");
       setRemoveTarget(null);
       refreshLists();
@@ -622,6 +640,16 @@ export function SemesterSubjectsDialog({
                     </li>
                   ))}
                 </ul>
+                <PendingSectionsList
+                  courses={chosen}
+                  termId={term}
+                  value={pendingSections}
+                  onChange={(code, section) =>
+                    setPendingSections(({ [code]: _old, ...rest }) =>
+                      section ? { ...rest, [code]: section } : rest,
+                    )
+                  }
+                />
               </section>
             )}
 
@@ -633,11 +661,21 @@ export function SemesterSubjectsDialog({
                 </h3>
                 <ul className="mt-2 divide-y rounded-lg border">
                   {currentClasses.map((c) => (
-                    <li key={c.id} className="flex items-center gap-3 px-3 py-2">
+                    <li
+                      key={c.id}
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2"
+                    >
                       <div className="min-w-0 flex-1">
                         <p className="font-mono text-xs text-muted-foreground">{c.code}</p>
                         <p className="truncate text-sm">{c.subject}</p>
                       </div>
+                      <ClassSectionButton
+                        classId={c.id}
+                        code={c.code}
+                        subject={c.subject}
+                        tone="quiet"
+                        className="max-w-[12rem] text-muted-foreground"
+                      />
                       <Button
                         type="button"
                         variant="ghost"

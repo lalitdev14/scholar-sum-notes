@@ -230,6 +230,59 @@ export type Database = {
           },
         ]
       }
+      class_sections: {
+        Row: {
+          class_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          meetings: Json
+          meets: string
+          schedule_type: string
+          section_no: string
+          start_date: string | null
+          term: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          meetings?: Json
+          meets?: string
+          schedule_type?: string
+          section_no: string
+          start_date?: string | null
+          term: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          meetings?: Json
+          meets?: string
+          schedule_type?: string
+          section_no?: string
+          start_date?: string | null
+          term?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_sections_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           code: string
