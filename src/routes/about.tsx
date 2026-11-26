@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Mail } from "lucide-react";
@@ -173,9 +174,12 @@ function MinimalHeader() {
         <GraduationCap className="h-5 w-5" />
         <span className="font-display text-xl">LectureLoop</span>
       </Link>
-      <Button asChild variant="outline" size="sm">
-        <Link to="/auth">Sign in</Link>
-      </Button>
+      <div className="flex items-center gap-2">
+        <ThemeToggle className="text-foreground hover:bg-muted focus-visible:outline-ring" />
+        <Button asChild variant="outline" size="sm">
+          <Link to="/auth">Sign in</Link>
+        </Button>
+      </div>
     </header>
   );
 }

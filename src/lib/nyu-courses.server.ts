@@ -4,7 +4,8 @@
  * server function handlers.
  */
 
-import type { NyuCourse, NyuTerm } from "@/lib/nyu-courses.functions";
+import type { NyuCourse, NyuSection, NyuTerm } from "@/lib/nyu-courses.functions";
+import { sectionMeetings } from "@/lib/meeting-times";
 
 /** Base URL of the class search; override with NYU_CLASS_SEARCH_URL (e.g. a local mock). */
 export function classSearchBase(): string {
@@ -72,7 +73,8 @@ export function dedupeCourses(results: FoseResult[], max = 25): NyuCourse[] {
   return [...byCode.values()];
 }
 
-export async function searchCourses(q: string, term: string): Promise<NyuCourse[]> {
+/** Runs a FOSE keyword search and returns its raw result rows. */
+async function foseSearch(q: string, term: string): Promise<unknown[]> {
   const url = `${classSearchBase()}api/?page=fose&route=search&keyword=${encodeURIComponent(q)}`;
   let res: Response;
   try {
@@ -99,7 +101,51 @@ export async function searchCourses(q: string, term: string): Promise<NyuCourse[
     // FOSE answers {"fatal": "..."} for an unknown term, etc.
     throw new NyuUnavailableError("Unexpected response");
   }
-  return dedupeCourses(results as FoseResult[]);
+  return results;
+}
+
+export async function searchCourses(q: string, term: string): Promise<NyuCourse[]> {
+  return dedupeCourses((await foseSearch(q, term)) as FoseResult[]);
+}
+
+const normCode = (s: string) => s.trim().replace(/\s+/g, " ").toUpperCase();
+const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+const isoDate = (v: unknown) => (/^\d{4}-\d{2}-\d{2}$/.test(str(v)) ? str(v) : null);
+
+/**
+ * The sections of one course code from FOSE search rows: exact code only, cancelled sections
+ * left out, sorted by section number. Meetings come from `meetingTimes`, else the meeting text.
+ */
+export function toSections(results: unknown[], code: string, term: string): NyuSection[] {
+  const want = normCode(code);
+  const seen = new Set<string>();
+  const out: NyuSection[] = [];
+  for (const raw of results) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    if (normCode(str(r["code"])) !== want) continue;
+    if (str(r["isCancelled"]) || str(r["stat"]) === "X") continue;
+    const no = str(r["no"]);
+    if (!no || seen.has(no)) continue;
+    seen.add(no);
+    const meets = str(r["meets"]);
+    out.push({
+      no,
+      type: str(r["schd"]),
+      meets,
+      meetings: sectionMeetings(r["meetingTimes"], meets),
+      startDate: isoDate(r["start_date"]),
+      endDate: isoDate(r["end_date"]),
+      instructor: str(r["instr"]),
+      term: str(r["srcdb"]) || term,
+    });
+  }
+  return out.sort((a, b) => a.no.localeCompare(b.no, undefined, { numeric: true }));
+}
+
+/** Sections of a course code (e.g. "CS-GY 6033") in a term. */
+export async function searchSections(code: string, term: string): Promise<NyuSection[]> {
+  return toSections(await foseSearch(code, term), code, term);
 }
 
 /** Used when the class-search page can't be fetched or parsed (verified 2026-11-26). */

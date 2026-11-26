@@ -41,7 +41,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { friendlyError } from "@/lib/utils";
+import { prefersReducedMotion } from "@/lib/motion";
 import { NYU_SCHOOLS, groupBySchool, programsFor, schoolById } from "@/lib/nyu-schools";
+import type { NyuSection } from "@/lib/nyu-courses.functions";
+import { ClassSectionButton, PendingSectionsList } from "@/components/SectionPicker";
+import { CLASS_SECTIONS_KEY, deleteSection, savePendingSections } from "@/lib/class-sections";
 
 export type CurrentClass = { id: string; subject: string; code: string };
 
@@ -159,9 +163,13 @@ export function SemesterSubjectsDialog({
   const pickedSchool = useRef(false);
   const [query, setQuery] = useState("");
   const [chosen, setChosen] = useState<NyuCourse[]>([]);
+  /** Chips shrinking out of "To add" (already removed from `chosen`), with their old place. */
+  const [leaving, setLeaving] = useState<{ course: NyuCourse; index: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<CurrentClass | null>(null);
   const [removing, setRemoving] = useState(false);
+  /** Optional NYU section picked for a course in the "To add" list, by course code. */
+  const [pendingSections, setPendingSections] = useState<Record<string, NyuSection>>({});
   const q = useDebounced(query.trim(), 350);
 
   const termsQuery = useQuery({
@@ -191,6 +199,8 @@ export function SemesterSubjectsDialog({
     if (open) {
       setQuery("");
       setChosen([]);
+      setLeaving([]);
+      setPendingSections({});
     }
   }, [open]);
 
@@ -251,6 +261,22 @@ export function SemesterSubjectsDialog({
   const inClasses = (code: string) => currentClasses.some((c) => sameCode(c.code, code));
   const isChosen = (code: string) => chosen.some((c) => sameCode(c.code, code));
 
+  /** Takes a course off "To add"; its chip shrinks out (instantly with reduced motion). */
+  function unchoose(code: string) {
+    const index = chosen.findIndex((x) => sameCode(x.code, code));
+    const course = chosen[index];
+    if (!course) return;
+    setChosen((list) => list.filter((x) => !sameCode(x.code, code)));
+    if (!prefersReducedMotion()) setLeaving((l) => [...l, { course, index }]);
+  }
+  const chipList: { course: NyuCourse; leaving: boolean }[] = chosen.map((course) => ({
+    course,
+    leaving: false,
+  }));
+  for (const l of leaving)
+    if (!chosen.some((c) => sameCode(c.code, l.course.code)))
+      chipList.splice(Math.min(l.index, chipList.length), 0, { course: l.course, leaving: true });
+
   function refreshLists() {
     for (const queryKey of CLASS_LIST_KEYS) void queryClient.invalidateQueries({ queryKey });
   }
@@ -280,6 +306,16 @@ export function SemesterSubjectsDialog({
           counts.failed++;
         }
       }
+      // Sections picked for the added courses (optional; a failure never blocks adding).
+      const pending = chosen
+        .filter((c) => pendingSections[c.code])
+        .map((c) => ({ code: c.code, section: pendingSections[c.code]! }));
+      if (pending.length) {
+        const notSaved = await savePendingSections(userId, pending);
+        if (notSaved)
+          toast.error(`${notSaved} section${notSaved === 1 ? "" : "s"} couldn't be saved`);
+        void queryClient.invalidateQueries({ queryKey: CLASS_SECTIONS_KEY });
+      }
       refreshLists();
       const text = summary(counts);
       if (counts.failed) toast.error(text);
@@ -300,6 +336,8 @@ export function SemesterSubjectsDialog({
         .eq("class_id", removeTarget.id)
         .eq("user_id", userId);
       if (error) throw error;
+      await deleteSection(removeTarget.id, userId);
+      void queryClient.invalidateQueries({ queryKey: CLASS_SECTIONS_KEY });
       toast.success("Class removed from your dashboard");
       setRemoveTarget(null);
       refreshLists();
@@ -316,11 +354,17 @@ export function SemesterSubjectsDialog({
   const programs = programsFor(school);
   const groups = groupBySchool(results, school);
 
-  const renderRow = (c: NyuCourse, tag?: string | null) => {
+  // Results rise in one after another (row index across both groups).
+  const renderRow = (c: NyuCourse, tag: string | null | undefined, index: number) => {
     const already = inClasses(c.code);
     const picked = isChosen(c.code);
     return (
-      <li key={c.code} className="flex items-center gap-3 px-3 py-2.5">
+      <li
+        key={c.code}
+        className="motion-rise flex items-center gap-3 px-3 py-2.5"
+        style={{ "--i": index } as React.CSSProperties}
+        data-testid="nyu-result"
+      >
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="font-mono text-xs text-muted-foreground">{c.code}</span>
@@ -343,24 +387,18 @@ export function SemesterSubjectsDialog({
             type="button"
             size="sm"
             variant={picked ? "secondary" : "outline"}
-            className="shrink-0"
+            className="shrink-0 overflow-hidden"
             aria-pressed={picked}
             aria-label={`${picked ? "Added" : "Add"} ${c.code} ${c.title}`}
-            onClick={() =>
-              setChosen((list) =>
-                picked ? list.filter((x) => !sameCode(x.code, c.code)) : [...list, c],
-              )
-            }
+            onClick={() => {
+              if (picked) unchoose(c.code);
+              else {
+                setLeaving((l) => l.filter((x) => !sameCode(x.course.code, c.code)));
+                setChosen((list) => [...list, c]);
+              }
+            }}
           >
-            {picked ? (
-              <>
-                <Check className="h-4 w-4" aria-hidden="true" /> Added
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4" aria-hidden="true" /> Add
-              </>
-            )}
+            <AddLabel picked={picked} />
           </Button>
         )}
       </li>
@@ -516,7 +554,7 @@ export function SemesterSubjectsDialog({
               ) : search.isError || termsQuery.isError ? (
                 <div
                   role="alert"
-                  className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                  className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
                   data-testid="nyu-error"
                 >
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -570,7 +608,7 @@ export function SemesterSubjectsDialog({
                         className="divide-y rounded-lg border"
                         aria-label={`NYU courses from ${schoolInfo?.shortName}`}
                       >
-                        {groups.own.map((c) => renderRow(c))}
+                        {groups.own.map((c, i) => renderRow(c, null, i))}
                       </ul>
                     </section>
                   )}
@@ -586,7 +624,9 @@ export function SemesterSubjectsDialog({
                         className="divide-y rounded-lg border"
                         aria-label="NYU courses from other schools"
                       >
-                        {groups.other.map(({ item, school: s }) => renderRow(item, s?.shortName))}
+                        {groups.other.map(({ item, school: s }, i) =>
+                          renderRow(item, s?.shortName, groups.own.length + i),
+                        )}
                       </ul>
                     </section>
                   )}
@@ -595,16 +635,26 @@ export function SemesterSubjectsDialog({
             </div>
 
             {/* Chosen courses */}
-            {chosen.length > 0 && (
+            {chipList.length > 0 && (
               <section aria-labelledby={`${inputId}-chosen`} data-testid="chosen-list">
                 <h3 id={`${inputId}-chosen`} className="text-sm font-semibold">
                   To add ({chosen.length})
                 </h3>
                 <ul className="mt-2 flex flex-wrap gap-2">
-                  {chosen.map((c) => (
+                  {chipList.map(({ course: c, leaving: out }) => (
                     <li
                       key={c.code}
-                      className="flex max-w-full items-center gap-1.5 rounded-full border bg-muted/50 py-1 pl-3 pr-1 text-sm"
+                      className={`flex max-w-full items-center gap-1.5 rounded-full border bg-muted/50 py-1 pl-3 pr-1 text-sm ${out ? "motion-shrink-out" : "motion-pop"}`}
+                      data-testid="chosen-chip"
+                      data-leaving={out || undefined}
+                      aria-hidden={out || undefined}
+                      inert={out || undefined}
+                      onAnimationEnd={
+                        out
+                          ? () =>
+                              setLeaving((l) => l.filter((x) => !sameCode(x.course.code, c.code)))
+                          : undefined
+                      }
                     >
                       <span className="truncate">
                         <span className="font-mono text-xs">{c.code}</span> · {c.title}
@@ -613,15 +663,23 @@ export function SemesterSubjectsDialog({
                         type="button"
                         className="grid h-6 w-6 shrink-0 place-items-center rounded-full hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-1"
                         aria-label={`Remove ${c.code} from the list`}
-                        onClick={() =>
-                          setChosen((list) => list.filter((x) => !sameCode(x.code, c.code)))
-                        }
+                        onClick={() => unchoose(c.code)}
                       >
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
                     </li>
                   ))}
                 </ul>
+                <PendingSectionsList
+                  courses={chosen}
+                  termId={term}
+                  value={pendingSections}
+                  onChange={(code, section) =>
+                    setPendingSections(({ [code]: _old, ...rest }) =>
+                      section ? { ...rest, [code]: section } : rest,
+                    )
+                  }
+                />
               </section>
             )}
 
@@ -633,11 +691,21 @@ export function SemesterSubjectsDialog({
                 </h3>
                 <ul className="mt-2 divide-y rounded-lg border">
                   {currentClasses.map((c) => (
-                    <li key={c.id} className="flex items-center gap-3 px-3 py-2">
+                    <li
+                      key={c.id}
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2"
+                    >
                       <div className="min-w-0 flex-1">
                         <p className="font-mono text-xs text-muted-foreground">{c.code}</p>
                         <p className="truncate text-sm">{c.subject}</p>
                       </div>
+                      <ClassSectionButton
+                        classId={c.id}
+                        code={c.code}
+                        subject={c.subject}
+                        tone="quiet"
+                        className="max-w-[12rem] text-muted-foreground"
+                      />
                       <Button
                         type="button"
                         variant="ghost"
@@ -690,5 +758,28 @@ export function SemesterSubjectsDialog({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+/** "+ Add" rolls up into "✓ Added" (and back) when the button is pressed. */
+function AddLabel({ picked }: { picked: boolean }) {
+  // No roll on first show, only when the state changes.
+  const changed = useRef(false);
+  const first = useRef(picked);
+  if (picked !== first.current) changed.current = true;
+  return picked ? (
+    <span
+      key="added"
+      className={`inline-flex items-center gap-2 ${changed.current ? "motion-roll-in" : ""}`}
+    >
+      <Check className="h-4 w-4" aria-hidden="true" /> Added
+    </span>
+  ) : (
+    <span
+      key="add"
+      className={`inline-flex items-center gap-2 ${changed.current ? "motion-roll-in" : ""}`}
+    >
+      <Plus className="h-4 w-4" aria-hidden="true" /> Add
+    </span>
   );
 }

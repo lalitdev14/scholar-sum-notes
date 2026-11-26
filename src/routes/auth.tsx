@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,35 @@ import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { EmailSentNotice } from "@/components/EmailSentNotice";
 import { SiteFooter } from "@/components/SiteFooter";
-import { INK, SOFT_GREY, VIOLET, boldOutline, boldPrimary, grotesk } from "@/lib/bold-theme";
+import {
+  INK,
+  INK_PANEL,
+  SOFT_GREY,
+  VIOLET,
+  VIOLET_TEXT,
+  boldOutline,
+  boldPrimary,
+  grotesk,
+} from "@/lib/bold-theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { replayAnimation } from "@/lib/motion";
+
+type Field = "name" | "email" | "password";
+
+/** A field's error: slides open under the field (the message stays while it closes). */
+function FieldError({ id, error, field }: { id: string; error: FieldErr; field: Field }) {
+  const open = error.open && error.field === field;
+  return (
+    <div className="motion-collapse !mt-0" data-open={open} data-testid={`${field}-error`}>
+      <div>
+        <p id={id} role={open ? "alert" : undefined} className="pt-1.5 text-xs text-destructive">
+          {error.field === field ? error.message : ""}
+        </p>
+      </div>
+    </div>
+  );
+}
+type FieldErr = { field: Field | null; message: string; open: boolean };
 
 export const Route = createFileRoute("/auth")({
   staticData: { sitemap: false },
@@ -41,6 +69,36 @@ function AuthPage() {
   const [resetSent, setResetSent] = useState(false);
   /** After sign-up: "check your inbox" with a delayed "Send again". */
   const [signupSent, setSignupSent] = useState(false);
+  /** Inline error for the sign-in / sign-up form; the field also shakes once. */
+  const [fieldError, setFieldError] = useState<FieldErr>({ field: null, message: "", open: false });
+  const shownInvalid = useRef(false);
+  const fieldRefs = {
+    name: useRef<HTMLDivElement>(null),
+    email: useRef<HTMLDivElement>(null),
+    password: useRef<HTMLDivElement>(null),
+  };
+  function showFieldError(field: Field, message: string) {
+    setFieldError({ field, message, open: true });
+    replayAnimation(fieldRefs[field].current, "motion-shake");
+  }
+  function clearFieldError(field: Field) {
+    if (fieldError.open && fieldError.field === field)
+      setFieldError((e) => ({ ...e, open: false }));
+  }
+  // A new form (sign in ↔ create account) starts without an error.
+  useEffect(() => setFieldError((e) => ({ ...e, open: false })), [mode]);
+  /** The browser found an invalid value on submit: show it inline instead of its bubble. */
+  function handleInvalid(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (shownInvalid.current) return; // only the first invalid field of this submit
+    shownInvalid.current = true;
+    setTimeout(() => (shownInvalid.current = false), 0);
+    const el = e.target as HTMLInputElement;
+    const field = (["name", "email", "password"] as const).find((f) => f === el.id);
+    if (!field) return;
+    showFieldError(field, el.validationMessage || "Check this field.");
+    el.focus();
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
@@ -106,7 +164,13 @@ function AuthPage() {
         if (error) throw error;
       }
     } catch (err) {
-      toast.error(friendlyAuthError(err instanceof Error ? err.message : "Something went wrong"));
+      const message = friendlyAuthError(
+        err instanceof Error ? err.message : "Something went wrong",
+      );
+      if (/invalid login credentials/i.test(message))
+        showFieldError("password", "That email and password don't match.");
+      else if (/password with at least 8/i.test(message)) showFieldError("password", message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -143,7 +207,7 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: SOFT_GREY, color: INK }}>
-      <header className="text-white" style={{ backgroundColor: INK }}>
+      <header className="text-white" style={{ backgroundColor: INK_PANEL }}>
         <div className="mx-auto flex w-full max-w-[100rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-10 xl:px-16">
           <Link to="/" className="flex items-center gap-2.5" aria-label="LectureLoop home">
             <GraduationCap
@@ -155,12 +219,15 @@ function AuthPage() {
               LectureLoop
             </span>
           </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-white/80 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" /> Home
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="text-white/85 hover:bg-white/10 hover:text-white focus-visible:outline-white" />
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-white/80 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Link>
+          </div>
         </div>
       </header>
       <main className="mx-auto grid w-full max-w-[100rem] flex-1 items-center gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:px-10 xl:px-16">
@@ -171,15 +238,15 @@ function AuthPage() {
           >
             {mode === "signup" && !resetting ? (
               <>
-                Start your <span style={{ color: VIOLET }}>notebook</span> for every class.
+                Start your <span style={{ color: VIOLET_TEXT }}>notebook</span> for every class.
               </>
             ) : (
               <>
-                Pick up right where you <span style={{ color: VIOLET }}>left off</span>.
+                Pick up right where you <span style={{ color: VIOLET_TEXT }}>left off</span>.
               </>
             )}
           </p>
-          <ul className="mt-8 grid max-w-md gap-3 text-[0.95rem] text-[#4a4a56]">
+          <ul className="mt-8 grid max-w-md gap-3 text-[0.95rem] text-bold-text">
             {[
               "Typed or handwritten notes next to the lecture slides",
               "Lecture transcripts, corrected from the audio",
@@ -195,9 +262,9 @@ function AuthPage() {
             ))}
           </ul>
         </div>
-        <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none [&_h1]:text-[2rem] [&_h1]:font-bold [&_h1]:tracking-[-0.03em] [&_h1]:text-[#0d0d12] [&_h1]:[font-family:'Space_Grotesk',Inter,sans-serif] [&_input]:h-11 [&_input]:rounded-xl [&_input]:border-[#e2e2dc] [&_input]:bg-[#fafaf8] [&_input:focus-visible]:border-[#6d4aff] [&_input:focus-visible]:ring-[#6d4aff]/30">
+        <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none [&_h1]:text-[2rem] [&_h1]:font-bold [&_h1]:tracking-[-0.03em] [&_h1]:text-bold-ink [&_h1]:[font-family:'Space_Grotesk',Inter,sans-serif] [&_input]:h-11 [&_input]:rounded-xl [&_input]:border-bold-input-line [&_input]:bg-bold-input [&_input:focus-visible]:border-[#6d4aff] [&_input:focus-visible]:ring-[#6d4aff]/30">
           {resetting ? (
-            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
+            <div className="rounded-[1.5rem] bg-bold-block p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">Reset your password</h1>
               {resetSent ? (
                 <div>
@@ -256,7 +323,7 @@ function AuthPage() {
               )}
             </div>
           ) : signupSent ? (
-            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
+            <div className="rounded-[1.5rem] bg-bold-block p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">Confirm your email</h1>
               <EmailSentNotice
                 email={email}
@@ -271,7 +338,7 @@ function AuthPage() {
               />
             </div>
           ) : (
-            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
+            <div className="rounded-[1.5rem] bg-bold-block p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">{mode === "signin" ? "Welcome back" : "Join your class"}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {mode === "signin"
@@ -279,32 +346,55 @@ function AuthPage() {
                   : "LectureLoop is for NYU students. Sign up with your NYU email."}
               </p>
 
-              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                onInvalidCapture={handleInvalid}
+                className="mt-6 space-y-4"
+                data-testid="auth-form"
+              >
                 {mode === "signup" && (
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="name">Full name</Label>
-                      <Input
-                        id="name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Ada Lovelace"
-                        required
-                      />
+                      <div ref={fieldRefs.name}>
+                        <Input
+                          id="name"
+                          value={fullName}
+                          onChange={(e) => {
+                            setFullName(e.target.value);
+                            clearFieldError("name");
+                          }}
+                          placeholder="Ada Lovelace"
+                          aria-invalid={
+                            (fieldError.open && fieldError.field === "name") || undefined
+                          }
+                          aria-describedby="name-error"
+                          required
+                        />
+                      </div>
+                      <FieldError id="name-error" error={fieldError} field="name" />
                     </div>
                   </>
                 )}
 
                 <div className="space-y-2">
                   <Label htmlFor="email">{mode === "signup" ? "NYU email" : "Email"}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="netid@nyu.edu"
-                    required
-                  />
+                  <div ref={fieldRefs.email}>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearFieldError("email");
+                      }}
+                      placeholder="netid@nyu.edu"
+                      aria-invalid={(fieldError.open && fieldError.field === "email") || undefined}
+                      aria-describedby="email-error"
+                      required
+                    />
+                  </div>
+                  <FieldError id="email-error" error={fieldError} field="email" />
                   {mode === "signup" && (
                     <p className="text-xs text-muted-foreground">
                       Use your @nyu.edu or @stern.nyu.edu address. We'll send a confirmation link.
@@ -324,12 +414,19 @@ function AuthPage() {
                       </button>
                     )}
                   </div>
-                  <div className="relative">
+                  <div className="relative" ref={fieldRefs.password}>
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearFieldError("password");
+                      }}
+                      aria-invalid={
+                        (fieldError.open && fieldError.field === "password") || undefined
+                      }
+                      aria-describedby="password-error"
                       minLength={mode === "signup" ? 8 : undefined}
                       autoComplete={mode === "signup" ? "new-password" : "current-password"}
                       className="pr-12"
@@ -346,6 +443,7 @@ function AuthPage() {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                  <FieldError id="password-error" error={fieldError} field="password" />
                   {mode === "signup" && (
                     <p className="text-xs text-muted-foreground">
                       At least 8 characters. Avoid passwords you use on other sites.
@@ -407,7 +505,7 @@ function AuthPage() {
                 <Button
                   type="button"
                   variant="link"
-                  className="h-auto p-0 font-semibold text-[#6d4aff] underline underline-offset-4"
+                  className="h-auto p-0 font-semibold text-bold-violet-text underline underline-offset-4"
                   onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
                 >
                   {mode === "signin" ? "Create an account" : "Sign in"}

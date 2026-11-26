@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AudioLines,
   ChevronDown,
@@ -89,6 +89,22 @@ export function RecordingsList({
   const [showLive, setShowLive] = useState<Record<string, boolean>>({});
   const [confirm, setConfirm] = useState<Recording | null>(null);
   const [deleting, setDeleting] = useState(false);
+  /** Share of each recording played (the transcript follows along). */
+  const [played, setPlayed] = useState<Record<string, number>>({});
+  /** Recordings whose "Improve with audio" just finished here (their transcript fades in). */
+  const [justImproved, setJustImproved] = useState<Record<string, boolean>>({});
+  const seenRefined = useRef<Map<string, string | null>>(new Map());
+  useEffect(() => {
+    const seen = seenRefined.current;
+    const fresh: string[] = [];
+    for (const rec of recordings ?? []) {
+      const now = rec.refinedAt ?? null;
+      if (seen.has(rec.id) && now && seen.get(rec.id) !== now) fresh.push(rec.id);
+      seen.set(rec.id, now);
+    }
+    if (fresh.length)
+      setJustImproved((m) => ({ ...m, ...Object.fromEntries(fresh.map((id) => [id, true])) }));
+  }, [recordings]);
 
   if (!recordings?.length) {
     return (
@@ -119,7 +135,17 @@ export function RecordingsList({
                     <Mic className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">{rec.title}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium">{rec.title}</span>
+                      {justImproved[rec.id] && (
+                        <span
+                          className="motion-pop inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[0.7rem] font-semibold text-primary"
+                          data-testid="improved-badge"
+                        >
+                          <Sparkles className="h-3 w-3" aria-hidden="true" /> Improved
+                        </span>
+                      )}
+                    </span>
                     <span className="block text-xs text-muted-foreground">
                       {new Date(rec.created_at).toLocaleString()} ·{" "}
                       {formatDuration(rec.duration_seconds)} · {words.toLocaleString()} words
@@ -196,7 +222,13 @@ export function RecordingsList({
               )}
               {open && rec.audioPath && (
                 <div className="border-t border-border/60 px-4 pt-3">
-                  <AudioPlayer path={rec.audioPath} />
+                  <AudioPlayer
+                    path={rec.audioPath}
+                    durationSeconds={rec.duration_seconds}
+                    onProgress={(r) =>
+                      setPlayed((m) => (m[rec.id] === r ? m : { ...m, [rec.id]: r }))
+                    }
+                  />
                 </div>
               )}
               {open && rec.liveTranscript && (
@@ -228,8 +260,13 @@ export function RecordingsList({
               )}
               {open && (
                 <TranscriptText
+                  key={`${rec.refinedAt ?? ""}-${live ? "live" : "best"}`}
                   text={live ?? rec.transcript}
-                  className="max-h-80 overflow-y-auto border-t border-border/60 px-4 py-3 text-sm leading-relaxed [div+&]:border-t-0"
+                  progress={played[rec.id] ?? null}
+                  className={cn(
+                    "max-h-80 overflow-y-auto border-t border-border/60 px-4 py-3 text-sm leading-relaxed [div+&]:border-t-0",
+                    justImproved[rec.id] && !live && "motion-fade-in",
+                  )}
                 />
               )}
             </li>

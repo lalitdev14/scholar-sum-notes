@@ -1,0 +1,110 @@
+/*
+ * Light / dark theme for the "bold" pages (landing, sign-in, dashboard) and the signed-in
+ * home page, which have their own palette outside the shadcn tokens in styles.css.
+ * Light values are the original fixed colours; .dark (on <html>, see src/lib/theme.ts)
+ * swaps them. Utilities: bg-bold-page, text-bold-ink, border-home-line, ...
+ */
+
+@theme inline {
+  --color-bold-page: var(--bold-page);
+  --color-bold-block: var(--bold-block);
+  --color-bold-hover: var(--bold-hover);
+  --color-bold-ink: var(--bold-ink);
+  --color-bold-on-ink: var(--bold-on-ink);
+  --color-bold-panel: var(--bold-panel);
+  --color-bold-text: var(--bold-text);
+  --color-bold-muted: var(--bold-muted);
+  --color-bold-subtle: var(--bold-subtle);
+  --color-bold-body: var(--bold-body);
+  --color-bold-violet: var(--bold-violet);
+  --color-bold-violet-text: var(--bold-violet-text);
+  --color-bold-input: var(--bold-input);
+  --color-bold-input-line: var(--bold-input-line);
+
+  --color-home-page: var(--home-page);
+  --color-home-block: var(--home-block);
+  --color-home-ink: var(--home-ink);
+  --color-home-text: var(--home-text);
+  --color-home-muted: var(--home-muted);
+  --color-home-label: var(--home-label);
+  --color-home-body: var(--home-body);
+  --color-home-line: var(--home-line);
+  --color-home-line-hover: var(--home-line-hover);
+  --color-home-chip-line: var(--home-chip-line);
+  --color-home-chip-line-hover: var(--home-chip-line-hover);
+  --color-home-icon-bg: var(--home-icon-bg);
+}
+
+:root {
+  --bold-page: #f4f4f1;
+  --bold-block: #ffffff;
+  --bold-hover: #ececea;
+  --bold-ink: #0d0d12;
+  --bold-on-ink: #ffffff;
+  --bold-panel: #0d0d12;
+  --bold-text: #4a4a56;
+  --bold-muted: #6f6f7c;
+  --bold-subtle: #5d5d6a;
+  --bold-body: #26262e;
+  --bold-violet: #6d4aff;
+  --bold-violet-text: #6d4aff;
+  --bold-input: #fafaf8;
+  --bold-input-line: #e2e2dc;
+
+  --home-page: #f7f6f9;
+  --home-block: #ffffff;
+  --home-ink: #17151c;
+  --home-text: #4c4955;
+  --home-muted: #77737f;
+  --home-label: #6b6874;
+  --home-body: #5c5965;
+  --home-line: #ebe8f0;
+  --home-line-hover: #d8d2e2;
+  --home-chip-line: #e3dfe9;
+  --home-chip-line-hover: #d0c8dc;
+  --home-icon-bg: #f1ebf8;
+  /* University colour used as text on the home page. */
+  --home-accent: var(--uni-primary, #57068c);
+}
+
+.dark {
+  --bold-page: #0f0f15;
+  --bold-block: #1a1a23;
+  --bold-hover: #272732;
+  --bold-ink: #f2f2f5;
+  --bold-on-ink: #0f0f15;
+  --bold-panel: #1f1d2b;
+  --bold-text: #b8b8c5;
+  --bold-muted: #9d9dac;
+  --bold-subtle: #a9a9b7;
+  --bold-body: #dcdce4;
+  --bold-violet: #6d4aff;
+  --bold-violet-text: #a593ff;
+  --bold-input: #13131a;
+  --bold-input-line: #363642;
+
+  --home-page: #0f0e13;
+  --home-block: #1a1820;
+  --home-ink: #f2f0f5;
+  --home-text: #bdb8c6;
+  --home-muted: #a19cab;
+  --home-label: #a6a1b0;
+  --home-body: #b3aebd;
+  --home-line: #2b2834;
+  --home-line-hover: #403b4b;
+  --home-chip-line: #2b2834;
+  --home-chip-line-hover: #403b4b;
+  --home-icon-bg: #2b2338;
+  /* The university colour is usually dark: lighten it so it reads on the dark page. */
+  --home-accent: color-mix(in oklab, var(--uni-primary, #57068c) 45%, #ffffff);
+}
+
+@layer base {
+  /* styles.css gives the body a white background and headings near-black ink (light). */
+  .dark body {
+    background: var(--background);
+  }
+  .dark :is(h1, h2, h3) {
+    color: var(--foreground);
+  }
+}

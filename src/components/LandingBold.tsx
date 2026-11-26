@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, AudioLines, FileDown, GraduationCap, PenLine } from "lucide-react";
-import { INK, VIOLET, grotesk } from "@/lib/bold-theme";
+import { INK, INK_PANEL, SOFT_GREY, VIOLET, VIOLET_TEXT, grotesk } from "@/lib/bold-theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
  * The public landing page (signed-out visitors): bold and modern. High contrast, big tight
  * headings, rounded white blocks on soft grey, electric violet for actions. It has its own
- * fixed palette so it looks the same in light and dark mode.
+ * palette (src/theme.css) with light and dark values.
  */
 
 const steps = [
@@ -50,8 +51,8 @@ const pill =
 
 export function LandingHeader() {
   return (
-    <header data-public-home style={{ backgroundColor: INK }} className="text-white">
-      <div className="mx-auto flex w-full max-w-[100rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-10 xl:px-16">
+    <header data-public-home style={{ backgroundColor: INK_PANEL }} className="text-white">
+      <div className="mx-auto flex w-full max-w-[100rem] items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6 lg:px-10 xl:px-16">
         <Link to="/" className="flex items-center gap-2.5" aria-label="LectureLoop home">
           <GraduationCap
             className="h-5 w-5 shrink-0"
@@ -62,7 +63,8 @@ export function LandingHeader() {
             LectureLoop
           </span>
         </Link>
-        <nav className="flex items-center gap-2 sm:gap-3">
+        <nav className="flex items-center gap-1 sm:gap-3">
+          <ThemeToggle className="h-8 w-8 sm:h-9 sm:w-9 text-white/85 hover:bg-white/10 hover:text-white focus-visible:outline-white" />
           <a
             href="#how"
             className="hidden rounded-full px-4 py-2 text-sm font-medium text-white/70 hover:text-white sm:inline-flex"
@@ -71,13 +73,13 @@ export function LandingHeader() {
           </a>
           <Link
             to="/auth"
-            className="whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-white/85 hover:text-white sm:px-4"
+            className="whitespace-nowrap rounded-full px-2 py-2 text-sm font-semibold text-white/85 hover:text-white sm:px-4"
           >
             Sign in
           </Link>
           <Link
             to="/auth"
-            className="inline-flex items-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-5"
+            className="inline-flex items-center whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-5"
             style={{ backgroundColor: VIOLET, outlineColor: VIOLET }}
           >
             Get started
@@ -90,21 +92,21 @@ export function LandingHeader() {
 
 export function LandingMain() {
   return (
-    <main data-public-home className="flex-1" style={{ backgroundColor: "#f4f4f1", color: INK }}>
+    <main data-public-home className="flex-1" style={{ backgroundColor: SOFT_GREY, color: INK }}>
       {/* Hero */}
       <section className="mx-auto grid w-full max-w-[100rem] items-center gap-12 px-4 pb-20 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:px-10 xl:px-16">
         <div className="min-w-0">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold shadow-sm">
+          <span className="inline-flex items-center gap-2 rounded-full bg-bold-block px-3 py-1.5 text-xs font-semibold shadow-sm">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: VIOLET }} />
             For NYU students
           </span>
           <h1
-            className="mt-6 text-[#0d0d12] text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] text-balance sm:text-7xl xl:text-[5.5rem]"
+            className="mt-6 text-bold-ink text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] text-balance sm:text-7xl xl:text-[5.5rem]"
             style={grotesk}
           >
-            Your notes, <span style={{ color: VIOLET }}>summarized</span> for you.
+            Your notes, <span style={{ color: VIOLET_TEXT }}>summarized</span> for you.
           </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-[#4a4a56]">
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-bold-text">
             Take your own notes in class, typed or handwritten next to the lecture slides. Then get
             a clear AI summary of everything you wrote, ready for revision.
           </p>
@@ -118,13 +120,13 @@ export function LandingMain() {
             </Link>
             <a
               href="#how"
-              className={`${pill} border-2 bg-white hover:bg-[#ececea]`}
+              className={`${pill} border-2 bg-bold-block hover:bg-bold-hover`}
               style={{ borderColor: INK, outlineColor: INK }}
             >
               See how it works
             </a>
           </div>
-          <p className="mt-5 text-sm font-medium text-[#6f6f7c]">
+          <p className="mt-5 text-sm font-medium text-bold-muted">
             Free to start · sign in with your NYU email
           </p>
         </div>
@@ -138,24 +140,27 @@ export function LandingMain() {
         className="mx-auto w-full max-w-[100rem] scroll-mt-6 px-4 pb-20 sm:px-6 lg:px-10 xl:px-16"
       >
         <h2
-          className="text-4xl font-bold tracking-[-0.03em] text-balance text-[#0d0d12] sm:text-5xl"
+          className="text-4xl font-bold tracking-[-0.03em] text-balance text-bold-ink sm:text-5xl"
           style={grotesk}
         >
           How it works
         </h2>
         <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((step, i) => (
-            <li key={step.title} className="flex flex-col gap-3 rounded-[1.25rem] bg-white p-6">
+            <li
+              key={step.title}
+              className="flex flex-col gap-3 rounded-[1.25rem] bg-bold-block p-6"
+            >
               <span
-                className="grid h-9 w-9 place-items-center rounded-full text-sm font-bold text-white"
-                style={{ backgroundColor: INK, ...grotesk }}
+                className="grid h-9 w-9 place-items-center rounded-full bg-bold-ink text-sm font-bold text-bold-on-ink"
+                style={grotesk}
               >
                 {i + 1}
               </span>
-              <h3 className="text-xl font-bold tracking-tight text-[#0d0d12]" style={grotesk}>
+              <h3 className="text-xl font-bold tracking-tight text-bold-ink" style={grotesk}>
                 {step.title}
               </h3>
-              <p className="text-[0.95rem] leading-relaxed text-[#4a4a56]">{step.body}</p>
+              <p className="text-[0.95rem] leading-relaxed text-bold-text">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -165,7 +170,7 @@ export function LandingMain() {
       <section className="mx-auto w-full max-w-[100rem] px-4 pb-20 sm:px-6 lg:px-10 xl:px-16">
         <div
           className="grid gap-10 rounded-[1.75rem] p-8 text-white sm:p-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"
-          style={{ backgroundColor: INK }}
+          style={{ backgroundColor: INK_PANEL }}
         >
           <h2
             className="text-4xl font-bold leading-[1.02] tracking-[-0.03em] text-balance text-white sm:text-5xl"
@@ -211,8 +216,8 @@ export function LandingMain() {
           </div>
           <Link
             to="/auth"
-            className={`${pill} shrink-0 bg-white hover:bg-[#ececea]`}
-            style={{ color: INK, outlineColor: "#fff" }}
+            className={`${pill} shrink-0 bg-white text-[#0d0d12] hover:bg-[#ececea]`}
+            style={{ outlineColor: "#fff" }}
           >
             Create your account <ArrowRight className="h-4 w-4" />
           </Link>
@@ -226,10 +231,10 @@ export function LandingMain() {
 function ProductPreview() {
   return (
     <div className="min-w-0" aria-hidden="true">
-      <div className="rounded-[1.5rem] bg-white p-5 shadow-[0_30px_80px_-40px_rgba(13,13,18,0.45)] sm:p-6">
+      <div className="rounded-[1.5rem] bg-bold-block p-5 shadow-[0_30px_80px_-40px_rgba(13,13,18,0.45)] sm:p-6">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#6f6f7c]">CS-221 · Fall 2026</p>
+            <p className="text-xs font-semibold text-bold-muted">CS-221 · Fall 2026</p>
             <p className="truncate text-2xl font-bold tracking-tight" style={grotesk}>
               Data Structures
             </p>
@@ -242,24 +247,22 @@ function ProductPreview() {
           </span>
         </div>
         <div className="mt-4 flex gap-1.5 text-xs font-semibold">
-          <span className="rounded-full px-3 py-1.5 text-[#5d5d6a]">Type</span>
-          <span className="rounded-full px-3 py-1.5 text-[#5d5d6a]">Handwrite</span>
-          <span className="rounded-full px-3 py-1.5 text-white" style={{ backgroundColor: INK }}>
-            Transcribe
-          </span>
+          <span className="rounded-full px-3 py-1.5 text-bold-subtle">Type</span>
+          <span className="rounded-full px-3 py-1.5 text-bold-subtle">Handwrite</span>
+          <span className="rounded-full bg-bold-ink px-3 py-1.5 text-bold-on-ink">Transcribe</span>
         </div>
-        <div className="mt-4 rounded-2xl bg-[#f4f4f1] p-4">
+        <div className="mt-4 rounded-2xl bg-bold-page p-4">
           <p className="text-sm font-semibold">
             Lecture 9: Quicksort
-            <span className="ml-2 rounded-full bg-[#d6ff5c] px-2 py-0.5 text-[11px] font-bold">
+            <span className="ml-2 rounded-full bg-[#d6ff5c] px-2 py-0.5 text-[11px] font-bold text-[#0d0d12]">
               Improved
             </span>
           </p>
-          <p className="mt-0.5 text-xs text-[#6f6f7c]">42 min · 6,120 words</p>
+          <p className="mt-0.5 text-xs text-bold-muted">42 min · 6,120 words</p>
           <p className="mt-3 text-base font-bold" style={grotesk}>
             Choosing a pivot
           </p>
-          <p className="mt-1 text-sm leading-relaxed text-[#26262e]">
+          <p className="mt-1 text-sm leading-relaxed text-bold-body">
             A bad pivot, like the smallest value every time, makes quicksort run in quadratic time,
             so we usually take the median of three.
           </p>
@@ -267,7 +270,7 @@ function ProductPreview() {
       </div>
       <div
         className="relative -mt-4 ml-auto mr-4 w-64 max-w-[85%] rounded-2xl p-4 text-white shadow-xl sm:mr-8"
-        style={{ backgroundColor: INK }}
+        style={{ backgroundColor: INK_PANEL }}
       >
         <p className="text-xs font-semibold text-white/60">AI summary</p>
         <p className="mt-1 text-sm leading-snug">

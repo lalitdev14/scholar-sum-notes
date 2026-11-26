@@ -3,30 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookPlus, LayoutGrid, Lock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SemesterSubjectsDialog } from "@/components/SemesterSubjectsDialog";
+import { NextLectureCard } from "@/components/NextLectureCard";
 import { supabase } from "@/integrations/supabase/client";
 import { pickGreeting, rememberGreeting } from "@/lib/greetings";
-
-/**
- * Full name for the greeting with each word capitalised.
- * All-lower or all-upper names are title-cased ("lalit dev" / "LALIT DEV" → "Lalit Dev"),
- * including after a hyphen or apostrophe ("sean o'brien" → "Sean O'Brien");
- * mixed-case names keep their casing apart from the first letter ("McDonald" stays).
- */
-function formatFullName(raw: string): string {
-  const name = raw.trim().replace(/\s+/g, " ");
-  if (!name) return "";
-  const uniformCase = name === name.toLowerCase() || name === name.toUpperCase();
-  if (uniformCase) {
-    // Title-case, also after a hyphen or apostrophe: "jean-luc d'arcy" → "Jean-Luc D'Arcy".
-    return name
-      .toLowerCase()
-      .replace(/(^|[ \-'\u2019])(\S)/g, (_, sep: string, ch: string) => sep + ch.toUpperCase());
-  }
-  return name
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
+import { classTransitionName } from "@/lib/motion";
+import { formatFullName } from "@/lib/format-name";
 
 type Activity = "typed" | "handwriting" | "opened";
 const ACTIVITY_LABEL: Record<Activity, string> = {
@@ -159,7 +140,8 @@ export function WelcomeHome() {
     .sort((a, b) => b.addedAt.localeCompare(a.addedAt) || a.subject.localeCompare(b.subject))
     .slice(0, 3);
 
-  const accent = "var(--uni-primary, #57068c)";
+  // Lightened in dark mode so it reads on the dark page (src/theme.css).
+  const accent = "var(--home-accent)";
   // A very dark shade of the university colour for the "continue" card.
   const deep = "color-mix(in oklab, var(--uni-primary, #57068c) 32%, #0d0a12)";
   const mono = { fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace' };
@@ -170,14 +152,14 @@ export function WelcomeHome() {
   ];
 
   return (
-    <div className="flex-1 bg-[#f7f6f9]">
+    <div className="flex-1 bg-home-page">
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-10 sm:px-6 sm:pt-14 lg:px-10">
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:gap-12">
           {/* Welcome note */}
           <section aria-labelledby="welcome-title" className="min-w-0">
             <div className="flex items-center justify-between gap-3">
               <p
-                className="text-xs font-medium uppercase tracking-[0.2em] text-[#6b6874]"
+                className="text-xs font-medium uppercase tracking-[0.2em] text-home-label"
                 style={mono}
               >
                 {new Date().toLocaleDateString(undefined, {
@@ -197,7 +179,7 @@ export function WelcomeHome() {
                   aria-label="Update my subjects"
                   title="Update my subjects"
                   data-testid="update-subjects"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#e3dfe9] bg-white px-2.5 py-1.5 text-xs font-medium text-[#4c4955] transition hover:border-[#d0c8dc] hover:text-[#17151c] focus-visible:outline-2 focus-visible:outline-offset-2"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-home-chip-line bg-home-block px-2.5 py-1.5 text-xs font-medium text-home-text transition hover:border-home-chip-line-hover hover:text-home-ink focus-visible:outline-2 focus-visible:outline-offset-2"
                   style={{ outlineColor: accent }}
                 >
                   <BookPlus className="h-4 w-4" style={{ color: accent }} aria-hidden="true" />
@@ -207,7 +189,7 @@ export function WelcomeHome() {
             </div>
             <h1
               id="welcome-title"
-              className="mt-4 text-[2.75rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#17151c] sm:text-6xl"
+              className="mt-4 text-[2.75rem] font-bold leading-[1.02] tracking-[-0.035em] text-home-ink sm:text-6xl"
             >
               {greeting.lead}
               {fullName ? (
@@ -220,12 +202,12 @@ export function WelcomeHome() {
               ) : null}
               {greeting.end}
             </h1>
-            <p className="mt-6 max-w-[34rem] text-[1.05rem] leading-relaxed text-[#4c4955]">
+            <p className="mt-6 max-w-[34rem] text-[1.05rem] leading-relaxed text-home-text">
               Welcome to LectureLoop, your own notebook for every class. Type or handwrite your
               notes right next to the lecture slides, and turn them into a clear summary when it's
               time to revise.
             </p>
-            <p className="mt-5 flex items-center gap-2 text-sm text-[#77737f]">
+            <p className="mt-5 flex items-center gap-2 text-sm text-home-muted">
               <Lock className="h-3.5 w-3.5" /> Your notes are private to you.
             </p>
           </section>
@@ -233,8 +215,8 @@ export function WelcomeHome() {
           {/* Continue where you left off: the last class they were in */}
           {last ? (
             <section
-              className="rounded-[1.25rem] p-6 text-white shadow-[0_24px_60px_-28px_rgba(60,10,90,0.65)] sm:p-7"
-              style={{ backgroundColor: deep }}
+              className="motion-tilt rounded-[1.25rem] p-6 text-white shadow-[0_24px_60px_-28px_rgba(60,10,90,0.65)] sm:p-7"
+              style={{ backgroundColor: deep, viewTransitionName: classTransitionName(last.id) }}
               aria-labelledby="continue-title"
               data-testid="continue-card"
             >
@@ -262,6 +244,7 @@ export function WelcomeHome() {
               <Link
                 to="/class/$classId"
                 params={{ classId: last.id }}
+                viewTransition
                 className="mt-6 flex items-center justify-between rounded-xl bg-white px-5 py-3.5 text-[0.95rem] font-semibold text-[#17151c] transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Open note <ArrowRight className="h-4 w-4" />
@@ -290,6 +273,7 @@ export function WelcomeHome() {
                   <li
                     key={c.id}
                     className="flex items-center gap-3 rounded-xl bg-white/[0.07] px-4 py-3"
+                    style={{ viewTransitionName: classTransitionName(c.id) }}
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs text-white/60" style={mono}>
@@ -302,6 +286,7 @@ export function WelcomeHome() {
                     <Link
                       to="/class/$classId"
                       params={{ classId: c.id }}
+                      viewTransition
                       className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-[#17151c] transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                       aria-label={`Open ${c.subject}`}
                     >
@@ -345,22 +330,33 @@ export function WelcomeHome() {
           )}
         </div>
 
+        {/* Countdown to the next lecture (from the student's saved NYU sections) */}
+        {userId && (
+          <NextLectureCard
+            classes={classes}
+            onSetSections={() => {
+              setOpenedFromButton(false);
+              setSubjectsOpen(true);
+            }}
+          />
+        )}
+
         {/* On to the dashboard */}
         <Link
           to="/dashboard"
-          className="group mt-10 flex items-center gap-4 rounded-2xl border border-[#ebe8f0] bg-white p-5 transition hover:border-[#d8d2e2] hover:shadow-[0_10px_30px_-20px_rgba(40,20,60,0.4)] focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="group mt-10 flex items-center gap-4 rounded-2xl border border-home-line bg-home-block p-5 transition hover:border-home-line-hover hover:shadow-[0_10px_30px_-20px_rgba(40,20,60,0.4)] focus-visible:outline-2 focus-visible:outline-offset-2"
           style={{ outlineColor: accent }}
           aria-label="Go to your dashboard"
         >
           <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#f1ebf8]"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-home-icon-bg"
             style={{ color: accent }}
           >
             <LayoutGrid className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-[#17151c]">Go to your dashboard</span>
-            <span className="block text-sm text-[#77737f]">
+            <span className="block font-semibold text-home-ink">Go to your dashboard</span>
+            <span className="block text-sm text-home-muted">
               {data && !classes.length
                 ? "You haven't joined a class yet. Find your classes on the dashboard."
                 : "All your classes, notes and summaries are on your dashboard."}
@@ -376,21 +372,21 @@ export function WelcomeHome() {
         <section className="mt-10" aria-labelledby="how-title">
           <h2
             id="how-title"
-            className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b6874]"
+            className="text-xs font-semibold uppercase tracking-[0.12em] text-home-label"
           >
             How it works
           </h2>
-          <ol className="mt-4 grid overflow-hidden rounded-2xl border border-[#ebe8f0] bg-white sm:grid-cols-3">
+          <ol className="mt-4 grid overflow-hidden rounded-2xl border border-home-line bg-home-block sm:grid-cols-3">
             {steps.map(([n, title, body], i) => (
               <li
                 key={n}
-                className={`p-6 ${i > 0 ? "border-t border-[#ebe8f0] sm:border-l sm:border-t-0" : ""}`}
+                className={`p-6 ${i > 0 ? "border-t border-home-line sm:border-l sm:border-t-0" : ""}`}
               >
                 <span className="text-sm font-medium" style={{ ...mono, color: accent }}>
                   {n}
                 </span>
-                <p className="mt-3 text-lg font-semibold text-[#17151c]">{title}</p>
-                <p className="mt-1.5 text-[0.95rem] leading-relaxed text-[#5c5965]">{body}</p>
+                <p className="mt-3 text-lg font-semibold text-home-ink">{title}</p>
+                <p className="mt-1.5 text-[0.95rem] leading-relaxed text-home-body">{body}</p>
               </li>
             ))}
           </ol>

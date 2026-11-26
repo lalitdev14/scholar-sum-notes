@@ -761,7 +761,14 @@ function ItemView({
             ))}
           </ul>
         ) : (
-          <p className="mt-5 text-sm text-muted-foreground">
+          <p className="mt-5 flex items-start gap-3 text-sm text-muted-foreground">
+            <span
+              className="motion-float grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"
+              aria-hidden="true"
+              data-testid="empty-float"
+            >
+              <FileText className="h-4 w-4" />
+            </span>
             Nothing saved in this subject yet. Notes, notebooks and transcripts you save in the
             class show up here.
           </p>
@@ -947,6 +954,8 @@ function TranscriptView({
       return ids?.get(t.id) ?? null;
     },
   });
+  /** Share of the recording played: the transcript follows along. */
+  const [played, setPlayed] = useState<number | null>(null);
   const { data: text, isPending } = useQuery({
     queryKey: ["transcript-text", t.id],
     queryFn: async () => {
@@ -977,7 +986,7 @@ function TranscriptView({
       {audio && (
         <div className="mt-4 flex flex-wrap items-center gap-2" data-testid="transcript-audio">
           <div className="min-w-0 flex-1">
-            <AudioPlayer path={audio} />
+            <AudioPlayer path={audio} durationSeconds={t.duration_seconds} onProgress={setPlayed} />
           </div>
           <Button
             size="sm"
@@ -1005,7 +1014,7 @@ function TranscriptView({
         {isPending ? (
           <span className="text-muted-foreground">Loading…</span>
         ) : (
-          (text && <TranscriptText text={text} />) || (
+          (text && <TranscriptText text={text} progress={played} />) || (
             <span className="text-muted-foreground">This transcript is empty.</span>
           )
         )}
