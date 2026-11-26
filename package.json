@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
+    "test": "bun test src",
     "req:new": "node scripts/req/new.mjs",
     "req:audit": "node scripts/req/audit.mjs",
     "req:evidence": "node scripts/req/evidence.mjs"

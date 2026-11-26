@@ -1,0 +1,312 @@
+[
+  {
+    "id": "TC-01",
+    "ac": ["AC-1"],
+    "title": "Dialog shows the three numbered steps in order",
+    "type": "UI",
+    "priority": "High",
+    "preconditions": "Signed in as a test student with no saved school/program in user metadata; desktop width (1280 px)",
+    "steps": [
+      "Open the \"Your subjects this semester\" dialog (My subjects)",
+      "Read the dialog from top to bottom"
+    ],
+    "expected": "Three numbered steps appear in this order: 1 \"Your NYU school\" (select), 2 \"Your program\" (select), 3 the subject search box together with the term select. No other step sits between them."
+  },
+  {
+    "id": "TC-02",
+    "ac": ["AC-2"],
+    "title": "School select lists every NYU school by full name",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; dialog open",
+    "steps": [
+      "Open the \"Your NYU school\" select",
+      "Compare the options with the school list in requirement section 6.1"
+    ],
+    "expected": "The select lists all 22 schools of 6.1 by full name, including College of Arts & Science, Courant Institute, Graduate School of Arts & Science, Stern School of Business, Tandon School of Engineering, Steinhardt, Tisch School of the Arts, Gallatin School of Individualized Study, School of Professional Studies, Silver School of Social Work, Wagner Graduate School of Public Service, School of Global Public Health, Rory Meyers College of Nursing, College of Dentistry, Grossman School of Medicine, Grossman Long Island School of Medicine, School of Law, Liberal Studies, Institute of Fine Arts, Institute for the Study of the Ancient World, NYU Abu Dhabi, NYU Shanghai. At least 20 options; none shown only by abbreviation; no duplicates."
+  },
+  {
+    "id": "TC-03",
+    "ac": ["AC-3"],
+    "title": "Program select and subject search disabled until a school is chosen",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student with no saved school/program; dialog open",
+    "steps": [
+      "Without choosing a school, try to open the \"Your program\" select",
+      "Try to click and type \"accounting\" in the subject search box",
+      "Look for a hint near steps 2-3"
+    ],
+    "expected": "The program select is disabled (cannot open); the subject search box is disabled (no text can be entered, no search runs, no results list appears); a visible hint tells the student to choose a school first."
+  },
+  {
+    "id": "TC-04",
+    "ac": ["AC-3", "AC-4"],
+    "title": "Choosing a school enables program and search and loads that school's programs",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student with no saved school; dialog open",
+    "steps": [
+      "Choose \"Courant Institute\" in \"Your NYU school\"",
+      "Open the \"Your program\" select",
+      "Click the subject search box"
+    ],
+    "expected": "The \"choose a school first\" hint disappears; the program select becomes enabled and lists Courant's programs, including an \"Other / undeclared\" option; the subject search box and term select are enabled and accept input."
+  },
+  {
+    "id": "TC-05",
+    "ac": ["AC-4"],
+    "title": "Changing the school replaces the program list and resets the program",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; dialog open; school \"Courant Institute\" chosen and a Courant program (not Other / undeclared) selected",
+    "steps": [
+      "Note the program options and the selected program",
+      "Change \"Your NYU school\" to \"Stern School of Business\"",
+      "Look at the program select, then open it"
+    ],
+    "expected": "The program select no longer shows the previously selected Courant program (it is reset to its empty/placeholder state); its options are now Stern's programs plus \"Other / undeclared\"; none of the Courant-only program options remain unless Stern has the same program name."
+  },
+  {
+    "id": "TC-06",
+    "ac": ["AC-4"],
+    "title": "Every school offers Other / undeclared",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Signed in as a test student; dialog open",
+    "steps": [
+      "Choose \"Institute for the Study of the Ancient World\" and open the program select",
+      "Choose \"NYU Shanghai\" and open the program select",
+      "Choose \"Grossman Long Island School of Medicine\" and open the program select"
+    ],
+    "expected": "For each school the program select loads that school's list and always contains \"Other / undeclared\"; the list is never empty and selecting \"Other / undeclared\" is accepted."
+  },
+  {
+    "id": "TC-07",
+    "ac": ["AC-5", "AC-6"],
+    "title": "Courant student searching accounting: own school first, Stern in cross-registration",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; school \"Courant Institute\", any program; NYU search returns (mocked or real) for \"accounting\" in this order: ACCT-UB 1, ACCT-GB 6305, ECON-UA 266, CSCI-GA 2433",
+    "steps": [
+      "Type \"accounting\" in the subject search box and wait for the debounced search",
+      "Read the result groups and tags"
+    ],
+    "expected": "First group heading \"From Courant\" containing only CSCI-GA 2433. Below it, heading \"Other NYU schools · cross-registration\" containing ACCT-UB 1 tagged \"Stern\", ACCT-GB 6305 tagged \"Stern\", ECON-UA 266 tagged \"CAS\", in that order. No course appears twice."
+  },
+  {
+    "id": "TC-08",
+    "ac": ["AC-5", "AC-8"],
+    "title": "Stern student: Stern results first, NYU order kept inside each group",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; school \"Stern School of Business\"; NYU search for \"accounting\" returns ACCT-UB 1, ACCT-GB 6305, ECON-UA 266, CSCI-GA 2433 in that order",
+    "steps": [
+      "Type \"accounting\" and wait for results"
+    ],
+    "expected": "Heading \"From Stern\" lists ACCT-UB 1 then ACCT-GB 6305 (NYU order). Heading \"Other NYU schools · cross-registration\" lists ECON-UA 266 tagged \"CAS\" then CSCI-GA 2433 tagged \"Courant\" (NYU order). Own-group rows carry no cross-registration tag."
+  },
+  {
+    "id": "TC-09",
+    "ac": ["AC-8"],
+    "title": "No result from the chosen school: only cross-registration group, no empty heading",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; school \"School of Law\"; NYU search for \"accounting\" returns ACCT-UB 1, ACCT-GB 6305, ECON-UA 266, CSCI-GA 2433 (no -LW course)",
+    "steps": [
+      "Type \"accounting\" and wait for results"
+    ],
+    "expected": "No \"From Law\" heading is shown (not even empty). Only the \"Other NYU schools · cross-registration\" group appears, listing all four courses in NYU order with tags Stern, Stern, CAS, Courant."
+  },
+  {
+    "id": "TC-10",
+    "ac": ["AC-6"],
+    "title": "Course with an unknown code goes to cross-registration with no tag",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Signed in as a test student; school \"Courant Institute\"; mocked NYU search for \"special topics\" returns CSCI-GA 2433 and a course coded XYZW-QQ 101 (suffix not in 6.1)",
+    "steps": [
+      "Type \"special topics\" and wait for results"
+    ],
+    "expected": "\"From Courant\" contains CSCI-GA 2433. XYZW-QQ 101 is listed under \"Other NYU schools · cross-registration\" with no school tag; it is not hidden and can be added with Add."
+  },
+  {
+    "id": "TC-11",
+    "ac": ["AC-5", "AC-6"],
+    "title": "Code-to-school edge mappings (Courant vs CAS vs GSAS vs IFA/ISAW)",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Signed in as a test student; school \"Graduate School of Arts & Science\"; mocked NYU search returns HIST-GA 1000, MATH-GA 1002, FINH-GA 2000, ISAW-GA 3000, HIST-UA 10, DS-UA 201, SPAN-SHU 101, ARAB-UH 1001",
+    "steps": [
+      "Type a query that returns the mocked results and wait",
+      "Read the groups and tags"
+    ],
+    "expected": "\"From GSAS\" contains only HIST-GA 1000. Cross-registration group lists, in NYU order: MATH-GA 1002 tagged \"Courant\", FINH-GA 2000 tagged \"IFA\", ISAW-GA 3000 tagged \"ISAW\", HIST-UA 10 tagged \"CAS\", DS-UA 201 tagged \"Courant\", SPAN-SHU 101 tagged \"Shanghai\", ARAB-UH 1001 tagged \"Abu Dhabi\"."
+  },
+  {
+    "id": "TC-12",
+    "ac": ["AC-7"],
+    "title": "Changing the school while results are shown regroups instantly without a new search",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; school \"Courant Institute\"; results for \"accounting\" shown as in TC-07; browser DevTools Network tab open (or mocked search call counter)",
+    "steps": [
+      "Clear the Network log",
+      "Change \"Your NYU school\" to \"Stern School of Business\"",
+      "Observe the results list and the Network log"
+    ],
+    "expected": "The search text \"accounting\" stays; the same four results are immediately regrouped: \"From Stern\" with ACCT-UB 1, ACCT-GB 6305; cross-registration with ECON-UA 266 (CAS), CSCI-GA 2433 (Courant). No new subject-search request is made and no loading state appears. The program select resets (AC-4)."
+  },
+  {
+    "id": "TC-13",
+    "ac": ["AC-9"],
+    "title": "School and program are pre-filled when the dialog is reopened",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a fresh test student with no saved school/program",
+    "steps": [
+      "Open the dialog, choose \"Tandon School of Engineering\" and a Tandon program",
+      "Close the dialog",
+      "Reload the page and reopen the dialog"
+    ],
+    "expected": "On reopen, \"Your NYU school\" shows Tandon School of Engineering and \"Your program\" shows the same program; the subject search is enabled immediately (no 'choose a school first' hint)."
+  },
+  {
+    "id": "TC-14",
+    "ac": ["AC-9"],
+    "title": "Choice is saved to the account and appears on another device/browser",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Test student signed in on browser A; a separate clean browser profile B (no shared local storage)",
+    "steps": [
+      "On browser A open the dialog and choose \"Steinhardt\" plus \"Other / undeclared\"",
+      "Close the dialog on A",
+      "On browser B sign in as the same test student and open the dialog",
+      "(Optional) inspect the session user's metadata"
+    ],
+    "expected": "On browser B the dialog opens with Steinhardt and Other / undeclared pre-filled. The user metadata contains nyu_school and nyu_program for the choice. No database table change is needed."
+  },
+  {
+    "id": "TC-15",
+    "ac": ["AC-9", "AC-4"],
+    "title": "Changing a saved school updates the saved values",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Test student with saved school Tandon and a Tandon program",
+    "steps": [
+      "Open the dialog, change school to \"Stern School of Business\" and pick a Stern program",
+      "Close, reload and reopen the dialog"
+    ],
+    "expected": "Reopened dialog shows Stern School of Business and the chosen Stern program; the old Tandon program is not shown."
+  },
+  {
+    "id": "TC-16",
+    "ac": ["AC-10"],
+    "title": "Regression: debounced search and term select",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Test student; school \"Courant Institute\" chosen; Network tab open",
+    "steps": [
+      "Type \"algorithms\" quickly (one character at a time without pausing)",
+      "Wait for results",
+      "Change the term select to a different term"
+    ],
+    "expected": "Only one search request is sent after typing stops (not one per keystroke); results appear grouped; changing the term re-runs the search for the new term and results update, still grouped by school."
+  },
+  {
+    "id": "TC-17",
+    "ac": ["AC-10"],
+    "title": "Regression: Add/Added, To add list, Done adding",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Test student; school \"Courant Institute\"; results for \"accounting\" shown as in TC-07",
+    "steps": [
+      "Click Add on CSCI-GA 2433 (own-school group)",
+      "Click Add on ACCT-UB 1 (cross-registration group)",
+      "Check the To add list and the buttons",
+      "Click the Done/enrol button"
+    ],
+    "expected": "Each clicked row's button changes to \"Added\"; both courses appear in the To add list; after Done the courses appear under \"Your classes\" and the To add list empties; the cross-registration course is added the same way as the own-school course."
+  },
+  {
+    "id": "TC-18",
+    "ac": ["AC-10"],
+    "title": "Regression: Your classes with Remove",
+    "type": "Regression",
+    "priority": "Medium",
+    "preconditions": "Test student already enrolled in ACCT-UB 1 and CSCI-GA 2433 (from TC-17)",
+    "steps": [
+      "Open the dialog",
+      "In \"Your classes\" click Remove on ACCT-UB 1",
+      "Search \"accounting\" again"
+    ],
+    "expected": "ACCT-UB 1 is removed from Your classes; CSCI-GA 2433 stays; in the new results ACCT-UB 1 shows \"Add\" again (not \"Added\")."
+  },
+  {
+    "id": "TC-19",
+    "ac": ["AC-10"],
+    "title": "Error handling: search fails, error box with Try again",
+    "type": "Error handling",
+    "priority": "High",
+    "preconditions": "Test student; school chosen; subject search server function mocked to fail (or network blocked) on first call, succeed on retry",
+    "steps": [
+      "Type \"accounting\" and wait",
+      "Click \"Try again\" in the error box"
+    ],
+    "expected": "An error box is shown with a \"Try again\" button (no crash, school/program selects keep their values); after Try again the results load and are grouped by school as in TC-07."
+  },
+  {
+    "id": "TC-20",
+    "ac": ["AC-9", "AC-10"],
+    "title": "Error handling: saving school/program fails",
+    "type": "Error handling",
+    "priority": "Medium",
+    "preconditions": "Test student; auth user-metadata update mocked to fail",
+    "steps": [
+      "Open the dialog and choose \"Tisch School of the Arts\"",
+      "Type \"film\" in the subject search"
+    ],
+    "expected": "The dialog does not crash or block; the chosen school stays selected for this session and the search still runs and groups results under \"From Tisch\"; any save failure is reported without losing the dialog state."
+  },
+  {
+    "id": "TC-21",
+    "ac": ["AC-10"],
+    "title": "Regression: keyboard use and focus return",
+    "type": "Accessibility",
+    "priority": "Medium",
+    "preconditions": "Test student; dialog closed; opener button for My subjects visible",
+    "steps": [
+      "Using only the keyboard, open the dialog",
+      "Tab to the school select, choose a school with arrow keys/Enter; tab to program and choose one; tab to the search box and type",
+      "Press Escape (or Done)"
+    ],
+    "expected": "All three steps are reachable and operable with the keyboard in step order; the dialog closes and focus returns to the button that opened it."
+  },
+  {
+    "id": "TC-22",
+    "ac": ["AC-11"],
+    "title": "Phone width 390 px: no horizontal scroll, selects and search usable",
+    "type": "Responsive",
+    "priority": "High",
+    "preconditions": "Test student; browser viewport 390 x 844 (device emulation)",
+    "steps": [
+      "Open the dialog",
+      "Choose \"Grossman Long Island School of Medicine\" (long name) and a program",
+      "Search \"accounting\" with results as in TC-07",
+      "Try to scroll horizontally in the dialog and page"
+    ],
+    "expected": "No horizontal scrollbar or horizontal scroll on page or dialog; long school names fit or wrap/truncate inside the select; both selects open and can be chosen; the search box and term select are fully visible and usable; group headings, school tags and Add buttons are visible without overflow."
+  },
+  {
+    "id": "TC-23",
+    "ac": ["AC-1", "AC-3", "AC-11"],
+    "title": "Phone width 390 px: disabled state and hint visible",
+    "type": "Responsive",
+    "priority": "Low",
+    "preconditions": "Test student with no saved school; viewport 390 px",
+    "steps": [
+      "Open the dialog"
+    ],
+    "expected": "Steps 1, 2, 3 are shown in order (stacked); program select and search are visibly disabled; the 'choose a school first' hint is readable without horizontal scroll."
+  }
+]

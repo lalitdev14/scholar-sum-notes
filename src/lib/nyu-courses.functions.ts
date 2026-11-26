@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
+import { NyuSearchInput } from "@/lib/nyu-courses.schema";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /** One NYU course (sections merged). */
@@ -7,19 +7,10 @@ export type NyuCourse = { code: string; title: string; instructor: string };
 /** A term in NYU's class search; `id` is the FOSE srcdb. */
 export type NyuTerm = { id: string; label: string; current: boolean };
 
-const SearchInput = z.object({
-  q: z.string().trim().min(2).max(80),
-  // FOSE term ids are short numbers ("1274", "9999").
-  term: z
-    .string()
-    .trim()
-    .regex(/^\d{1,8}$/),
-});
-
 /** Searches NYU's public class search for a subject name; one entry per course code. */
 export const searchNyuCourses = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => SearchInput.parse(input))
+  .inputValidator((input: unknown) => NyuSearchInput.parse(input))
   .handler(async ({ data }) => {
     const { searchCourses, NyuUnavailableError } = await import("./nyu-courses.server");
     try {
