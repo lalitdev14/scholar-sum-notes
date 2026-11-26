@@ -1,1 +1,346 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "ac": ["AC-1"],
+    "title": "Theme button visible in signed-in header on desktop with accessible name",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; desktop viewport 1440x900; Light theme active; no saved theme choice",
+    "steps": [
+      "Open the home page (/)",
+      "Locate the theme button in the signed-in header",
+      "Inspect its accessible name (aria-label / accessibility tree)",
+      "Repeat on the dashboard, a class workspace, My notes and plans pages"
+    ],
+    "expected": "A sun/moon icon button is visible in the header on every page; its accessible name says which theme it switches to (e.g. 'Switch to dark theme' while Light is active)"
+  },
+  {
+    "id": "TC-02",
+    "ac": ["AC-1"],
+    "title": "Theme button visible in signed-in header at 390 px",
+    "type": "Responsive",
+    "priority": "High",
+    "preconditions": "Signed in as a test student; viewport 390x844",
+    "steps": [
+      "Open the home page and the dashboard at 390 px width",
+      "Look for the theme button in the header (including inside any collapsed/mobile menu if the header collapses)",
+      "Check that it is not clipped, overlapped or causing horizontal scroll"
+    ],
+    "expected": "Theme button is visible and tappable at 390 px, has the same accessible name, no horizontal page scroll, does not overlap other header controls"
+  },
+  {
+    "id": "TC-03",
+    "ac": ["AC-1"],
+    "title": "Theme button visible in public header (landing and sign-in) on desktop and 390 px",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed out; clean browser profile",
+    "steps": [
+      "Open the landing page at 1440 px width; locate the theme button in the header",
+      "Open the sign-in page; locate the theme button",
+      "Repeat both at 390 px width",
+      "Inspect the accessible name on each"
+    ],
+    "expected": "Sun/moon theme button visible on landing and sign-in headers at both widths, accessible name 'Switch to dark theme' / 'Switch to light theme' matching the current theme, no overlap or horizontal scroll"
+  },
+  {
+    "id": "TC-04",
+    "ac": ["AC-1", "AC-2"],
+    "title": "Accessible name and icon update after switching",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Signed in; Light theme active",
+    "steps": [
+      "Note the icon and accessible name of the theme button",
+      "Click the button",
+      "Note the icon and accessible name again"
+    ],
+    "expected": "Before: name says switch to dark; after: Dark is applied, icon changes (e.g. moon to sun) and the name now says 'Switch to light theme'"
+  },
+  {
+    "id": "TC-05",
+    "ac": ["AC-2"],
+    "title": "Switch Light to Dark immediately without reload",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; Light theme active; DevTools/Playwright watching navigation events",
+    "steps": [
+      "On the dashboard, type a few characters into any text field (e.g. search) without submitting",
+      "Click the theme button",
+      "Check whether a navigation/reload event occurred and whether the typed text is still present",
+      "Check the <html> element and page background"
+    ],
+    "expected": "Whole page (header, body, panels) turns dark immediately; no page navigation/reload; typed text preserved; icon reflects Dark"
+  },
+  {
+    "id": "TC-06",
+    "ac": ["AC-2"],
+    "title": "Switch Dark back to Light immediately",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; Dark theme active",
+    "steps": [
+      "On a class workspace page, click the theme button",
+      "Observe page and check for reload"
+    ],
+    "expected": "Whole app returns to Light immediately with no reload; icon and accessible name switch back"
+  },
+  {
+    "id": "TC-07",
+    "ac": ["AC-2"],
+    "title": "Switching on public pages works both ways",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Signed out; Light active",
+    "steps": [
+      "On the landing page click the theme button",
+      "Click it again",
+      "Repeat on the sign-in page"
+    ],
+    "expected": "Landing and sign-in pages switch Light to Dark and back instantly with no reload; all sections (hero, cards, footer, form) change"
+  },
+  {
+    "id": "TC-08",
+    "ac": ["AC-3"],
+    "title": "First visit follows device dark setting",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Clean browser profile (no localStorage); emulate prefers-color-scheme: dark",
+    "steps": [
+      "Open the landing page",
+      "Sign in as test student and open the home page",
+      "Inspect the theme button name"
+    ],
+    "expected": "Pages render in Dark; button name says 'Switch to light theme'"
+  },
+  {
+    "id": "TC-09",
+    "ac": ["AC-3"],
+    "title": "First visit follows device light setting",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Clean browser profile; emulate prefers-color-scheme: light",
+    "steps": [
+      "Open the landing page and sign-in page"
+    ],
+    "expected": "Pages render in Light; button name says 'Switch to dark theme'"
+  },
+  {
+    "id": "TC-10",
+    "ac": ["AC-3"],
+    "title": "Choice persists across reload, navigation and new tab",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; clean profile; device setting light",
+    "steps": [
+      "Click the theme button to choose Dark",
+      "Reload the page",
+      "Navigate to dashboard, a class, My notes, plans",
+      "Open the app in a new tab of the same browser profile",
+      "Close the browser and reopen the app in the same profile"
+    ],
+    "expected": "Dark is applied after reload, on every page, in the new tab and after browser restart; a saved value exists in localStorage"
+  },
+  {
+    "id": "TC-11",
+    "ac": ["AC-3"],
+    "title": "Saved choice overrides device setting (both directions)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Clean profile",
+    "steps": [
+      "Emulate prefers-color-scheme: dark; open app (Dark); click button to choose Light",
+      "Reload: verify Light",
+      "Clear storage; emulate prefers-color-scheme: light; open app (Light); click button to choose Dark",
+      "Reload: verify Dark",
+      "Toggle the emulated device setting while the page is open and reload again"
+    ],
+    "expected": "After a choice is saved, the app always uses the saved theme regardless of the device setting, including after the device setting changes"
+  },
+  {
+    "id": "TC-12",
+    "ac": ["AC-3"],
+    "title": "Choice persists across sign-in and sign-out on same device",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Signed out; Dark chosen on the landing page",
+    "steps": [
+      "Go to sign-in (Dark expected)",
+      "Sign in as test student (Dark expected on home)",
+      "Sign out (Dark expected on landing)"
+    ],
+    "expected": "Theme stays Dark throughout the sign-in/sign-out flow; no reset to Light"
+  },
+  {
+    "id": "TC-13",
+    "ac": ["AC-4"],
+    "title": "No flash of light theme when loading in saved Dark",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Dark saved; device setting light; network throttled (Slow 4G) and CPU throttled 4x",
+    "steps": [
+      "Record a performance trace / screenshot filmstrip while hard-reloading landing, sign-in, home, dashboard and a class page",
+      "Additionally, with Playwright, read getComputedStyle(document.documentElement).backgroundColor and the html class in a DOMContentLoaded listener injected before page scripts",
+      "Inspect the first painted frame"
+    ],
+    "expected": "Every filmstrip frame including the first paint shows a dark background; html already has the dark class / color-scheme dark at DOMContentLoaded; no light frame appears"
+  },
+  {
+    "id": "TC-14",
+    "ac": ["AC-4"],
+    "title": "No flash of dark theme when loading in saved Light on a dark device",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Light saved; emulate prefers-color-scheme: dark; throttled network/CPU",
+    "steps": [
+      "Hard-reload landing, home and dashboard while recording a filmstrip",
+      "Check the first painted frame and the html class at DOMContentLoaded"
+    ],
+    "expected": "First paint and all frames are Light; no dark frame appears; no console errors (e.g. CSP blocking the inline theme script)"
+  },
+  {
+    "id": "TC-15",
+    "ac": ["AC-5"],
+    "title": "Public pages in Dark: dark backgrounds and AA contrast",
+    "type": "Visual / Accessibility",
+    "priority": "High",
+    "preconditions": "Signed out; Dark active; desktop and 390 px",
+    "steps": [
+      "Open landing, sign-in and any other public pages (e.g. privacy/terms if present)",
+      "Screenshot full page at both widths",
+      "Run an automated contrast check (axe-core color-contrast) and spot-check body text with a contrast tool",
+      "Look for white or light panels left over"
+    ],
+    "expected": "All sections have dark backgrounds; no leftover white blocks; body text contrast at least 4.5:1; buttons, links and inputs readable; axe reports no color-contrast violations"
+  },
+  {
+    "id": "TC-16",
+    "ac": ["AC-5"],
+    "title": "Home and dashboard in Dark: dark backgrounds and AA contrast",
+    "type": "Visual / Accessibility",
+    "priority": "High",
+    "preconditions": "Signed in as test student with at least one test class; Dark active",
+    "steps": [
+      "Open home and dashboard at desktop and 390 px",
+      "Screenshot full page",
+      "Run axe color-contrast check",
+      "Check header, cards, empty states and any bold-palette blocks"
+    ],
+    "expected": "Dark backgrounds throughout including header and bold blocks; no white panels; text at least 4.5:1; no contrast violations"
+  },
+  {
+    "id": "TC-17",
+    "ac": ["AC-5"],
+    "title": "Class workspace panels in Dark; slide/PDF/handwriting content untouched",
+    "type": "Visual / Accessibility",
+    "priority": "High",
+    "preconditions": "Signed in; test class with uploaded test slides/PDF, typed notes, a handwritten note page, an AI summary (mocked) and a transcript; Dark active",
+    "steps": [
+      "Open the class workspace",
+      "Inspect notes, summary, slides and transcript panels, toolbars and tabs",
+      "Run axe color-contrast on the page",
+      "Compare slide/PDF/handwriting page rendering with Light"
+    ],
+    "expected": "Panel chrome, toolbars, text editor and summary/transcript text are dark with readable text (at least 4.5:1); slide, PDF and handwriting page content looks exactly as authored (same as in Light, ink colours unchanged)"
+  },
+  {
+    "id": "TC-18",
+    "ac": ["AC-5"],
+    "title": "My notes, plans and admin pages in Dark",
+    "type": "Visual / Accessibility",
+    "priority": "High",
+    "preconditions": "Signed in as test student with test notes; separate test admin account for admin page; Dark active",
+    "steps": [
+      "Open My notes, plans and admin pages at desktop and 390 px",
+      "Screenshot and run axe color-contrast",
+      "Check tables, cards, badges, pricing blocks and form inputs"
+    ],
+    "expected": "All pages dark with no leftover white panels; text and controls readable at AA (4.5:1); inputs, placeholders and badges visible"
+  },
+  {
+    "id": "TC-19",
+    "ac": ["AC-6"],
+    "title": "Light theme visual regression on all in-scope pages",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Baseline screenshots captured from preprod (before change) with the same test data; Light active on the build under test",
+    "steps": [
+      "Capture full-page screenshots of landing, sign-in, home, dashboard, class workspace, My notes, plans and admin at desktop and 390 px",
+      "Compare with baseline (pixel diff), ignoring the new theme button in headers"
+    ],
+    "expected": "No visual differences other than the added theme button; colours, spacing and layout match today's Light look"
+  },
+  {
+    "id": "TC-20",
+    "ac": ["AC-7"],
+    "title": "Dialogs and toasts follow theme",
+    "type": "Functional / Visual",
+    "priority": "High",
+    "preconditions": "Signed in; test class",
+    "steps": [
+      "In Dark, open a dialog (e.g. create/join class or delete confirmation)",
+      "Trigger a toast (e.g. save notes or upload test slides)",
+      "Screenshot both",
+      "Switch to Light and repeat"
+    ],
+    "expected": "Dialog surface, overlay, text and buttons are dark in Dark and light in Light; toasts match the active theme; text readable"
+  },
+  {
+    "id": "TC-21",
+    "ac": ["AC-7"],
+    "title": "Dropdown menus, selects, popovers and tooltips follow theme",
+    "type": "Functional / Visual",
+    "priority": "High",
+    "preconditions": "Signed in; Dark active",
+    "steps": [
+      "Open the user/account dropdown menu in the header",
+      "Open any select (e.g. class or plan selector) and view its options list",
+      "Open any popover and hover a control with a tooltip",
+      "Switch theme while a menu is closed and reopen it in Light"
+    ],
+    "expected": "Menus, select lists, popovers and tooltips have dark surfaces and readable text in Dark, light in Light; hover/selected states visible in both"
+  },
+  {
+    "id": "TC-22",
+    "ac": ["AC-7"],
+    "title": "Native form controls and scrollbars match theme (color-scheme)",
+    "type": "Edge case",
+    "priority": "Low",
+    "preconditions": "Dark active",
+    "steps": [
+      "View pages with scrollable areas, date/file inputs or native checkboxes",
+      "Inspect computed color-scheme on <html>"
+    ],
+    "expected": "color-scheme is dark in Dark (light in Light); native scrollbars and inputs render dark, no bright native controls"
+  },
+  {
+    "id": "TC-23",
+    "ac": ["AC-8"],
+    "title": "Keyboard operation and visible focus ring",
+    "type": "Accessibility",
+    "priority": "High",
+    "preconditions": "Signed in and signed out variants; Light active",
+    "steps": [
+      "Press Tab from page start until the theme button is focused (signed-in header and public header)",
+      "Check the focus ring is visible, in both Light and Dark",
+      "Press Enter; then press Space",
+      "Confirm focus remains on the button after each switch"
+    ],
+    "expected": "Button is reachable by Tab, shows a clearly visible focus ring in both themes, Enter and Space each toggle the theme, focus stays on the button, page does not scroll on Space"
+  },
+  {
+    "id": "TC-24",
+    "ac": ["AC-9"],
+    "title": "Typecheck, unit tests and build pass; dependencies reviewed",
+    "type": "Build",
+    "priority": "High",
+    "preconditions": "Branch claude/theme-toggle checked out; dependencies installed",
+    "steps": [
+      "Run bun run typecheck",
+      "Run the unit test suite",
+      "Run bun run build",
+      "Diff package.json against preprod for new dependencies"
+    ],
+    "expected": "All three commands exit 0; no new dependencies, or only next-themes / one justified in the build summary"
+  }
+]
