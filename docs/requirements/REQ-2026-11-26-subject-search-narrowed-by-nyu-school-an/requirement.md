@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-subject-search-narrowed-by-nyu-school-an            |
-| Status       | Ready for build   |
+| Status       | In test           |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/subject-search-by-school` |
@@ -129,7 +129,38 @@ picks them, and read them from the session user when the dialog opens.
 
 ## 7. Build summary (developer)
 
-What was changed and how each acceptance criterion is met.
+Code commit `b916579` on `claude/subject-search-by-school`.
+
+**Files**
+
+- New `src/lib/nyu-schools.ts`: `NYU_SCHOOLS` (22 schools from 6.1: id, full name, short name,
+  2–10 real programs each, code suffixes and exact `SUBJECT-SUFFIX` prefixes),
+  `schoolForCode(code)` (prefix rules win: Courant `CSCI/MATH/DS-UA/GA`, IFA `FINH/FIAR/CONS-GA`,
+  ISAW `ISAW-GA`; then the suffix after the dash; unknown → `null`), `programsFor(id)` (programs +
+  "Other / undeclared"), `schoolById`, and `groupBySchool(results, schoolId)`.
+- New `src/lib/nyu-schools.test.ts`: 10 bun tests (mapping for every school, case/dot handling,
+  unknown → null, table sanity, grouping order).
+- `src/components/SemesterSubjectsDialog.tsx`: steps 1–2, disabled state and hint, grouped
+  results, remembering the choice.
+
+**How each AC is met**
+
+| AC | How |
+| --- | --- |
+| AC-1 | Labels with numbered badges: 1 "Your NYU school", 2 "Your program" (side by side ≥ sm, stacked on phones), then 3 "Subject name" + "Term". |
+| AC-2 | School select lists all 22 entries of `NYU_SCHOOLS` by full name. |
+| AC-3 | Without a school the program select, subject input and term select are `disabled`; hint "Choose your school first to search subjects." (`data-testid="school-hint"`) and program placeholder "Choose a school first". The NYU search query is also not enabled without a school. |
+| AC-4 | Program options come from `programsFor(school)` (ending with "Other / undeclared"); choosing a different school resets the program to empty (placeholder "Choose your program"). |
+| AC-5 | `groupBySchool` puts courses whose `schoolForCode` matches the chosen school under heading "From <short name>" (`data-testid="nyu-group-own"`), shown first. |
+| AC-6 | All other courses under "Other NYU schools · cross-registration" (`data-testid="nyu-group-other"`), each with a small outline badge of the school short name (`data-testid="school-tag"`); unknown codes get no badge. |
+| AC-7 | Grouping is computed at render from the cached search results and the current school; the search query key does not include the school, so changing school regroups with no new request. |
+| AC-8 | `groupBySchool` keeps input order inside each group; a group with no rows is not rendered (no empty heading). |
+| AC-9 | On every pick, `supabase.auth.updateUser({ data: { nyu_school, nyu_program } })` (school change saves `nyu_program: null`); failures only `console.warn`. On open the dialog reads `user_metadata` from `getSession()` and then from `getUser()` (fresh, covers another device) and pre-fills school/program (unknown ids or programs ignored; a pick made during this opening is never overwritten by a late read). |
+| AC-10 | Search debounce, term select, Add/Added, To add chips, Your classes + Remove confirm, Done/Done · add N, error box with Try again and focus return are unchanged (same row markup, now rendered by a shared `renderRow`). `data-testid="nyu-results"` now wraps both groups. |
+| AC-11 | Selects stack in one column below `sm`; triggers are `min-w-0` (long names clamp to one line) and dropdowns are capped at `100vw - 2rem` wide and `max-h-72` tall. |
+
+**Checks**: `bun run typecheck` pass; `bun test src` 16 pass / 0 fail; `bun run build` pass;
+`prettier --check` and `eslint` clean on the 3 changed files.
 
 ## 8. Test summary (tester)
 
@@ -159,3 +190,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | ---------- | ---- | ------ | ------- |
 | 2026-11-26T15:14:40Z | Requirement analyst | Requirement created | Subject search narrowed by NYU school and program |
 | 2026-11-26T15:15:09Z | Requirement analyst | Requirement ready for build | 11 ACs; all NYU schools; preview approved by user; branch claude/subject-search-by-school stacked on claude/semester-subjects-fix |
+| 2026-11-26T15:16:31Z | Test master | Test cases written | 23 cases covering AC-1..AC-11 |
+| 2026-11-26T15:19:43Z | Developer | Build complete | Commit b916579: nyu-schools.ts (22 schools, schoolForCode, groupBySchool) + bun tests; dialog steps 1-3, grouped results, school/program saved in auth user_metadata; typecheck/tests/build pass |
