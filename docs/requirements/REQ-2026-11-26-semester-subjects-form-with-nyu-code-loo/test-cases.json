@@ -1,1 +1,277 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "ac": ["AC-1"],
+    "title": "First-time pop-up opens automatically for a new student with no classes",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Fake signed-in session (test student A, NYU university); mocked Supabase with no enrollments for A; browser localStorage cleared; viewport 1440px",
+    "steps": [
+      "Open the home page (signed-in landing page)",
+      "Wait for the page to finish loading"
+    ],
+    "expected": "The 'Your subjects this semester' pop-up (dialog) opens automatically without any click; it shows a subject search field, a term selector defaulting to Fall 2026 (current semester), an empty chosen list and a Done button; no page errors in the console"
+  },
+  {
+    "id": "TC-02",
+    "ac": ["AC-1"],
+    "title": "No automatic pop-up for a student who already has classes",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Fake signed-in session (test student B); mocked Supabase seeded with one class and an enrollment for B; localStorage cleared",
+    "steps": [
+      "Open the home page",
+      "Wait 5 seconds after load"
+    ],
+    "expected": "The pop-up does not open by itself; the home page shows B's existing class (e.g. in 'Continue where you left off'); the small 'Update my subjects' icon button is visible"
+  },
+  {
+    "id": "TC-03",
+    "ac": ["AC-1", "AC-4"],
+    "title": "Closing the pop-up without Done stops it reappearing; icon button remains",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "As TC-01 (no classes, localStorage cleared); pop-up open automatically",
+    "steps": [
+      "Close the pop-up (X button or Escape) without choosing any course",
+      "Check the home page",
+      "Reload the home page",
+      "Navigate to the dashboard and back to the home page"
+    ],
+    "expected": "After closing, the home page is usable and a small icon button (e.g. 'Update my subjects') is visible; after reload and after navigating back the pop-up does not open automatically again (dismissal remembered on this device); no classes/enrollments inserted"
+  },
+  {
+    "id": "TC-04",
+    "ac": ["AC-1"],
+    "title": "Completion is per user: a different new student on the same device still gets the pop-up",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Student A has completed/dismissed the pop-up on this browser (TC-03); a second fake session for test student C with no classes",
+    "steps": [
+      "Sign out of A (or swap the fake session) and sign in as C on the same browser",
+      "Open the home page"
+    ],
+    "expected": "The pop-up opens automatically for C (A's dismissal does not apply to C); switching back to A does not show it automatically"
+  },
+  {
+    "id": "TC-05",
+    "ac": ["AC-2"],
+    "title": "Search by subject name shows NYU code and title, sections de-duplicated",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Pop-up open (TC-01 setup); mocked NYU search returns for 'algorithms': BMIN-GA 1170 'Fundamental Algorithms' and two sections of CS-GY 6033 'Design and Analysis of Algorithms I'",
+    "steps": [
+      "Type 'algorithms' into the subject search field",
+      "Wait for results (up to a few seconds)"
+    ],
+    "expected": "Within a few seconds the result list shows exactly two entries, each with code and title: 'CS-GY 6033 · Design and Analysis of Algorithms I' and 'BMIN-GA 1170 · Fundamental Algorithms'; CS-GY 6033 appears only once; the server-side mock received term Fall 2026 (srcdb 9999) and keyword 'algorithms'"
+  },
+  {
+    "id": "TC-06",
+    "ac": ["AC-2"],
+    "title": "Switching term re-runs the search for the chosen term",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Pop-up open with 'algorithms' typed (TC-05); term list offers Spring 2027, January 2027, Fall 2026 (current), Summer 2026",
+    "steps": [
+      "Open the term selector and check the options and default",
+      "Select Spring 2027",
+      "Observe the results and the mocked NYU request"
+    ],
+    "expected": "All four terms are listed with Fall 2026 selected by default; after picking Spring 2027 the search is repeated and the mock receives srcdb 1274; results for that term are shown (code + title)"
+  },
+  {
+    "id": "TC-07",
+    "ac": ["AC-2"],
+    "title": "No results shows 'No NYU courses found'",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "Pop-up open; mocked NYU search returns an empty results[] for 'zzqx underwater basket'",
+    "steps": [
+      "Type 'zzqx underwater basket' in the search field",
+      "Wait for the search to finish"
+    ],
+    "expected": "A clear 'No NYU courses found' message is shown; no stale results from a previous search remain; no error toast; Done still works"
+  },
+  {
+    "id": "TC-08",
+    "ac": ["AC-2", "AC-6"],
+    "title": "Input shorter than 2 characters is ignored; very long input is limited",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Pop-up open; NYU mock records every call",
+    "steps": [
+      "Type a single character 'a' and wait 2 seconds",
+      "Clear the field (empty) and wait 2 seconds",
+      "Type a 300-character string",
+      "Type 'al' (2 characters)"
+    ],
+    "expected": "For 'a' and empty input no NYU request is made and no results/no-results message is shown (or a hint to type more); the 300-character input is either cut to the field's limit or rejected with a clear message and never sent unbounded to NYU; 'al' triggers a search"
+  },
+  {
+    "id": "TC-09",
+    "ac": ["AC-3"],
+    "title": "Pick several courses, remove one from the chosen list, press Done: new classes created and enrolled",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "New student A with no classes, pop-up open, term Fall 2026; mocked Supabase has no class with code CS-GY 6033 or BMIN-GA 1170; NYU mock for CS-GY 6033 includes an instructor, BMIN-GA 1170 has no instructor; a third course from another search (e.g. 'accounting' → ACCT-UB 1 'Principles of Financial Accounting') available",
+    "steps": [
+      "Search 'algorithms' and pick CS-GY 6033 and BMIN-GA 1170",
+      "Search 'accounting' and pick ACCT-UB 1",
+      "Check the chosen list shows all three with code and title",
+      "Remove ACCT-UB 1 from the chosen list",
+      "Press Done",
+      "Inspect inserts into classes and enrollments"
+    ],
+    "expected": "Chosen list shows 3 then 2 items after removal; on Done exactly two classes are inserted: subject 'Design and Analysis of Algorithms I', code 'CS-GY 6033', term 'Fall 2026', professor = NYU instructor; and subject 'Fundamental Algorithms', code 'BMIN-GA 1170', term 'Fall 2026', professor 'TBA'; both with created_by = A and A's university; two enrollments for A; nothing for ACCT-UB 1; a summary confirms the 2 classes added; pop-up closes"
+  },
+  {
+    "id": "TC-10",
+    "ac": ["AC-3"],
+    "title": "Existing LectureLoop class with the same code is reused (enroll only, no new class)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Mocked Supabase seeded with an existing class code 'CS-GY 6033' (created by another test user) that A is not enrolled in; A has no classes; pop-up open",
+    "steps": [
+      "Search 'algorithms', pick CS-GY 6033",
+      "Press Done",
+      "Inspect inserts into classes and enrollments"
+    ],
+    "expected": "No row inserted into classes; one enrollment inserted for A pointing at the existing class id; summary mentions the class as added/joined"
+  },
+  {
+    "id": "TC-11",
+    "ac": ["AC-3"],
+    "title": "Course already in the student's classes is not duplicated",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "A is already enrolled in class CS-GY 6033; open the form from the icon button",
+    "steps": [
+      "Search 'algorithms' and try to pick CS-GY 6033 (and also pick BMIN-GA 1170)",
+      "Press Done",
+      "Inspect inserts"
+    ],
+    "expected": "CS-GY 6033 is shown as already in your classes (not added twice to the chosen list, or skipped on Done); no duplicate class or enrollment for CS-GY 6033; only BMIN-GA 1170 is added; summary reports 1 added and CS-GY 6033 already enrolled/skipped; no error"
+  },
+  {
+    "id": "TC-12",
+    "ac": ["AC-3"],
+    "title": "Dashboard and home reflect the newly added classes immediately",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "TC-09 completed (two classes added)",
+    "steps": [
+      "Without reloading, look at the home page ('Continue where you left off' / class list)",
+      "Open the dashboard"
+    ],
+    "expected": "Both new classes appear on the home page and in the dashboard list with NYU title and code (CS-GY 6033, BMIN-GA 1170) without a manual reload; opening one goes to its class page"
+  },
+  {
+    "id": "TC-13",
+    "ac": ["AC-4"],
+    "title": "Icon button reopens the form showing current classes; remove un-enrolls with confirmation, notes kept",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "A enrolled in CS-GY 6033 and BMIN-GA 1170 (after Done); mocked Supabase has a note by A in BMIN-GA 1170",
+    "steps": [
+      "Reload the home page and confirm no automatic pop-up",
+      "Click the small 'Update my subjects' icon button",
+      "Check the current classes listed",
+      "Click remove on BMIN-GA 1170, read the confirmation, confirm",
+      "Search and add one more course (ACCT-UB 1) and press Done",
+      "Inspect deletes and the notes table"
+    ],
+    "expected": "Form opens listing CS-GY 6033 and BMIN-GA 1170 as current classes; removal asks for confirmation that states notes are kept; after confirming only A's enrollment for BMIN-GA 1170 is deleted (class row and A's notes not deleted); BMIN-GA 1170 disappears from the home/dashboard list; ACCT-UB 1 is added; icon button still present after closing"
+  },
+  {
+    "id": "TC-14",
+    "ac": ["AC-5"],
+    "title": "NYU search failure shows a clear message with a link to Add class; home keeps working",
+    "type": "Error handling",
+    "priority": "High",
+    "preconditions": "Pop-up open; NYU mock configured to fail (HTTP 500 / network error)",
+    "steps": [
+      "Type 'algorithms'",
+      "Read the message shown",
+      "Click the link to add the class manually",
+      "Return to the home page and use it (open a class, open the icon button)"
+    ],
+    "expected": "A clear message says NYU's class search is unavailable, with a link/button to add the class manually (Dashboard → Add class); the link goes to the dashboard (Add class reachable); no unhandled page errors; home page still loads and works"
+  },
+  {
+    "id": "TC-15",
+    "ac": ["AC-5"],
+    "title": "NYU search that hangs times out (~8 s) with a clear message",
+    "type": "Error handling",
+    "priority": "High",
+    "preconditions": "Pop-up open; NYU mock configured to never respond",
+    "steps": [
+      "Type 'algorithms' and start a timer",
+      "Wait up to 15 seconds",
+      "Close the pop-up and use the home page"
+    ],
+    "expected": "A loading state shows first; within roughly 8-10 seconds it is replaced by a clear 'unavailable/too slow' message with the manual Add class link; the page never freezes; closing the pop-up works and the home page stays usable"
+  },
+  {
+    "id": "TC-16",
+    "ac": ["AC-6"],
+    "title": "NYU request is server-side only; signed-out call rejected; input limits enforced on the server",
+    "type": "Security",
+    "priority": "High",
+    "preconditions": "Browser network capture enabled; pop-up open; NYU mock at the server side records calls",
+    "steps": [
+      "Search 'algorithms' and capture all browser network requests",
+      "Confirm no browser request goes to bulletins.nyu.edu (only to LectureLoop's own server function)",
+      "Call the search server function directly without a session (signed out / no auth header)",
+      "Call it signed in with q of 500+ characters and with an invalid term value"
+    ],
+    "expected": "No browser request to bulletins.nyu.edu; the search goes through a LectureLoop server endpoint which calls the (mocked) NYU API; the signed-out call is rejected (401/unauthorized error) and does not reach the NYU mock; oversized q / invalid term are rejected with a validation error (or truncated) and not forwarded unbounded"
+  },
+  {
+    "id": "TC-17",
+    "ac": ["AC-6"],
+    "title": "Keyboard-only use of the form",
+    "type": "Accessibility",
+    "priority": "Medium",
+    "preconditions": "New student with no classes; pop-up open automatically; viewport 1440px",
+    "steps": [
+      "Using only the keyboard: Tab to the search field and type 'algorithms'",
+      "Use arrow keys/Tab and Enter to pick CS-GY 6033",
+      "Tab to the term selector and change it with the keyboard",
+      "Tab to the chosen item's remove control and press Enter, then re-add it",
+      "Tab to Done and press Enter",
+      "Re-open with the icon button via Tab + Enter, then press Escape"
+    ],
+    "expected": "Every control is reachable with visible focus; courses can be picked/removed and Done pressed without a mouse; focus stays inside the dialog while open; Escape closes it and focus returns to the page; the icon button has an accessible name (e.g. 'Update my subjects')"
+  },
+  {
+    "id": "TC-18",
+    "ac": ["AC-6", "AC-1", "AC-2"],
+    "title": "Phone width (390px): pop-up, search, chosen list and icon fit without horizontal scroll",
+    "type": "Responsive",
+    "priority": "High",
+    "preconditions": "Viewport 390px; new student with no classes; localStorage cleared",
+    "steps": [
+      "Open the home page and wait for the pop-up",
+      "Search 'algorithms', pick both results",
+      "Check for horizontal scroll (document scrollWidth vs viewport width)",
+      "Press Done, then check the home page and the icon button"
+    ],
+    "expected": "Pop-up fits the screen; long titles wrap or truncate; result list, term selector, chosen list and Done button are usable; no horizontal page scroll; icon button visible and tappable on the home page; no page errors"
+  },
+  {
+    "id": "TC-19",
+    "ac": ["AC-6"],
+    "title": "Regression: dashboard Enroll in subject and Add class still work; no page errors",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Signed-in student; mocked Supabase with an existing class to enroll in; console capture on",
+    "steps": [
+      "Open the dashboard, use 'Enroll in subject' to join the existing class",
+      "Use 'Add class' to create a class manually (subject, professor, code)",
+      "Check inserts and the class list",
+      "Review the browser console across all tests on home and dashboard"
+    ],
+    "expected": "Enroll inserts one enrollment; Add class inserts the class and enrollment as before; both appear in the list; the dialogs look and behave unchanged; no uncaught errors or React errors in the console on home or dashboard"
+  }
+]

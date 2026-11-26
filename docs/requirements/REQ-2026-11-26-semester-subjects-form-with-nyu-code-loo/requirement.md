@@ -121,3 +121,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | -------------------- | ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-11-26T04:59:18Z | Requirement analyst | Requirement created         | Semester subjects form with NYU code lookup                                                                                                          |
 | 2026-11-26T04:59:18Z | Requirement analyst | Requirement ready for build | 6 acceptance criteria; source chosen by owner: live lookup on bulletins.nyu.edu (verified reachable from Vercel iad1, blocked from the test machine) |
+| 2026-11-26T05:01:00Z | Test master | Test cases written | 19 test cases covering AC-1..AC-6 |
