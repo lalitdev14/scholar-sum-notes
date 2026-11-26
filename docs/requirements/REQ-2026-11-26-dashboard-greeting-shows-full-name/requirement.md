@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-dashboard-greeting-shows-full-name            |
-| Status       | In build          |
+| Status       | PR raised |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/dashboard-full-name` |
