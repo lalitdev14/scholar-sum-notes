@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-manual-class-times            |
-| Status       | In PM review      |
+| Status       | Approved          |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/manual-class-times` |
@@ -146,7 +146,7 @@ once the student works on it, and Save stays disabled meanwhile.
 
 | Field       | Value                          |
 | ----------- | ------------------------------ |
-| Decision    | Changes requested              |
+| Decision    | Approved                       |
 | Verified by | Product manager agent          |
 | Date        | 2026-11-26                     |
 
@@ -174,6 +174,16 @@ Changes requested:
 
 Re-test after the fix: TC-16 (toast text), TC-20 (home card at 390 px in dark and light), TC-02 (exactly one "Enter times manually" link in each state), and a quick regression of TC-01 and TC-11.
 
+**Re-review 2026-11-26 (after developer commit 8d9c1a5 and re-test da363a4): Approved.**
+
+All three requested changes are done, and the evidence confirms them:
+
+1. Clear-times toast: clearing manual times now shows "Cleared your class times for Database Systems". The NYU path still shows "Section cleared for …" (TC-16, TC-16-3).
+2. Home "Next lecture" card: it is now dark in dark theme (rgb(26, 24, 32)) in all six states, with body text at 6.57:1 or more. Light theme is unchanged, with a white card and the lowest body text at 4.62:1. No horizontal scroll at 390 px (TC-20-9 to TC-20-20). The light-theme split-flap colons measure 3.41:1. They are 30 px large text, where the 3:1 rule applies, and come from the SplitFlap component, which this branch does not change. Accepted, no change.
+3. The NYU error and "no sections" states each show exactly one "Enter times manually" link. The footer link still shows when sections are listed (TC-01, TC-02, TC-02-2).
+
+Regressions TC-11 and TC-22 pass (typecheck, 84 unit tests, build). Overall 22/22. AC-1 to AC-9 remain met, as in the table above. Accepted as-is: errors on a newly added meeting appear only once touched (Save stays disabled meanwhile), and the TC-13 hydration warning comes from the faked test clock. Ready for step 6 (PR into `preprod`).
+
 ## 10. Audit trail
 
 Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Details>"`.
@@ -189,3 +199,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:47:26Z | Product manager | PM requested changes | AC-1..AC-9 met on evidence (22/22). Changes: 1) clear-manual-times toast copy; 2) NextLectureCard theme tokens for dark mode (card shows the manual label on Home); 3) show one Enter times manually link in error/no-sections states. Hydration warning and touched-only errors accepted. |
 | 2026-11-26T22:48:58Z | Developer | Changes after PM review | 1) clearing manual times toasts 'Cleared your class times for <subject>'; 2) NextLectureCard uses home theme tokens (home-block/line/ink/label/body/muted, home-accent) in all states, light unchanged, dark text >= 4.5:1; 3) footer 'Enter times manually' hidden in NYU error/no-sections states. typecheck, bun test (84), build pass |
 | 2026-11-26T22:52:52Z | Tester | Re-test after PM review | 6 re-run (TC-01, TC-02, TC-11, TC-16, TC-20, TC-22): 6 passed, 0 failed, 0 blocked; overall 22/22 pass |
+| 2026-11-26T22:53:45Z | Product manager | PM approved | Re-review after 8d9c1a5/da363a4: all 3 changes verified (clear-times toast, dark home card in all 6 states, single manual link); AC-1..AC-9 met, 22/22 pass. Light split-flap colons 3.41:1 (30 px large text, pre-existing SplitFlap) accepted. |
