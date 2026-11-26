@@ -1,1 +1,316 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "ac": ["AC-1"],
+    "title": "Sections server function returns sections for a course code and term (mocked NYU)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as a test student. NYU class search mocked to return, for term Fall 2026, three sections of the requested code CSCI-UA 101 (001 LEC 'TR 2-3:15p' with meetingTimes empty, instr 'Test Prof A', 2026-09-02 to 2026-12-14; 002 LEC 'M 2-4:30p'; 003 LEC 'T 11a-1:30p') plus one section of a similar code CSCI-UA 1010. Fake now: 2026-11-26T15:00:00Z.",
+    "steps": [
+      "Call the sections server function for course code 'CSCI-UA 101' and term Fall 2026",
+      "Inspect each returned section"
+    ],
+    "expected": "Exactly the 3 sections of CSCI-UA 101 are returned (the similar code is filtered out). Each has section no., type 'LEC', meeting text, parsed weekly meetings, start date 2026-09-02, end date 2026-12-14 and instructor."
+  },
+  {
+    "id": "TC-02",
+    "ac": ["AC-1"],
+    "title": "Meeting-text parser: 'TR 2-3:15p'",
+    "type": "Unit",
+    "priority": "High",
+    "preconditions": "Meeting-text parser unit test; no network.",
+    "steps": ["Parse 'TR 2-3:15p'"],
+    "expected": "Two weekly meetings: Tuesday 14:00-15:15 and Thursday 14:00-15:15 (start inherits pm from end)."
+  },
+  {
+    "id": "TC-03",
+    "ac": ["AC-1"],
+    "title": "Meeting-text parser: 'M 2-4:30p', 'T 11a-1:30p', 'T 4:55-6:55p'",
+    "type": "Unit",
+    "priority": "High",
+    "preconditions": "Meeting-text parser unit test; no network.",
+    "steps": ["Parse 'M 2-4:30p'", "Parse 'T 11a-1:30p'", "Parse 'T 4:55-6:55p'"],
+    "expected": "'M 2-4:30p' → Monday 14:00-16:30. 'T 11a-1:30p' → Tuesday 11:00-13:30 (start stays am, crossing noon). 'T 4:55-6:55p' → Tuesday 16:55-18:55."
+  },
+  {
+    "id": "TC-04",
+    "ac": ["AC-1"],
+    "title": "meetingTimes JSON is used when present (meet_day 0 = Monday)",
+    "type": "Unit",
+    "priority": "High",
+    "preconditions": "Mocked section with meets 'T 4:55-6:55p' and meetingTimes [{meet_day:\"1\",start_time:\"1655\",end_time:\"1855\"}].",
+    "steps": ["Map the mocked section through the server function / parser"],
+    "expected": "One meeting on Tuesday 16:55-18:55 (meet_day 1 = Tuesday, not Monday)."
+  },
+  {
+    "id": "TC-05",
+    "ac": ["AC-1"],
+    "title": "TBA and unparseable meeting text return the section with no meetings",
+    "type": "Unit",
+    "priority": "Medium",
+    "preconditions": "Mocked sections with meets 'TBA', '' and 'Does not meet', meetingTimes empty.",
+    "steps": ["Call the sections server function / parser for these sections"],
+    "expected": "All three sections are returned (with section no., instructor, dates), each with an empty meetings list; no error is thrown."
+  },
+  {
+    "id": "TC-06",
+    "ac": ["AC-1"],
+    "title": "Sections server function rejects signed-out callers",
+    "type": "Security",
+    "priority": "High",
+    "preconditions": "Not signed in (no session). NYU mocked.",
+    "steps": ["Call the sections server function without an auth session"],
+    "expected": "Request is rejected as unauthorized; no section data is returned and NYU is not called."
+  },
+  {
+    "id": "TC-07",
+    "ac": ["AC-2"],
+    "title": "Subjects dialog: pick a section after adding a course",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as test student with no classes. NYU mocked as in TC-01. Fake now: 2026-11-26T15:00:00Z.",
+    "steps": [
+      "Open 'Your subjects this semester'",
+      "Add CSCI-UA 101",
+      "Open the section choice for that course",
+      "Choose section 001"
+    ],
+    "expected": "A list shows each section with section no., days/times (e.g. 'TR 2-3:15p' / Tue & Thu 2:00-3:15 pm) and instructor. After choosing 001 it is shown as the selected section and is saved."
+  },
+  {
+    "id": "TC-08",
+    "ac": ["AC-2", "AC-11"],
+    "title": "Subjects dialog: choosing a section is optional",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as test student. NYU mocked.",
+    "steps": [
+      "Open 'Your subjects this semester'",
+      "Add CSCI-UA 101 and do not choose a section",
+      "Close/finish the dialog"
+    ],
+    "expected": "Class is added and appears in 'Your classes' exactly as before this feature; no saved section exists; no error or forced step."
+  },
+  {
+    "id": "TC-09",
+    "ac": ["AC-3"],
+    "title": "Set section for an existing class from the class page",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; enrolled in CSCI-UA 101 with no section. NYU mocked.",
+    "steps": ["Open the CSCI-UA 101 class page", "Click 'Set your section'", "Choose section 002"],
+    "expected": "Section 002 ('M 2-4:30p') is saved and shown on the class page; reloading keeps it."
+  },
+  {
+    "id": "TC-10",
+    "ac": ["AC-3", "AC-4"],
+    "title": "Change section from the 'Your classes' list",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; enrolled in CSCI-UA 101 with saved section 002. NYU mocked.",
+    "steps": ["Open 'Your classes'", "Use the change-section action on CSCI-UA 101", "Choose section 003"],
+    "expected": "Saved section becomes 003 ('T 11a-1:30p'); only one saved row exists for this student+class (replaced, not duplicated)."
+  },
+  {
+    "id": "TC-11",
+    "ac": ["AC-4"],
+    "title": "Saved section row contains all required fields",
+    "type": "Data",
+    "priority": "High",
+    "preconditions": "Test database/mocked Supabase; TC-07 done.",
+    "steps": ["Inspect the class_sections row for the test student and CSCI-UA 101"],
+    "expected": "Row has user_id, class_id, term, section_no '001', meets 'TR 2-3:15p', meetings JSON (Tue/Thu 14:00-15:15), start_date 2026-09-02, end_date 2026-12-14; unique per (user, class)."
+  },
+  {
+    "id": "TC-12",
+    "ac": ["AC-4"],
+    "title": "RLS: a student cannot read or write another student's section rows",
+    "type": "Security",
+    "priority": "High",
+    "preconditions": "Two test students A and B (test data only, or RLS policy review against mocked client). B has a saved section.",
+    "steps": [
+      "As A, select class_sections rows",
+      "As A, try to insert a row with user_id = B",
+      "As A, try to update/delete B's row"
+    ],
+    "expected": "A sees only own rows (none of B's). Insert/update/delete on B's row are denied or affect 0 rows. Migration enables RLS with own-row policies for select/insert/update/delete."
+  },
+  {
+    "id": "TC-13",
+    "ac": ["AC-4"],
+    "title": "Removing a class removes its saved section",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; enrolled in CSCI-UA 101 with saved section 001.",
+    "steps": ["Remove CSCI-UA 101 from 'Your classes'", "Check class_sections and the home page"],
+    "expected": "No class_sections row remains for that class; home card no longer uses it."
+  },
+  {
+    "id": "TC-14",
+    "ac": ["AC-5", "AC-6"],
+    "title": "Next lecture within 24 h shows split-flap HH:MM:SS countdown",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Saved section 001 'TR 2-3:15p' (2026-09-02 to 2026-12-14). Fake now: Tue 2026-12-01 10:30:00 New York (15:30:00Z).",
+    "steps": ["Open the home page", "Watch the card for 3 seconds"],
+    "expected": "Card reads 'CSCI-UA 101 starts in' (class name) with digits 03:30:00, ticking to 03:29:59, 03:29:58 each second; only digits that change flip."
+  },
+  {
+    "id": "TC-15",
+    "ac": ["AC-5", "AC-6"],
+    "title": "Next lecture more than 24 h away shows day and time",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Saved section 001 'TR 2-3:15p'. Fake now: Fri 2026-11-27 12:00 New York (17:00Z).",
+    "steps": ["Open the home page"],
+    "expected": "Card shows next lecture 'Tue 2:00 pm' (CSCI-UA 101); no split-flap countdown."
+  },
+  {
+    "id": "TC-16",
+    "ac": ["AC-5"],
+    "title": "Soonest meeting chosen across multiple classes",
+    "type": "Unit",
+    "priority": "High",
+    "preconditions": "Next-lecture calculation unit test. Sections: A 'TR 2-3:15p', B 'M 2-4:30p', C 'T 11a-1:30p', all 2026-09-02 to 2026-12-14. Fake now: Mon 2026-11-30 09:00 New York (14:00Z).",
+    "steps": ["Compute next lecture"],
+    "expected": "Next = class B, Mon 2026-11-30 14:00 New York (19:00Z). At fake now Mon 2026-11-30 17:00 New York (22:00Z) next = class C Tue 11:00 (2026-12-01T16:00:00Z)."
+  },
+  {
+    "id": "TC-17",
+    "ac": ["AC-5", "AC-11"],
+    "title": "DST end (Sun 2026-11-01, New York): wall-clock time is kept",
+    "type": "Unit",
+    "priority": "High",
+    "preconditions": "Section 'M 9:30-10:45a', 2026-09-02 to 2026-12-14.",
+    "steps": [
+      "Fake now: Sat 2026-10-31 12:00 EDT (16:00Z); compute next lecture",
+      "Fake now: Sun 2026-11-01 12:00 EST (17:00Z); compute next lecture and countdown"
+    ],
+    "expected": "Both: next lecture = Mon 2026-11-02 9:30 am New York = 2026-11-02T14:30:00Z (not 13:30Z). First case is 46h30m away → 'Mon 9:30 am'. Second case is 21h30m away → countdown 21:30:00."
+  },
+  {
+    "id": "TC-18",
+    "ac": ["AC-5", "AC-11"],
+    "title": "DST start (Sun 2027-03-14, New York): wall-clock time is kept",
+    "type": "Unit",
+    "priority": "High",
+    "preconditions": "Section 'M 9:30-10:45a', 2027-01-20 to 2027-05-10.",
+    "steps": [
+      "Fake now: Sat 2027-03-13 12:00 EST (17:00Z); compute next lecture",
+      "Fake now: Sun 2027-03-14 12:00 EDT (16:00Z); compute countdown"
+    ],
+    "expected": "Next lecture = Mon 2027-03-15 9:30 am New York = 2027-03-15T13:30:00Z (not 14:30Z). First case 44h30m → 'Mon 9:30 am'. Second case → countdown 21:30:00 (not 22:30:00)."
+  },
+  {
+    "id": "TC-19",
+    "ac": ["AC-5"],
+    "title": "Meetings outside the section's start/end dates are ignored",
+    "type": "Unit",
+    "priority": "Medium",
+    "preconditions": "Section 'TR 2-3:15p', 2026-09-02 (Wed) to 2026-12-14 (Mon).",
+    "steps": [
+      "Fake now: Sat 2026-08-29 12:00 New York; compute next lecture",
+      "Fake now: Thu 2026-12-10 16:00 New York; compute next lecture"
+    ],
+    "expected": "First: Thu 2026-09-03 2:00 pm (not Tue 2026-09-01, before start). Second: none upcoming (Tue 2026-12-15 is after end date)."
+  },
+  {
+    "id": "TC-20",
+    "ac": ["AC-7"],
+    "title": "Happening now, then moves to next lecture when it ends",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Saved sections A 'TR 2-3:15p' and C 'T 4:55-6:55p'. Fake now: Tue 2026-12-01 15:13:30 New York (20:13:30Z); clock advances.",
+    "steps": ["Open home page", "Advance fake clock past 15:15:00"],
+    "expected": "Card shows 'CSCI-UA 101 · happening now · ends in 01:30' (or similar) counting down. After 15:15 it switches to class C 'starts in 01:40:00' countdown."
+  },
+  {
+    "id": "TC-21",
+    "ac": ["AC-8"],
+    "title": "No saved sections: card invites student to set sections",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; enrolled in a class but no saved sections. Fake now: 2026-11-26T15:00:00Z.",
+    "steps": ["Open home page", "Click the card's action"],
+    "expected": "Card invites the student to set their sections (no countdown); action opens the section picker (subjects dialog or class page / Your classes)."
+  },
+  {
+    "id": "TC-22",
+    "ac": ["AC-8"],
+    "title": "Sections saved but term over: card says no upcoming lectures",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Saved section 'TR 2-3:15p' ending 2026-12-14. Fake now: Fri 2026-12-18 12:00 New York.",
+    "steps": ["Open home page"],
+    "expected": "Card states there are no upcoming lectures (e.g. term over); no countdown and no error."
+  },
+  {
+    "id": "TC-23",
+    "ac": ["AC-9"],
+    "title": "Reduce motion: digits update without flip animation",
+    "type": "Accessibility",
+    "priority": "Medium",
+    "preconditions": "Emulate prefers-reduced-motion: reduce. Setup as TC-14 (fake now Tue 2026-12-01 10:30 New York).",
+    "steps": ["Open home page", "Watch digits for 3 seconds"],
+    "expected": "Digits change each second with no flip/3D animation (no running animation/transition on digit elements)."
+  },
+  {
+    "id": "TC-24",
+    "ac": ["AC-9"],
+    "title": "Screen reader: time announced in words, not every second",
+    "type": "Accessibility",
+    "priority": "Medium",
+    "preconditions": "Setup as TC-14. Inspect accessibility tree.",
+    "steps": ["Inspect the card's accessible name/text", "Observe live region updates over 10 seconds"],
+    "expected": "Accessible text reads in words, e.g. 'CSCI-UA 101 starts in 3 hours 30 minutes'; individual flap digits are hidden from assistive tech; no per-second announcements (any live region updates at most per minute or is polite/static)."
+  },
+  {
+    "id": "TC-25",
+    "ac": ["AC-10"],
+    "title": "NYU lookup failure shows message with Try again; class can still be added",
+    "type": "Error handling",
+    "priority": "High",
+    "preconditions": "Signed in. NYU mocked to fail (HTTP 500 / timeout) on first call, succeed on second.",
+    "steps": [
+      "In subjects dialog add CSCI-UA 101 and open section choice",
+      "Observe error",
+      "Click Try again",
+      "Repeat with persistent failure and finish adding the class"
+    ],
+    "expected": "Clear message that NYU sections couldn't be loaded with a 'Try again' button; retry loads the list. With persistent failure the class is still added successfully."
+  },
+  {
+    "id": "TC-26",
+    "ac": ["AC-11"],
+    "title": "390 px phone width: card, subjects dialog and section picker",
+    "type": "Responsive",
+    "priority": "Medium",
+    "preconditions": "Viewport 390x844. Setup as TC-14, then TC-07.",
+    "steps": ["Open home page", "Open subjects dialog and section list"],
+    "expected": "Countdown card and digits fit without horizontal scroll or clipped text; section list rows (no., times, instructor) readable and tappable."
+  },
+  {
+    "id": "TC-27",
+    "ac": ["AC-11"],
+    "title": "Regression: subjects dialog and home page otherwise unchanged",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Signed in test student with existing classes and notes. NYU mocked.",
+    "steps": [
+      "Search and add a subject, remove a subject in the subjects dialog",
+      "Open home page; check existing sections (classes list, notes/summaries links)",
+      "Open a class page and its notes"
+    ],
+    "expected": "Search/add/remove work as before; home page content other than the new card is unchanged; class page and notes work; no console errors."
+  },
+  {
+    "id": "TC-28",
+    "ac": ["AC-11"],
+    "title": "Typecheck, unit tests and build pass",
+    "type": "Build",
+    "priority": "High",
+    "preconditions": "Feature branch checked out, dependencies installed.",
+    "steps": ["bun run typecheck", "Run unit tests (meeting-text parser, next-lecture incl. DST)", "bun run build"],
+    "expected": "All three succeed with no errors; parser and next-lecture tests (incl. DST cases) exist and pass."
+  }
+]

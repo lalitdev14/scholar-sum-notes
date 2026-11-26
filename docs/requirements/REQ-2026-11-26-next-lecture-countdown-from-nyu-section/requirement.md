@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-next-lecture-countdown-from-nyu-section            |
-| Status       | In test           |
+| Status       | PR raised |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/next-lecture-countdown` |
@@ -138,3 +138,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T17:24:54Z | Requirement analyst | Requirement ready for build | 11 ACs; product owner chose 'Pick NYU section'; needs additive migration run in Supabase before merge |
 | 2026-11-26T17:26:53Z | Test master | Test cases written | 28 cases covering AC-1..AC-11 |
 | 2026-11-26T20:33:12Z | Developer | Build complete | Commit 154014b: getNyuSections, meeting parser + next-lecture (NY/DST) with tests, class_sections migration 20261126120000 + types, SectionPicker in subjects dialog/class page, Next lecture split-flap card; typecheck, 55 unit tests, build pass |
+| 2026-11-26T20:33:51Z | Product owner | Steps 3-5 waived | Product owner asked for the PR before testing ('generate pr'); test cases written, test run and PM review not done |
