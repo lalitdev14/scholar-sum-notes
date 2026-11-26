@@ -8,7 +8,17 @@ import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { EmailSentNotice } from "@/components/EmailSentNotice";
 import { SiteFooter } from "@/components/SiteFooter";
-import { INK, SOFT_GREY, VIOLET, boldOutline, boldPrimary, grotesk } from "@/lib/bold-theme";
+import {
+  INK,
+  INK_PANEL,
+  SOFT_GREY,
+  VIOLET,
+  VIOLET_TEXT,
+  boldOutline,
+  boldPrimary,
+  grotesk,
+} from "@/lib/bold-theme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/auth")({
   staticData: { sitemap: false },
@@ -143,7 +153,7 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen flex-col" style={{ backgroundColor: SOFT_GREY, color: INK }}>
-      <header className="text-white" style={{ backgroundColor: INK }}>
+      <header className="text-white" style={{ backgroundColor: INK_PANEL }}>
         <div className="mx-auto flex w-full max-w-[100rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-10 xl:px-16">
           <Link to="/" className="flex items-center gap-2.5" aria-label="LectureLoop home">
             <GraduationCap
@@ -155,12 +165,15 @@ function AuthPage() {
               LectureLoop
             </span>
           </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-white/80 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" /> Home
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="text-white/85 hover:bg-white/10 hover:text-white focus-visible:outline-white" />
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-white/80 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Link>
+          </div>
         </div>
       </header>
       <main className="mx-auto grid w-full max-w-[100rem] flex-1 items-center gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:px-10 xl:px-16">
@@ -171,15 +184,15 @@ function AuthPage() {
           >
             {mode === "signup" && !resetting ? (
               <>
-                Start your <span style={{ color: VIOLET }}>notebook</span> for every class.
+                Start your <span style={{ color: VIOLET_TEXT }}>notebook</span> for every class.
               </>
             ) : (
               <>
-                Pick up right where you <span style={{ color: VIOLET }}>left off</span>.
+                Pick up right where you <span style={{ color: VIOLET_TEXT }}>left off</span>.
               </>
             )}
           </p>
-          <ul className="mt-8 grid max-w-md gap-3 text-[0.95rem] text-[#4a4a56]">
+          <ul className="mt-8 grid max-w-md gap-3 text-[0.95rem] text-bold-text">
             {[
               "Typed or handwritten notes next to the lecture slides",
               "Lecture transcripts, corrected from the audio",
@@ -195,9 +208,9 @@ function AuthPage() {
             ))}
           </ul>
         </div>
-        <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none [&_h1]:text-[2rem] [&_h1]:font-bold [&_h1]:tracking-[-0.03em] [&_h1]:text-[#0d0d12] [&_h1]:[font-family:'Space_Grotesk',Inter,sans-serif] [&_input]:h-11 [&_input]:rounded-xl [&_input]:border-[#e2e2dc] [&_input]:bg-[#fafaf8] [&_input:focus-visible]:border-[#6d4aff] [&_input:focus-visible]:ring-[#6d4aff]/30">
+        <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none [&_h1]:text-[2rem] [&_h1]:font-bold [&_h1]:tracking-[-0.03em] [&_h1]:text-bold-ink [&_h1]:[font-family:'Space_Grotesk',Inter,sans-serif] [&_input]:h-11 [&_input]:rounded-xl [&_input]:border-bold-input-line [&_input]:bg-bold-input [&_input:focus-visible]:border-[#6d4aff] [&_input:focus-visible]:ring-[#6d4aff]/30">
           {resetting ? (
-            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
+            <div className="rounded-[1.5rem] bg-bold-block p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">Reset your password</h1>
               {resetSent ? (
                 <div>
@@ -256,7 +269,7 @@ function AuthPage() {
               )}
             </div>
           ) : signupSent ? (
-            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
+            <div className="rounded-[1.5rem] bg-bold-block p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">Confirm your email</h1>
               <EmailSentNotice
                 email={email}
@@ -271,7 +284,7 @@ function AuthPage() {
               />
             </div>
           ) : (
-            <div className="rounded-[1.5rem] bg-white p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
+            <div className="rounded-[1.5rem] bg-bold-block p-7 shadow-[0_30px_80px_-45px_rgba(13,13,18,0.45)] sm:p-9">
               <h1 className="text-3xl">{mode === "signin" ? "Welcome back" : "Join your class"}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {mode === "signin"
@@ -407,7 +420,7 @@ function AuthPage() {
                 <Button
                   type="button"
                   variant="link"
-                  className="h-auto p-0 font-semibold text-[#6d4aff] underline underline-offset-4"
+                  className="h-auto p-0 font-semibold text-bold-violet-text underline underline-offset-4"
                   onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
                 >
                   {mode === "signin" ? "Create an account" : "Sign in"}
