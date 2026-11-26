@@ -52,7 +52,8 @@ import { slideStorageFiles } from "@/lib/slide-copy-path";
 import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace";
 import { UploadProgressIcon, useUploadProgress } from "@/components/UploadProgress";
 import { useTabIndicator } from "@/hooks/use-tab-indicator";
-import { classTransitionName } from "@/lib/motion";
+import { classTransitionStyle } from "@/lib/motion";
+import { classQueryOptions, myNoteQueryOptions, preloadClass } from "@/lib/class-queries";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import {
@@ -113,6 +114,15 @@ export const Route = createFileRoute("/_authenticated/class/$classId")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  // Load the class so the header shows the real name when the card morphs into it. Hovering,
+  // focusing or touching a card (preload="intent") starts the fetch without waiting; opening
+  // waits at most ~300 ms, so slow data opens the page with its loading state instead of
+  // freezing the click. (beforeLoad, not a loader: it runs on every navigation, also after
+  // a preload, while a preloaded loader would only refresh in the background.)
+  beforeLoad: async ({ context, params, preload }) => {
+    const ready = preloadClass(context.queryClient, params.classId);
+    if (!preload) await ready;
+  },
   component: ClassPage,
 });
 
@@ -845,37 +855,9 @@ function ClassPage() {
     }
   }
 
-  const { data: klass, isError: classMissing } = useQuery({
-    queryKey: ["class", classId],
-    // "No such class" (deleted or wrong link) is final: show the message right away.
-    retry: (count, err) => (err as { code?: string }).code !== "PGRST116" && count < 2,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("classes")
-        .select("id, subject, professor, code, term")
-        .eq("id", classId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: klass, isError: classMissing } = useQuery(classQueryOptions(classId));
 
-  const { data: myNote } = useQuery({
-    queryKey: ["my-note", classId],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const { data, error } = await supabase
-        .from("notes")
-        .select("id, content, summary, key_points, summary_updated_at, updated_at")
-        .eq("class_id", classId)
-        .eq("user_id", userData.user!.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: myNote } = useQuery(myNoteQueryOptions(classId));
 
   useEffect(() => {
     if (myNote) {
@@ -1040,7 +1022,8 @@ function ClassPage() {
             a View Transition name with the class card, so opening a class morphs the card. */}
         <div
           className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
-          style={{ viewTransitionName: classTransitionName(classId) }}
+          style={classTransitionStyle(classId)}
+          data-class-morph="header"
           data-testid="class-header"
         >
           <div className="flex min-w-0 items-center gap-3">
@@ -1051,7 +1034,7 @@ function ClassPage() {
               className="h-8 shrink-0 gap-1.5 px-2.5"
               title="Back to dashboard"
             >
-              <Link to="/dashboard" viewTransition aria-label="Back to dashboard">
+              <Link to="/dashboard" viewTransition preload="intent" aria-label="Back to dashboard">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>

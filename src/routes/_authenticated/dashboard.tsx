@@ -1,5 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { classTransitionName } from "@/lib/motion";
+import { classTransitionStyle } from "@/lib/motion";
+import {
+  dashboardClassesQueryOptions,
+  dashboardProfileQueryOptions,
+  myEnrollmentsQueryOptions,
+  preloadDashboard,
+} from "@/lib/class-queries";
 import { formatFullName } from "@/lib/format-name";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -62,6 +68,13 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { property: "og:description", content: "Your personal class notes and AI summaries." },
     ],
   }),
+  // Have the class cards ready when the page opens (e.g. "Back to dashboard" morphs the
+  // class header back into its card), but never wait more than ~300 ms for them. A preload
+  // (hovering "Back to dashboard") only starts the fetch.
+  beforeLoad: async ({ context, preload }) => {
+    const ready = preloadDashboard(context.queryClient);
+    if (!preload) await ready;
+  },
   component: Dashboard,
 });
 
@@ -73,68 +86,17 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ subject: "", professor: "", code: "", term: "" });
 
-  const { data: me } = useQuery({
-    queryKey: ["dashboard-profile"],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) return null;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", userId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: me } = useQuery(dashboardProfileQueryOptions());
 
   const fullName = formatFullName(me?.full_name ?? "");
 
-  const { data: enrollments } = useQuery({
-    queryKey: ["my-enrollments"],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) return [] as string[];
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("class_id")
-        .eq("user_id", userId);
-      if (error) throw error;
-      return (data ?? []).map((r) => r.class_id);
-    },
-  });
+  const { data: enrollments } = useQuery(myEnrollmentsQueryOptions());
 
   const enrolledIds = enrollments ?? [];
 
   const { data: classes, isPending } = useQuery({
-    queryKey: ["classes", enrolledIds],
+    ...dashboardClassesQueryOptions(enrolledIds),
     enabled: enrollments !== undefined,
-    queryFn: async () => {
-      if (enrolledIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("classes")
-        .select("id, subject, professor, code, term")
-        .in("id", enrolledIds)
-        .order("subject");
-      if (error) throw error;
-
-      // Only this student's own notes (reviewers can read more via RLS, so filter explicitly).
-      const { data: userData } = await supabase.auth.getUser();
-      const { data: myNotes, error: notesError } = await supabase
-        .from("notes")
-        .select("class_id, content, summary, updated_at")
-        .eq("user_id", userData.user!.id)
-        .in("class_id", enrolledIds)
-        .order("updated_at", { ascending: false });
-      if (notesError) throw notesError;
-      const noteByClass = new Map<string, NonNullable<typeof myNotes>[number]>();
-      for (const n of myNotes ?? [])
-        if (!noteByClass.has(n.class_id)) noteByClass.set(n.class_id, n);
-
-      return (data ?? []).map((c) => ({ ...c, myNote: noteByClass.get(c.id) ?? null }));
-    },
   });
 
   const { data: searchResults, isFetching: searching } = useQuery({
@@ -516,7 +478,9 @@ function Dashboard() {
                   to="/class/$classId"
                   params={{ classId: klass.id }}
                   viewTransition
-                  style={{ viewTransitionName: classTransitionName(klass.id) }}
+                  preload="intent"
+                  style={classTransitionStyle(klass.id)}
+                  data-class-morph="card"
                   data-testid="class-card"
                   className={`${boldBlock} motion-tilt group flex min-w-0 flex-col p-6 outline-none transition-[transform,box-shadow] hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(13,13,18,0.45)] focus-visible:ring-2 focus-visible:ring-[#6d4aff]`}
                 >

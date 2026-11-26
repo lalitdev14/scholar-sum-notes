@@ -83,7 +83,12 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
   return (
     <header
       className="border-b border-black/10"
-      style={{ backgroundColor: uniTheme.primary, color: "#fff" }}
+      // Its own View Transition layer: the bar stays put while the page under it changes.
+      style={{
+        backgroundColor: uniTheme.primary,
+        color: "#fff",
+        viewTransitionName: "site-header",
+      }}
     >
       {/* Same container as every page (max-w-[100rem] px-4 sm:px-6) so the logo lines up with page content. */}
       <div className="mx-auto grid max-w-[100rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-6 sm:py-5 md:flex md:justify-between lg:px-10 xl:px-16">

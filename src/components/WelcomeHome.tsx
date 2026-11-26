@@ -6,7 +6,7 @@ import { SemesterSubjectsDialog } from "@/components/SemesterSubjectsDialog";
 import { NextLectureCard } from "@/components/NextLectureCard";
 import { supabase } from "@/integrations/supabase/client";
 import { pickGreeting, rememberGreeting } from "@/lib/greetings";
-import { classTransitionName } from "@/lib/motion";
+import { classTransitionStyle } from "@/lib/motion";
 import { formatFullName } from "@/lib/format-name";
 
 type Activity = "typed" | "handwriting" | "opened";
@@ -216,7 +216,8 @@ export function WelcomeHome() {
           {last ? (
             <section
               className="motion-tilt rounded-[1.25rem] p-6 text-white shadow-[0_24px_60px_-28px_rgba(60,10,90,0.65)] sm:p-7"
-              style={{ backgroundColor: deep, viewTransitionName: classTransitionName(last.id) }}
+              style={{ backgroundColor: deep, ...classTransitionStyle(last.id) }}
+              data-class-morph="card"
               aria-labelledby="continue-title"
               data-testid="continue-card"
             >
@@ -245,6 +246,7 @@ export function WelcomeHome() {
                 to="/class/$classId"
                 params={{ classId: last.id }}
                 viewTransition
+                preload="intent"
                 className="mt-6 flex items-center justify-between rounded-xl bg-white px-5 py-3.5 text-[0.95rem] font-semibold text-[#17151c] transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Open note <ArrowRight className="h-4 w-4" />
@@ -273,7 +275,8 @@ export function WelcomeHome() {
                   <li
                     key={c.id}
                     className="flex items-center gap-3 rounded-xl bg-white/[0.07] px-4 py-3"
-                    style={{ viewTransitionName: classTransitionName(c.id) }}
+                    style={classTransitionStyle(c.id)}
+                    data-class-morph="card"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs text-white/60" style={mono}>
@@ -287,6 +290,7 @@ export function WelcomeHome() {
                       to="/class/$classId"
                       params={{ classId: c.id }}
                       viewTransition
+                      preload="intent"
                       className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-[#17151c] transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                       aria-label={`Open ${c.subject}`}
                     >

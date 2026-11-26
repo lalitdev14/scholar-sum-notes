@@ -25,6 +25,13 @@ function markActive() {
   }
 }
 
+// The session was checked with the auth server this recently, for this access token: moving
+// between pages reuses that check instead of waiting for a network round trip on every
+// click (opening a class must respond at once). Signing out clears the saved session, so
+// the local check below still sends a signed-out visitor to sign in straight away.
+const VERIFIED_FOR_MS = 60_000;
+let verified: { token: string; at: number } | null = null;
+
 export const Route = createFileRoute("/_authenticated")({
   staticData: { sitemap: "exclude-subtree" },
   ssr: false,
@@ -39,8 +46,19 @@ export const Route = createFileRoute("/_authenticated")({
       }
       throw redirect({ to: "/auth" });
     }
+    const { data: local } = await supabase.auth.getSession();
+    const session = local.session;
+    if (!session) throw redirect({ to: "/auth" });
+    if (verified?.token === session.access_token && Date.now() - verified.at < VERIFIED_FOR_MS) {
+      markActive();
+      return { user: session.user };
+    }
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    if (error || !data.user) {
+      verified = null;
+      throw redirect({ to: "/auth" });
+    }
+    verified = { token: session.access_token, at: Date.now() };
     markActive();
     return { user: data.user };
   },

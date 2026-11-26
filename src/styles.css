@@ -581,13 +581,80 @@
   initial-value: 0;
 }
 
-/* 18 · Class card ↔ class page header (View Transitions). */
+/* 18 · Class card ↔ class page header (View Transitions).
+   The card's box moves and resizes into the header (the group), while the two snapshots
+   keep their real size (no stretched or squashed text): the old one is clipped by the
+   moving box and fades out, the new one fades in. The page under it cross-fades quickly
+   with the old page kept underneath (no white flash), and the app bar stays still. */
 ::view-transition-group(*) {
   animation-duration: var(--motion-slow);
   animation-timing-function: var(--motion-ease-out);
 }
 ::view-transition-old(root) {
-  animation-duration: var(--motion-fast);
+  animation: none;
+}
+::view-transition-new(root) {
+  animation: motion-vt-fade-in 180ms var(--motion-ease-out) both;
+}
+::view-transition-old(site-header),
+::view-transition-new(site-header) {
+  animation: none;
+}
+::view-transition-new(site-header) {
+  animation: motion-vt-fade-in var(--motion-fast) linear both;
+}
+::view-transition-image-pair(*.class-morph) {
+  overflow: clip;
+  border-radius: 0.75rem;
+}
+/* The opened card's box (colours set per click by installClassMorph in src/lib/motion.ts). */
+@keyframes motion-vt-morph-box {
+  from {
+    background-color: var(--morph-from-bg, transparent);
+    border-radius: var(--morph-from-radius, 0.75rem);
+    box-shadow: var(--morph-from-shadow, none);
+  }
+  to {
+    background-color: var(--morph-to-bg, transparent);
+    border-radius: var(--morph-to-radius, 0.75rem);
+    box-shadow: var(--morph-to-shadow, none);
+  }
+}
+::view-transition-old(*.class-morph),
+::view-transition-new(*.class-morph) {
+  block-size: 100%;
+  inline-size: 100%;
+  object-fit: none;
+  object-position: left top;
+  mix-blend-mode: normal;
+}
+::view-transition-old(*.class-morph) {
+  animation: motion-vt-fade-out 240ms ease 60ms both;
+}
+::view-transition-new(*.class-morph) {
+  animation: motion-vt-fade-in 240ms ease 120ms both;
+}
+/* Other class cards (no counterpart on the class page) fade with the page. */
+::view-transition-old(*.class-morph):only-child {
+  animation: motion-vt-fade-out 180ms var(--motion-ease-out) both;
+}
+::view-transition-new(*.class-morph):only-child {
+  animation: motion-vt-fade-in 180ms var(--motion-ease-out) both;
+}
+@keyframes motion-vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes motion-vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+/* A card being opened settles flat (no tilt or hover lift) before its snapshot is taken. */
+.motion-tilt[data-opening] {
+  transform: none !important;
+  translate: none !important;
 }
 
 /* 19 · Transcript follows the recording. */
