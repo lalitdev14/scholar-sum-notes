@@ -1000,10 +1000,17 @@ function PdfPage({
       ref={wrapRef}
       data-page={n}
       className={cn(
-        "mx-auto mb-3 overflow-hidden rounded-md bg-background shadow-sm last:mb-0",
+        // Pages enter one after another when a deck opens.
+        "motion-flip-in mx-auto mb-3 overflow-hidden rounded-md bg-background shadow-sm last:mb-0",
         zoom <= 1 && "max-w-full",
       )}
-      style={{ width: width ?? "100%", aspectRatio: `${1 / aspect}` }}
+      style={
+        {
+          width: width ?? "100%",
+          aspectRatio: `${1 / aspect}`,
+          "--i": n - 1,
+        } as React.CSSProperties
+      }
     >
       <canvas ref={canvasRef} className="block h-full w-full" aria-label={`Page ${n}`} />
     </div>

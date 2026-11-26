@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { isStaleDeployError, reloadForNewVersion } from "@/lib/stale-deploy";
+import { installPointerPolish } from "@/lib/motion";
 import { THEME_INIT_SCRIPT, useTheme, watchTheme } from "@/lib/theme";
 
 function NotFoundComponent() {
@@ -165,6 +166,9 @@ function RootComponent() {
     window.addEventListener("vite:preloadError", onPreloadError);
     return () => window.removeEventListener("vite:preloadError", onPreloadError);
   }, []);
+
+  // Desktop hover polish: light follows the cursor on buttons, class cards tilt.
+  useEffect(() => installPointerPolish(), []);
 
   return (
     <QueryClientProvider client={queryClient}>

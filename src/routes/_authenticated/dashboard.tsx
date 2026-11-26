@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { classTransitionName } from "@/lib/motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -476,7 +477,8 @@ function Dashboard() {
                 className={`${boldBlock} col-span-full flex flex-col items-center px-6 py-14 text-center`}
               >
                 <span
-                  className="grid h-12 w-12 place-items-center rounded-2xl text-white"
+                  className="motion-float grid h-12 w-12 place-items-center rounded-2xl text-white"
+                  data-testid="empty-float"
                   style={{ backgroundColor: VIOLET }}
                 >
                   <BookOpen className="h-6 w-6" aria-hidden="true" />
@@ -510,7 +512,10 @@ function Dashboard() {
                   key={klass.id}
                   to="/class/$classId"
                   params={{ classId: klass.id }}
-                  className={`${boldBlock} group flex min-w-0 flex-col p-6 outline-none transition-[transform,box-shadow] hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(13,13,18,0.45)] focus-visible:ring-2 focus-visible:ring-[#6d4aff]`}
+                  viewTransition
+                  style={{ viewTransitionName: classTransitionName(klass.id) }}
+                  data-testid="class-card"
+                  className={`${boldBlock} motion-tilt group flex min-w-0 flex-col p-6 outline-none transition-[transform,box-shadow] hover:-translate-y-1 hover:shadow-[0_24px_50px_-28px_rgba(13,13,18,0.45)] focus-visible:ring-2 focus-visible:ring-[#6d4aff]`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
