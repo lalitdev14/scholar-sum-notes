@@ -3,11 +3,11 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-courant-program-list-complete            |
-| Status       | In build          |
+| Status       | PR raised |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/courant-programs` |
-| PR           | (added in step 6) |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/78 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -93,3 +93,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T16:30:50Z | Requirement analyst | Requirement ready for build | 3 ACs; data-only change |
 | 2026-11-26T16:30:50Z | Product owner | Steps 3-5 waived | Trivial data change (program list); user replied 'add all' to the proposal to skip testing and PM review |
 | 2026-11-26T16:31:52Z | Developer | Build complete | Courant name + 22 programs (BA, minors, MS, PhD); prefixes unchanged; typecheck, 17/17 unit tests, build, prettier pass |
+| 2026-11-26T16:32:31Z | Release | PR raised | lalitdev14/scholar-sum-notes#78 into preprod |
