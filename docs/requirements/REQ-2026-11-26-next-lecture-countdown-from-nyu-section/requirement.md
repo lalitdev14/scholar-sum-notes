@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-next-lecture-countdown-from-nyu-section            |
-| Status       | Ready for build   |
+| Status       | In test           |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/next-lecture-countdown` |
@@ -85,7 +85,28 @@ https://claude.ai/artifact/XcvCXJFiN7swfTdvRhk9XL).
 
 ## 7. Build summary (developer)
 
-What was changed and how each acceptance criterion is met.
+Code commit `154014b` on `claude/next-lecture-countdown`.
+
+**Database (must be run in Supabase before merge):**
+`supabase/migrations/20261126120000_class_sections.sql` — additive: table
+`public.class_sections` (unique `(user_id, class_id)`), grants, RLS own-rows policies for
+select/insert/update/delete, index on `class_id`, `updated_at` trigger, and an
+`AFTER DELETE` trigger on `enrollments` that removes the student's saved section for that
+class. `src/integrations/supabase/types.ts` updated by hand.
+
+| AC | How it is met |
+| -- | ------------- |
+| AC-1 | `getNyuSections` (`src/lib/nyu-courses.functions.ts`, `requireSupabaseAuth`, input `{code, term}` validated by `NyuSectionsInput`) runs the FOSE keyword search for the code and keeps exact-code, non-cancelled sections (`toSections` in `nyu-courses.server.ts`): `no`, `type`, `meets`, `meetings` (from `meetingTimes`, else parsed from the text by `src/lib/meeting-times.ts`), `startDate`, `endDate`, `instructor`, `term`. "TBA"/unreadable text gives `meetings: []`. |
+| AC-2 | `SemesterSubjectsDialog`: under "To add", each chosen course gets an optional "Choose section" button (`PendingSectionsList` / `SectionPickerDialog` in `src/components/SectionPicker.tsx`) listing section no., type, days/times, instructor and dates. Picked sections are saved after Done adds the classes; skipping is fine. |
+| AC-3 | `ClassSectionButton` ("Set your section" / "Section A · T 11a-1:30p") on the class page header and on each row of "Your classes" in the subjects dialog; saves immediately (upsert), "No section" clears it. |
+| AC-4 | Stored in `class_sections` (term id, section no., type, meets, meetings jsonb, start/end dates); own rows only. Removing a class (subjects dialog or dashboard) deletes its row from the client and via the enrollment-delete trigger. |
+| AC-5 | `NextLectureCard` on the home page (`WelcomeHome`) uses `findNextLecture` (`src/lib/next-lecture.ts`): New York wall times converted to instants with `Intl` (DST-safe), only days between the section's start and end dates. |
+| AC-6 | Within 24 h: "<Class> starts in" + `SplitFlap` HH:MM:SS ticking every second, each digit flipping only when it changes; otherwise class name + "Thu 2:00 pm" (with the date when more than 6 days away). |
+| AC-7 | During a lecture: "<Class> · happening now · ends in" + MM:SS (H:MM:SS if an hour or more); recomputed every second so it moves to the next lecture when it ends. |
+| AC-8 | No saved sections: invite with "Set your sections" (opens the subjects dialog). Sections but none upcoming: "No upcoming lectures". |
+| AC-9 | Flip animation disabled under `prefers-reduced-motion` (JS and CSS). Digits are `aria-hidden`; a visually hidden sentence gives the time in words, changing once a minute, no live region. |
+| AC-10 | Section lookup failure shows "We couldn't reach NYU's class search" with Try again inside the picker; adding classes never waits on it. |
+| AC-11 | Flaps fit 390 px (smaller under 360 px); dialog/home otherwise unchanged. Typecheck, `bun test src` (55 tests incl. parser, DST, term dates, FOSE sample) and build pass. |
 
 ## 8. Test summary (tester)
 
@@ -115,3 +136,5 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | ---------- | ---- | ------ | ------- |
 | 2026-11-26T17:24:00Z | Requirement analyst | Requirement created | Next lecture countdown from NYU section |
 | 2026-11-26T17:24:54Z | Requirement analyst | Requirement ready for build | 11 ACs; product owner chose 'Pick NYU section'; needs additive migration run in Supabase before merge |
+| 2026-11-26T17:26:53Z | Test master | Test cases written | 28 cases covering AC-1..AC-11 |
+| 2026-11-26T20:33:12Z | Developer | Build complete | Commit 154014b: getNyuSections, meeting parser + next-lecture (NY/DST) with tests, class_sections migration 20261126120000 + types, SectionPicker in subjects dialog/class page, Next lecture split-flap card; typecheck, 55 unit tests, build pass |
