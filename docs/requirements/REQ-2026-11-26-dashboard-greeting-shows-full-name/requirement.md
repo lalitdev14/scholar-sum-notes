@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-dashboard-greeting-shows-full-name            |
-| Status       | Ready for build   |
+| Status       | In build          |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/dashboard-full-name` |
@@ -49,6 +49,24 @@ Move `formatFullName` from `src/components/WelcomeHome.tsx` to `src/lib/format-n
 
 What was changed and how each acceptance criterion is met.
 
+Commit `1569d7d` on `claude/dashboard-full-name`.
+
+- `src/lib/format-name.ts` (new): `formatFullName` moved verbatim from
+  `src/components/WelcomeHome.tsx` and exported. `WelcomeHome.tsx` now imports it (home
+  greeting unchanged).
+- `src/routes/_authenticated/dashboard.tsx`: `fullName = formatFullName(me?.full_name ?? "")`;
+  heading renders "Welcome back, <fullName>." (was `full_name.split(" ")[0]`). Heading gets
+  `wrap-anywhere` and its container `min-w-0` so long names wrap inside the column.
+- `src/lib/format-name.test.ts` (new): lower/upper/mixed case, hyphen, `'` and `’`, extra
+  whitespace, empty/blank.
+
+| AC   | How it is met |
+| ---- | ------------- |
+| AC-1 | Dashboard uses the same `formatFullName` as the home page for the whole name. |
+| AC-2 | Empty/blank name → `""` → the `, <name>` part is not rendered → "Welcome back." |
+| AC-3 | `wrap-anywhere` + `min-w-0` on the heading column; names wrap at 390 px. WelcomeHome markup untouched apart from the import. |
+| AC-4 | One implementation in `src/lib/format-name.ts`, 7 unit tests. `bun run typecheck`, `bun test src` (72 pass), `bun run build` and prettier --check pass. |
+
 ## 8. Test summary (tester)
 
 | Total | Pass | Fail | Blocked | Evidence             |
@@ -78,3 +96,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:28:23Z | Requirement analyst | Requirement created | Dashboard greeting shows full name |
 | 2026-11-26T22:28:23Z | Requirement analyst | Requirement ready for build | 4 ACs; one-line copy change, shared helper |
 | 2026-11-26T22:28:23Z | Requirement analyst | Steps 3-5 skipped as trivial | Same treatment as earlier trivial name/copy changes; developer adds unit tests; PR raised after build |
+| 2026-11-26T22:30:06Z | Developer | Build complete | formatFullName moved to src/lib/format-name.ts (+7 unit tests), used by WelcomeHome and dashboard heading; heading wraps long names; typecheck, 72 tests, build, prettier pass; commit 1569d7d |
