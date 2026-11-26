@@ -73,9 +73,10 @@ export function WelcomeHome() {
       if (!userId) return { userId: "", name: "", classes: [] };
       const [{ data: profile }, { data: enrollments }] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
-        supabase.from("enrollments").select("class_id").eq("user_id", userId),
+        supabase.from("enrollments").select("class_id, created_at").eq("user_id", userId),
       ]);
       const ids = (enrollments ?? []).map((e) => e.class_id);
+      const addedAt = new Map((enrollments ?? []).map((e) => [e.class_id, e.created_at ?? ""]));
       if (!ids.length) return { userId, name: profile?.full_name ?? "", classes: [] };
       const [{ data: classes }, { data: notes }, { data: pages }] = await Promise.all([
         supabase.from("classes").select("id, subject, code, professor").in("id", ids),
@@ -109,6 +110,7 @@ export function WelcomeHome() {
           return {
             ...c,
             updatedAt: written,
+            addedAt: addedAt.get(c.id) ?? "",
             lastAt: events[0]?.[0] ?? null,
             lastWhat: events[0]?.[1],
           };
@@ -125,6 +127,9 @@ export function WelcomeHome() {
   // "Your subjects this semester": opens by itself the first time a student with no
   // classes lands here (once per device), and from the "Update my subjects" button after.
   const [subjectsOpen, setSubjectsOpen] = useState(false);
+  // Focus goes back to "My subjects" when the form was opened from it.
+  const subjectsButton = useRef<HTMLButtonElement>(null);
+  const [openedFromButton, setOpenedFromButton] = useState(false);
   const autoOpened = useRef(false);
   const userId = data?.userId ?? "";
   const hasClasses = (data?.classes.length ?? 0) > 0;
@@ -149,6 +154,10 @@ export function WelcomeHome() {
   const fullName = formatFullName(data?.name ?? "");
   const classes = data?.classes ?? [];
   const last = classes[0]?.lastAt ? classes[0] : null;
+  // No activity yet: the classes they joined most recently.
+  const recent = [...classes]
+    .sort((a, b) => b.addedAt.localeCompare(a.addedAt) || a.subject.localeCompare(b.subject))
+    .slice(0, 3);
 
   const accent = "var(--uni-primary, #57068c)";
   // A very dark shade of the university colour for the "continue" card.
@@ -179,8 +188,12 @@ export function WelcomeHome() {
               </p>
               {userId && (
                 <button
+                  ref={subjectsButton}
                   type="button"
-                  onClick={() => setSubjectsOpen(true)}
+                  onClick={() => {
+                    setOpenedFromButton(true);
+                    setSubjectsOpen(true);
+                  }}
                   aria-label="Update my subjects"
                   title="Update my subjects"
                   data-testid="update-subjects"
@@ -252,6 +265,59 @@ export function WelcomeHome() {
                 className="mt-6 flex items-center justify-between rounded-xl bg-white px-5 py-3.5 text-[0.95rem] font-semibold text-[#17151c] transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Open note <ArrowRight className="h-4 w-4" />
+              </Link>
+            </section>
+          ) : classes.length ? (
+            <section
+              className="min-w-0 rounded-[1.25rem] p-6 text-white sm:p-7"
+              style={{ backgroundColor: deep }}
+              aria-labelledby="your-classes-title"
+              data-testid="your-classes-card"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <p
+                  id="your-classes-title"
+                  className="text-xs font-semibold uppercase tracking-[0.12em] text-[#d9c2f0]"
+                >
+                  Your classes
+                </p>
+                <p className="shrink-0 text-xs text-white/60">
+                  {classes.length} class{classes.length === 1 ? "" : "es"}
+                </p>
+              </div>
+              <ul className="mt-4 space-y-2.5">
+                {recent.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-center gap-3 rounded-xl bg-white/[0.07] px-4 py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs text-white/60" style={mono}>
+                        {c.code}
+                      </p>
+                      <p className="line-clamp-2 break-words font-semibold leading-snug">
+                        {c.subject}
+                      </p>
+                    </div>
+                    <Link
+                      to="/class/$classId"
+                      params={{ classId: c.id }}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-[#17151c] transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                      aria-label={`Open ${c.subject}`}
+                    >
+                      Open <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/dashboard"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-white/80 underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                {classes.length > recent.length
+                  ? `See all ${classes.length} classes on your dashboard`
+                  : "See them on your dashboard"}
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </section>
           ) : (
@@ -335,6 +401,7 @@ export function WelcomeHome() {
           open={subjectsOpen}
           onOpenChange={(o) => (o ? setSubjectsOpen(true) : closeSubjects())}
           onDone={closeSubjects}
+          returnFocusTo={openedFromButton ? subjectsButton : undefined}
           userId={userId}
           currentClasses={classes.map((c) => ({ id: c.id, subject: c.subject, code: c.code }))}
         />

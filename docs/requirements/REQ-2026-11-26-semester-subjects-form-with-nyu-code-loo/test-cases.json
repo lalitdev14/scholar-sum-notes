@@ -1,7 +1,9 @@
 [
   {
     "id": "TC-01",
-    "ac": ["AC-1"],
+    "ac": [
+      "AC-1"
+    ],
     "title": "First-time pop-up opens automatically for a new student with no classes",
     "type": "Functional",
     "priority": "High",
@@ -14,20 +16,28 @@
   },
   {
     "id": "TC-02",
-    "ac": ["AC-1"],
-    "title": "No automatic pop-up for a student who already has classes",
+    "ac": [
+      "AC-1",
+      "AC-3"
+    ],
+    "title": "No automatic pop-up for a student who already has classes; home page shows that class (not the generic card)",
     "type": "Functional",
     "priority": "High",
-    "preconditions": "Fake signed-in session (test student B); mocked Supabase seeded with one class and an enrollment for B; localStorage cleared",
+    "preconditions": "Fake signed-in session (test student B); mocked Supabase seeded with one class (CS-GY 6033 'Design and Analysis of Algorithms I') and an enrollment for B, with NO notes, handwriting or visits in it; localStorage cleared; run at 1440px and 390px",
     "steps": [
       "Open the home page",
-      "Wait 5 seconds after load"
+      "Wait 5 seconds after load",
+      "Check the home page content",
+      "Repeat at 390px"
     ],
-    "expected": "The pop-up does not open by itself; the home page shows B's existing class (e.g. in 'Continue where you left off'); the small 'Update my subjects' icon button is visible"
+    "expected": "The pop-up does not open by itself; the home page shows B's class with code 'CS-GY 6033', title 'Design and Analysis of Algorithms I' and an Open link to /class/<id>; the generic 'Get started · Open a class to begin / Find a class' card is NOT shown; the small 'My subjects' icon button is visible; at 390px the same holds with no horizontal scroll"
   },
   {
     "id": "TC-03",
-    "ac": ["AC-1", "AC-4"],
+    "ac": [
+      "AC-1",
+      "AC-4"
+    ],
     "title": "Closing the pop-up without Done stops it reappearing; icon button remains",
     "type": "Functional",
     "priority": "High",
@@ -42,7 +52,9 @@
   },
   {
     "id": "TC-04",
-    "ac": ["AC-1"],
+    "ac": [
+      "AC-1"
+    ],
     "title": "Completion is per user: a different new student on the same device still gets the pop-up",
     "type": "Edge case",
     "priority": "Medium",
@@ -55,7 +67,9 @@
   },
   {
     "id": "TC-05",
-    "ac": ["AC-2"],
+    "ac": [
+      "AC-2"
+    ],
     "title": "Search by subject name shows NYU code and title, sections de-duplicated",
     "type": "Functional",
     "priority": "High",
@@ -68,7 +82,9 @@
   },
   {
     "id": "TC-06",
-    "ac": ["AC-2"],
+    "ac": [
+      "AC-2"
+    ],
     "title": "Switching term re-runs the search for the chosen term",
     "type": "Functional",
     "priority": "High",
@@ -82,7 +98,9 @@
   },
   {
     "id": "TC-07",
-    "ac": ["AC-2"],
+    "ac": [
+      "AC-2"
+    ],
     "title": "No results shows 'No NYU courses found'",
     "type": "Edge case",
     "priority": "High",
@@ -95,7 +113,10 @@
   },
   {
     "id": "TC-08",
-    "ac": ["AC-2", "AC-6"],
+    "ac": [
+      "AC-2",
+      "AC-6"
+    ],
     "title": "Input shorter than 2 characters is ignored; very long input is limited",
     "type": "Edge case",
     "priority": "Medium",
@@ -110,7 +131,9 @@
   },
   {
     "id": "TC-09",
-    "ac": ["AC-3"],
+    "ac": [
+      "AC-3"
+    ],
     "title": "Pick several courses, remove one from the chosen list, press Done: new classes created and enrolled",
     "type": "Functional",
     "priority": "High",
@@ -127,7 +150,9 @@
   },
   {
     "id": "TC-10",
-    "ac": ["AC-3"],
+    "ac": [
+      "AC-3"
+    ],
     "title": "Existing LectureLoop class with the same code is reused (enroll only, no new class)",
     "type": "Functional",
     "priority": "High",
@@ -141,7 +166,9 @@
   },
   {
     "id": "TC-11",
-    "ac": ["AC-3"],
+    "ac": [
+      "AC-3"
+    ],
     "title": "Course already in the student's classes is not duplicated",
     "type": "Edge case",
     "priority": "High",
@@ -155,20 +182,27 @@
   },
   {
     "id": "TC-12",
-    "ac": ["AC-3"],
-    "title": "Dashboard and home reflect the newly added classes immediately",
+    "ac": [
+      "AC-3"
+    ],
+    "title": "Home page shows both new classes immediately after Done (no reload); generic card gone; dashboard lists them",
     "type": "Functional",
     "priority": "High",
-    "preconditions": "TC-09 completed (two classes added)",
+    "preconditions": "TC-09 just completed on the home page (two new classes CS-GY 6033 and BMIN-GA 1170 added, no notes in them); do not reload",
     "steps": [
-      "Without reloading, look at the home page ('Continue where you left off' / class list)",
+      "Immediately after Done (summary shown), without reloading, look at the home page",
+      "Check each new class entry for code, title and Open link",
+      "Click Open on CS-GY 6033, then go back",
+      "Reload the home page and check again",
       "Open the dashboard"
     ],
-    "expected": "Both new classes appear on the home page and in the dashboard list with NYU title and code (CS-GY 6033, BMIN-GA 1170) without a manual reload; opening one goes to its class page"
+    "expected": "Right after Done, without a reload, the home page shows both classes: 'CS-GY 6033 · Design and Analysis of Algorithms I' and 'BMIN-GA 1170 · Fundamental Algorithms', each with an Open link; the generic 'Get started · Open a class to begin / Find a class' card is no longer shown; Open goes to /class/<id> of that class; after reload both are still shown and the generic card stays gone; the dashboard lists both"
   },
   {
     "id": "TC-13",
-    "ac": ["AC-4"],
+    "ac": [
+      "AC-4"
+    ],
     "title": "Icon button reopens the form showing current classes; remove un-enrolls with confirmation, notes kept",
     "type": "Functional",
     "priority": "High",
@@ -185,7 +219,9 @@
   },
   {
     "id": "TC-14",
-    "ac": ["AC-5"],
+    "ac": [
+      "AC-5"
+    ],
     "title": "NYU search failure shows a clear message with a link to Add class; home keeps working",
     "type": "Error handling",
     "priority": "High",
@@ -200,7 +236,9 @@
   },
   {
     "id": "TC-15",
-    "ac": ["AC-5"],
+    "ac": [
+      "AC-5"
+    ],
     "title": "NYU search that hangs times out (~8 s) with a clear message",
     "type": "Error handling",
     "priority": "High",
@@ -214,7 +252,9 @@
   },
   {
     "id": "TC-16",
-    "ac": ["AC-6"],
+    "ac": [
+      "AC-6"
+    ],
     "title": "NYU request is server-side only; signed-out call rejected; input limits enforced on the server",
     "type": "Security",
     "priority": "High",
@@ -229,8 +269,10 @@
   },
   {
     "id": "TC-17",
-    "ac": ["AC-6"],
-    "title": "Keyboard-only use of the form",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "Keyboard-only use of the form; focus returns to 'My subjects' after Escape, X or Done",
     "type": "Accessibility",
     "priority": "Medium",
     "preconditions": "New student with no classes; pop-up open automatically; viewport 1440px",
@@ -239,14 +281,20 @@
       "Use arrow keys/Tab and Enter to pick CS-GY 6033",
       "Tab to the term selector and change it with the keyboard",
       "Tab to the chosen item's remove control and press Enter, then re-add it",
-      "Tab to Done and press Enter",
-      "Re-open with the icon button via Tab + Enter, then press Escape"
+      "Tab to Done and press Enter; note where focus lands",
+      "Tab to the 'My subjects' button and press Enter; press Escape; check document.activeElement",
+      "Press Enter on 'My subjects' again; Tab to the X (close) button and press Enter; check document.activeElement",
+      "Press Enter on 'My subjects' again; search, pick BMIN-GA 1170, Tab to Done and press Enter; check document.activeElement"
     ],
-    "expected": "Every control is reachable with visible focus; courses can be picked/removed and Done pressed without a mouse; focus stays inside the dialog while open; Escape closes it and focus returns to the page; the icon button has an accessible name (e.g. 'Update my subjects')"
+    "expected": "Every control is reachable with visible focus; courses can be picked/removed and Done pressed without a mouse; focus stays inside the dialog while open; after the first-time pop-up's Done focus is on the 'My subjects' button or a sensible place on the page (not lost); after opening from 'My subjects', closing with Escape, with X and with Done each returns focus to the 'My subjects' button (document.activeElement is that button, not BODY); the button has an accessible name (e.g. 'My subjects' / 'Update my subjects')"
   },
   {
     "id": "TC-18",
-    "ac": ["AC-6", "AC-1", "AC-2"],
+    "ac": [
+      "AC-6",
+      "AC-1",
+      "AC-2"
+    ],
     "title": "Phone width (390px): pop-up, search, chosen list and icon fit without horizontal scroll",
     "type": "Responsive",
     "priority": "High",
@@ -261,7 +309,9 @@
   },
   {
     "id": "TC-19",
-    "ac": ["AC-6"],
+    "ac": [
+      "AC-6"
+    ],
     "title": "Regression: dashboard Enroll in subject and Add class still work; no page errors",
     "type": "Regression",
     "priority": "High",
@@ -273,5 +323,71 @@
       "Review the browser console across all tests on home and dashboard"
     ],
     "expected": "Enroll inserts one enrollment; Add class inserts the class and enrollment as before; both appear in the list; the dialogs look and behave unchanged; no uncaught errors or React errors in the console on home or dashboard"
+  },
+  {
+    "id": "TC-20",
+    "ac": [
+      "AC-4",
+      "AC-3"
+    ],
+    "title": "Removing a class in the form updates the home page list without reload",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Student A enrolled in CS-GY 6033 and BMIN-GA 1170 (no notes); both shown on the home page",
+    "steps": [
+      "Click 'My subjects'",
+      "Remove BMIN-GA 1170 and confirm",
+      "Close the form (without reloading) and look at the home page",
+      "Open 'My subjects' again, remove CS-GY 6033 and confirm, close the form"
+    ],
+    "expected": "After the first removal the home page shows only CS-GY 6033 without a reload; only A's enrollment was deleted (class and notes kept); after removing the last class the home page shows the generic 'Open a class to begin' card again, without a reload"
+  },
+  {
+    "id": "TC-21",
+    "ac": [
+      "AC-1",
+      "AC-3"
+    ],
+    "title": "Student with no classes still sees the 'Open a class to begin' card",
+    "type": "Regression",
+    "priority": "Medium",
+    "preconditions": "Student with no enrollments who already dismissed the pop-up on this device (localStorage flag set); 1440px and 390px",
+    "steps": [
+      "Open the home page",
+      "Check the home page content at 1440px and 390px"
+    ],
+    "expected": "No automatic pop-up; the generic 'Get started · Open a class to begin / Find a class' card is shown and its Find a class link goes to the dashboard; 'My subjects' button visible; no horizontal scroll; no page errors"
+  },
+  {
+    "id": "TC-22",
+    "ac": [
+      "AC-3",
+      "AC-6"
+    ],
+    "title": "Many classes without activity: home shows at most about 3 recent classes plus a link to the dashboard",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Student enrolled in 5 classes with no notes/visits (enrolled at different times); a separate run where one class has notes (recent activity)",
+    "steps": [
+      "Open the home page at 1440px and 390px",
+      "Count the classes shown and check for a dashboard link",
+      "Run with one class having recent notes"
+    ],
+    "expected": "Without activity: the most recently added classes (at most about 3) are shown with code, title and Open link, plus a link to the dashboard for the rest; no generic card; no horizontal scroll at 390px. With activity: the 'Continue where you left off' card for that class is shown as before, and the generic card is not shown"
+  },
+  {
+    "id": "TC-23",
+    "ac": [
+      "AC-6"
+    ],
+    "title": "Unit test: NYU search input schema limits",
+    "type": "Security",
+    "priority": "Medium",
+    "preconditions": "Branch checked out; dependencies installed; unit test for the search input schema present",
+    "steps": [
+      "Run the unit test for the search input schema",
+      "Confirm it covers: q of 1 character after trimming, q of 81 characters after trimming, q of spaces only, invalid term id (e.g. 'abc' or empty), and a normal query 'algorithms' with term 9999"
+    ],
+    "expected": "The test passes: q shorter than 2 or longer than 80 characters after trimming is rejected, an invalid term id is rejected, and 'algorithms' with a valid term is accepted (with q trimmed); test output saved as evidence"
   }
 ]
