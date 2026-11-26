@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-manual-class-times            |
-| Status       | In PM review      |
+| Status       | Changes requested |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/manual-class-times` |
@@ -131,15 +131,33 @@ untouched meeting shows its errors once the student works on it (Save stays disa
 
 | Field       | Value                          |
 | ----------- | ------------------------------ |
-| Decision    | (Approved / Changes requested) |
+| Decision    | Changes requested              |
 | Verified by | Product manager agent          |
-| Date        |                                |
+| Date        | 2026-11-26                     |
+
+The feature does what the user asked ("add an option for manual class time addition"). The option is easy to find from every picker. The form is clear, validates input and saves times that the countdown then uses. All 9 ACs pass on the evidence (22/22 test cases). Three small changes are needed before the PR, all about copy and visual polish. None of them needs new behaviour or a database change.
 
 Notes per acceptance criterion:
 
 | AC   | Met? | Notes |
 | ---- | ---- | ----- |
-| AC-1 |      |       |
+| AC-1 | Yes  | TC-01/02: "Enter times manually" shows on the class page, in "Your classes" and under "To add", and in the NYU error and "no sections" states. In those two states the link appears twice (inline and in the footer), see change 3. |
+| AC-2 | Yes  | TC-03/04/05: Mon–Sun chips, start/end time, up to 5 meetings (then disabled with a note), Remove, optional term dates. |
+| AC-3 | Yes  | TC-06/07/08: errors appear under the day chips, the end time and the last day, with clear wording. Save stays disabled until the form is valid. A blank meeting that was just added shows its errors only once touched, and Save is disabled meanwhile. That is acceptable, no change. |
+| AC-4 | Yes  | TC-05/09/10: one row per student and class (an NYU section is replaced). `section_no` 'Manual' / `schedule_type` 'MANUAL'. No migration. "Your times · Tue, Thu 2:00–3:15 pm" appears on the class header, "Your classes", "To add" and the home card. |
+| AC-5 | Yes  | TC-11/12/13: same countdown, happening-now and day + time output as an NYU section. Term dates are respected, in New York time. The hydration warning in TC-13 comes from the faked 2027 browser clock, not the product. |
+| AC-6 | Yes  | TC-14/15/16: the form reopens pre-filled. Edits save. "Pick an NYU section instead" replaces the manual times. "Clear times" removes them. The toast copy after clearing is wrong, see change 1. |
+| AC-7 | Yes  | TC-17/18: times set under "To add" are kept until Done, then saved after enrolling. Removing the course discards them. |
+| AC-8 | Yes  | TC-19/20: day chips are toggle buttons with aria-pressed and full day names. Inputs are labelled and errors are linked to their fields. Keyboard path works. At 390 px there is no horizontal scroll in light or dark, and long labels truncate. The home card that shows the manual label stays white in dark theme, see change 2. |
+| AC-9 | Yes  | TC-21/22: NYU picking, countdown and subjects dialog unchanged. Typecheck, 84 unit tests (19 new) and build pass. |
+
+Changes requested:
+
+1. **Clear-times toast copy.** When the student clears *manual times*, the toast must say "Cleared your class times for <subject>", not "Section cleared for <subject>". Keep "Section cleared for …" when an NYU section is cleared.
+2. **Home "Next lecture" card in dark theme.** `NextLectureCard.tsx` is already changed on this branch, and its detail line is where this feature's "Your times · …" label appears on Home. It uses hard-coded light colours (`bg-white`, `border-[#ebe8f0]`, `text-[#17151c]`, `text-[#6b6874]`, `text-[#5c5965]`, `text-[#77737f]`). Switch these to theme tokens (`bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, or equivalents) for every state: loading, invite, none, countdown, later and happening now. The card must match the other dark-theme cards and keep readable contrast (≥ 4.5:1 for body text). Light theme must look unchanged.
+3. **Duplicate "Enter times manually" link.** In the NYU error state and the "no sections" state, the picker shows the link twice (inline and in the footer). Show it once: hide the footer link while the inline one is visible. Keep the inline one, because its sentence explains why.
+
+Re-test after the fix: TC-16 (toast text), TC-20 (home card at 390 px in dark and light), TC-02 (exactly one "Enter times manually" link in each state), and a quick regression of TC-01 and TC-11.
 
 ## 10. Audit trail
 
@@ -153,3 +171,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:32:29Z | Developer | Build complete | Manual times form in SectionPicker, saved as section_no Manual/schedule_type MANUAL; manual-schedule.ts + 19 unit tests; typecheck, bun test (84), build pass |
 | 2026-11-26T22:45:25Z | Tester | Tests executed | 22 run: 22 passed, 0 failed, 0 blocked (local production build, mocked Supabase and NYU) |
 | 2026-11-26T22:45:25Z | Tester | Evidence generated | test-evidence.xlsx with 57 screenshots in evidence/ |
+| 2026-11-26T22:47:26Z | Product manager | PM requested changes | AC-1..AC-9 met on evidence (22/22). Changes: 1) clear-manual-times toast copy; 2) NextLectureCard theme tokens for dark mode (card shows the manual label on Home); 3) show one Enter times manually link in error/no-sections states. Hydration warning and touched-only errors accepted. |
