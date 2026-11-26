@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-courant-program-list-complete            |
-| Status       | PR raised |
+| Status       | Merged to preprod |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/courant-programs` |
@@ -94,3 +94,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T16:30:50Z | Product owner | Steps 3-5 waived | Trivial data change (program list); user replied 'add all' to the proposal to skip testing and PM review |
 | 2026-11-26T16:31:52Z | Developer | Build complete | Courant name + 22 programs (BA, minors, MS, PhD); prefixes unchanged; typecheck, 17/17 unit tests, build, prettier pass |
 | 2026-11-26T16:32:31Z | Release | PR raised | lalitdev14/scholar-sum-notes#78 into preprod |
+| 2026-11-26T16:34:33Z | Release | PR merged | lalitdev14/scholar-sum-notes#78 merged into preprod |
