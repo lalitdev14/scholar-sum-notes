@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Crown, GraduationCap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PlanCards } from "@/components/PlanCards";
 import { Button } from "@/components/ui/button";
@@ -94,9 +95,12 @@ function PlansPage() {
             <GraduationCap className="h-5 w-5" />
             <span className="font-display text-xl">LectureLoop</span>
           </Link>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/auth">Sign in</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="text-foreground hover:bg-muted focus-visible:outline-ring" />
+            <Button asChild variant="outline" size="sm">
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          </div>
         </header>
       )}
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-14 sm:px-6 sm:py-20">

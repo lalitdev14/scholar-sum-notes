@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { isStaleDeployError, reloadForNewVersion } from "@/lib/stale-deploy";
+import { THEME_INIT_SCRIPT, useTheme, watchTheme } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -133,6 +134,8 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Light / dark theme before the first paint, so the page never flashes the other one. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
         {/* Signed in (saved session): hide the public home page until the app takes over, so
             students don't see it flash. Shown anyway after 3 s if the scripts never load. */}
@@ -149,6 +152,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const theme = useTheme();
+
+  // Follow the device setting until the student picks a theme; sync choices from other tabs.
+  useEffect(() => watchTheme(), []);
 
   // Vite reports a code file that failed to load (usually: a new version was deployed).
   useEffect(() => {
@@ -163,7 +170,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-      <Toaster />
+      <Toaster theme={theme} />
     </QueryClientProvider>
   );
 }

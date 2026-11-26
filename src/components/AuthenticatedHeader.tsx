@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ReactNode, useState } from "react";
 import { useUniversityTheme } from "@/hooks/useUniversityTheme";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type AuthenticatedHeaderProps = {
   trailing?: ReactNode;
@@ -118,6 +119,7 @@ export function AuthenticatedHeader({ trailing }: AuthenticatedHeaderProps) {
               <span className="max-w-[12rem] truncate">{universityName}</span>
             </span>
           )}
+          <ThemeToggle className="text-white/85 hover:bg-white/10 hover:text-white focus-visible:outline-white md:ml-1" />
           {/* Always shown: signing out on desktop happens from this menu. */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
