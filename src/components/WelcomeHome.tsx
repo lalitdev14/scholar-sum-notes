@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, LayoutGrid, Lock } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowRight, BookPlus, LayoutGrid, Lock } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { SemesterSubjectsDialog } from "@/components/SemesterSubjectsDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { pickGreeting, rememberGreeting } from "@/lib/greetings";
 
@@ -69,13 +70,13 @@ export function WelcomeHome() {
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
-      if (!userId) return { name: "", classes: [] };
+      if (!userId) return { userId: "", name: "", classes: [] };
       const [{ data: profile }, { data: enrollments }] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
         supabase.from("enrollments").select("class_id").eq("user_id", userId),
       ]);
       const ids = (enrollments ?? []).map((e) => e.class_id);
-      if (!ids.length) return { name: profile?.full_name ?? "", classes: [] };
+      if (!ids.length) return { userId, name: profile?.full_name ?? "", classes: [] };
       const [{ data: classes }, { data: notes }, { data: pages }] = await Promise.all([
         supabase.from("classes").select("id, subject, code, professor").in("id", ids),
         supabase
@@ -117,9 +118,33 @@ export function WelcomeHome() {
           (a, b) =>
             (b.lastAt ?? "").localeCompare(a.lastAt ?? "") || a.subject.localeCompare(b.subject),
         );
-      return { name: profile?.full_name ?? "", classes: list };
+      return { userId, name: profile?.full_name ?? "", classes: list };
     },
   });
+
+  // "Your subjects this semester": opens by itself the first time a student with no
+  // classes lands here (once per device), and from the "Update my subjects" button after.
+  const [subjectsOpen, setSubjectsOpen] = useState(false);
+  const autoOpened = useRef(false);
+  const userId = data?.userId ?? "";
+  const hasClasses = (data?.classes.length ?? 0) > 0;
+  useEffect(() => {
+    if (!userId || hasClasses || autoOpened.current || isSubjectsDone(userId)) return;
+    autoOpened.current = true;
+    // Wait for any other pop-up (e.g. an admin update) to be closed first.
+    let timer: ReturnType<typeof setTimeout>;
+    const tryOpen = () => {
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) {
+        timer = setTimeout(tryOpen, 500);
+      } else setSubjectsOpen(true);
+    };
+    timer = setTimeout(tryOpen, 600);
+    return () => clearTimeout(timer);
+  }, [userId, hasClasses]);
+  function closeSubjects() {
+    setSubjectsOpen(false);
+    if (userId) markSubjectsDone(userId);
+  }
 
   const fullName = formatFullName(data?.name ?? "");
   const classes = data?.classes ?? [];
@@ -141,16 +166,32 @@ export function WelcomeHome() {
         <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:gap-12">
           {/* Welcome note */}
           <section aria-labelledby="welcome-title" className="min-w-0">
-            <p
-              className="text-xs font-medium uppercase tracking-[0.2em] text-[#6b6874]"
-              style={mono}
-            >
-              {new Date().toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p
+                className="text-xs font-medium uppercase tracking-[0.2em] text-[#6b6874]"
+                style={mono}
+              >
+                {new Date().toLocaleDateString(undefined, {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+              {userId && (
+                <button
+                  type="button"
+                  onClick={() => setSubjectsOpen(true)}
+                  aria-label="Update my subjects"
+                  title="Update my subjects"
+                  data-testid="update-subjects"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#e3dfe9] bg-white px-2.5 py-1.5 text-xs font-medium text-[#4c4955] transition hover:border-[#d0c8dc] hover:text-[#17151c] focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{ outlineColor: accent }}
+                >
+                  <BookPlus className="h-4 w-4" style={{ color: accent }} aria-hidden="true" />
+                  <span className="hidden sm:inline">My subjects</span>
+                </button>
+              )}
+            </div>
             <h1
               id="welcome-title"
               className="mt-4 text-[2.75rem] font-bold leading-[1.02] tracking-[-0.035em] text-[#17151c] sm:text-6xl"
@@ -289,8 +330,34 @@ export function WelcomeHome() {
           </ol>
         </section>
       </main>
+      {userId && (
+        <SemesterSubjectsDialog
+          open={subjectsOpen}
+          onOpenChange={(o) => (o ? setSubjectsOpen(true) : closeSubjects())}
+          onDone={closeSubjects}
+          userId={userId}
+          currentClasses={classes.map((c) => ({ id: c.id, subject: c.subject, code: c.code }))}
+        />
+      )}
     </div>
   );
+}
+
+/** Set once a student has pressed Done on (or closed) the subjects form on this device. */
+const subjectsDoneKey = (userId: string) => `lectureloop:subjects-done:${userId}`;
+function isSubjectsDone(userId: string) {
+  try {
+    return localStorage.getItem(subjectsDoneKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+}
+function markSubjectsDone(userId: string) {
+  try {
+    localStorage.setItem(subjectsDoneKey(userId), "1");
+  } catch {
+    // Private mode: the pop-up may show again next time, which is harmless.
+  }
 }
 
 function capitalize(s: string) {
