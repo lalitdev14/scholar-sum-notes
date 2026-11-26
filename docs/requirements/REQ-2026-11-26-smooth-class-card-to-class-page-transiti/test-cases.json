@@ -1,1 +1,211 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "ac": ["AC-1"],
+    "title": "Dashboard card opens class page in one continuous 300–450 ms motion",
+    "type": "Functional / Visual",
+    "priority": "High",
+    "preconditions": "Production build or dev server; mocked signed-in session; mocked data with at least 2 enrolled classes (e.g. 'Intro to Biology', code 'BIO101'); Chromium with View Transitions; desktop viewport 1280x800; light theme; reduced motion off",
+    "steps": [
+      "Open /dashboard and wait for class cards to render",
+      "Start frame capture (screenshot or CDP screencast every ~30–40 ms)",
+      "Click the 'Intro to Biology' card (no prior hover pause: move and click immediately)",
+      "Keep capturing until 800 ms after click, then stop",
+      "Measure the time from the first frame that differs from the dashboard to the first frame identical to the settled class page (also record document.startViewTransition finished timing if available)",
+      "Track the bounding box of the morphing card/header across frames"
+    ],
+    "expected": "Exactly one motion: the card box moves/resizes monotonically from the card position to the class header position (no reversal, no second jump); total transition duration ~300–450 ms (tolerance ±50 ms); URL ends as /class/<id>"
+  },
+  {
+    "id": "TC-02",
+    "ac": ["AC-1"],
+    "title": "No non-uniform text scaling during the morph",
+    "type": "Visual",
+    "priority": "High",
+    "preconditions": "As TC-01; frames from TC-01 capture available",
+    "steps": [
+      "From the captured frames, crop the class name text in the start frame, every intermediate frame and the end frame",
+      "For each frame measure the class name glyph box width/height ratio (e.g. of the capital letter of the class name, or the text run width divided by its cap height)",
+      "Compare each intermediate ratio to the ratio in the static card and the static header"
+    ],
+    "expected": "Glyph aspect ratio in every intermediate frame stays within ±10% of the static card/header ratio (text may cross-fade or scale uniformly, but is never visibly stretched horizontally or squashed vertically); no smeared or doubled-up legible text at full opacity"
+  },
+  {
+    "id": "TC-03",
+    "ac": ["AC-1"],
+    "title": "No blank or white frame during the transition",
+    "type": "Visual",
+    "priority": "High",
+    "preconditions": "As TC-01; run in both light and dark theme",
+    "steps": [
+      "Capture frames every ~30–40 ms during dashboard → class open",
+      "For each frame compute the share of pixels equal to the page background colour (or pure white #FFFFFF) and the number of distinct colours",
+      "Repeat in dark theme"
+    ],
+    "expected": "No frame is ≥95% a single flat colour (blank/white page); in dark theme no frame shows a white or light flash; some content (card/header or page) is visible in every frame"
+  },
+  {
+    "id": "TC-04",
+    "ac": ["AC-2"],
+    "title": "Header shows real class name and code at the end of the transition",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "As TC-01; class data responds normally (<100 ms)",
+    "steps": [
+      "Hover the 'Intro to Biology' card for ~300 ms, then click",
+      "Capture frames during the transition",
+      "Inspect the last transition frame and the first settled frame; read the header text via DOM at transition finished",
+      "Also record network requests for the class query"
+    ],
+    "expected": "In the final transition frame and immediately after, the header shows 'Intro to Biology' and 'BIO101'; the placeholder 'Class' never appears in any frame after the click; the class query request starts on hover/focus (before click) and is not re-fetched in a way that shows a loading state"
+  },
+  {
+    "id": "TC-05",
+    "ac": ["AC-2"],
+    "title": "No layout shift after the transition; page body fades in without jumping",
+    "type": "Visual / Performance",
+    "priority": "High",
+    "preconditions": "As TC-04",
+    "steps": [
+      "Register a PerformanceObserver for 'layout-shift' before clicking the card",
+      "Hover then click the card; capture frames",
+      "After transition ends, record bounding boxes of the header, notes editor and slides panel at +0 ms, +300 ms and +1000 ms",
+      "Sum layout-shift values occurring from click to +1000 ms"
+    ],
+    "expected": "Header/notes/slides boxes do not move between +0 ms and +1000 ms (±2 px); cumulative layout shift from click to +1 s < 0.05; page content below the header fades in (opacity change only) rather than jumping into place"
+  },
+  {
+    "id": "TC-06",
+    "ac": ["AC-2"],
+    "title": "Prefetch on keyboard focus and touch",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Dashboard loaded; network panel / request log active; class data mocked",
+    "steps": [
+      "Tab to a class card with the keyboard (no mouse); note whether the class query request fires on focus",
+      "Press Enter; capture end-of-transition header",
+      "Reload; in 390 px mobile emulation with touch, tap a different card; note whether the request fires on touchstart / before navigation"
+    ],
+    "expected": "Class data request is issued on focus (keyboard) and on touch start (or at the latest at click) and the header shows the real name and code when the transition ends in both cases; Enter opens the class"
+  },
+  {
+    "id": "TC-07",
+    "ac": ["AC-3"],
+    "title": "Hover lift/tilt does not cause a jump at transition start",
+    "type": "Visual",
+    "priority": "High",
+    "preconditions": "As TC-01; desktop pointer",
+    "steps": [
+      "Hover the card near one corner so the hover lift/tilt is fully applied (wait ~500 ms)",
+      "Start frame capture; click the card at the same pointer position",
+      "Compare the card's bounding box and rotation in the last pre-click frame with the first 2–3 transition frames"
+    ],
+    "expected": "The first transition frame starts from where the card visibly was (position change ≤ 4 px, no sudden rotation snap); motion continues smoothly from there; no frame shows the card jumping back to the untilted position before morphing"
+  },
+  {
+    "id": "TC-08",
+    "ac": ["AC-4"],
+    "title": "Home page class card opens class page smoothly",
+    "type": "Functional / Visual",
+    "priority": "High",
+    "preconditions": "Mocked signed-in session; home page (/) shows class cards",
+    "steps": [
+      "Open the home page and wait for class cards",
+      "Hover a class card, then click; capture frames every ~30–40 ms",
+      "Apply the checks from TC-01, TC-02, TC-03 and TC-04 to these frames"
+    ],
+    "expected": "One continuous ~300–450 ms morph from home card to class header; no non-uniform text scaling; no blank/white frame; header shows real name and code at end; no 'Class' placeholder"
+  },
+  {
+    "id": "TC-09",
+    "ac": ["AC-4"],
+    "title": "'Back to dashboard' morphs back smoothly",
+    "type": "Functional / Visual",
+    "priority": "High",
+    "preconditions": "Class page open after TC-01",
+    "steps": [
+      "Start frame capture; click 'Back to dashboard'",
+      "Capture until the dashboard settles (~800 ms)",
+      "Check duration, header-to-card motion, glyph aspect and blank frames as in TC-01–TC-03",
+      "Check the dashboard cards are in their normal positions with no hover tilt stuck on the returned card",
+      "Also test browser Back button once"
+    ],
+    "expected": "Header morphs back into the matching dashboard card in one continuous motion (~300–450 ms); no stretched text; no blank frame; dashboard cards render fully at the end with no layout shift; browser Back navigates correctly (morph or plain, but no broken/half-rendered frame)"
+  },
+  {
+    "id": "TC-10",
+    "ac": ["AC-5"],
+    "title": "Slow class data (1–2 s delay): prompt navigation and normal loading state",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "Mock / route-intercept the class data request to delay 1500 ms (repeat with 1000 ms and 2000 ms); disable prefetch by clicking immediately without hover (or clear cache)",
+    "steps": [
+      "Move to a dashboard card and click immediately; record click timestamp",
+      "Capture frames every ~30–40 ms for 2.5 s",
+      "Record when the URL changes and when the first frame differing from the dashboard appears",
+      "Check the frames for the page's loading state and for the final header"
+    ],
+    "expected": "Visible response within ~300 ms of the click (transition starts or the class page/loading state appears; the dashboard is not frozen for the full delay); the page shows its normal loading state (skeleton/spinner) while data loads; no broken morph (no card snapshot stuck on screen, no stretched header, no blank page); once data arrives the header shows the real name and code"
+  },
+  {
+    "id": "TC-11",
+    "ac": ["AC-6"],
+    "title": "Reduced motion: instant navigation or short fade",
+    "type": "Accessibility",
+    "priority": "High",
+    "preconditions": "Emulate prefers-reduced-motion: reduce",
+    "steps": [
+      "Open the dashboard; click a class card while capturing frames",
+      "Click 'Back to dashboard' while capturing frames",
+      "Repeat from the home page card"
+    ],
+    "expected": "No card-to-header movement/resize morph; navigation is instant or a plain opacity fade ≤ ~200 ms; class page shows correct name and code; no blank/white frame"
+  },
+  {
+    "id": "TC-12",
+    "ac": ["AC-6"],
+    "title": "Browser without View Transitions navigates normally",
+    "type": "Compatibility",
+    "priority": "High",
+    "preconditions": "Firefox (or older WebKit) without document.startViewTransition, or Chromium with an init script deleting document.startViewTransition",
+    "steps": [
+      "Open the dashboard; click a class card",
+      "Click 'Back to dashboard'",
+      "Open a class from the home page",
+      "Watch the console for errors"
+    ],
+    "expected": "All three navigations work and land on the correct page with real class name and code; no JavaScript errors (e.g. 'startViewTransition is not a function'); no blank page"
+  },
+  {
+    "id": "TC-13",
+    "ac": ["AC-1", "AC-4"],
+    "title": "Phone width 390 px and dark theme",
+    "type": "Responsive / Visual",
+    "priority": "Medium",
+    "preconditions": "Viewport 390x844, touch emulation; run in light then dark theme",
+    "steps": [
+      "Open the dashboard; tap a class card; capture frames every ~30–40 ms",
+      "Tap 'Back to dashboard'; capture frames",
+      "Check duration, glyph aspect, blank frames and final header as in TC-01–TC-04",
+      "Check for horizontal scroll during and after the transition"
+    ],
+    "expected": "Smooth single morph in both directions in both themes; no stretched text; no white flash in dark theme; header shows real name and code (wrapping/truncation acceptable); no horizontal page scroll at any point"
+  },
+  {
+    "id": "TC-14",
+    "ac": ["AC-7"],
+    "title": "Regression: class page, dashboard, home; typecheck, tests and build",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Branch build; mocked session and data",
+    "steps": [
+      "Run bun run typecheck, the project test suite and bun run build",
+      "On the class page: type notes in the editor, open the slides panel, check summary area renders; reload the class URL directly (no transition)",
+      "On the dashboard: cards render, hover effects still present, other controls (e.g. join/add class) still work",
+      "On the home page: cards render and link to the correct class",
+      "Open two different classes in sequence from the dashboard and confirm each shows its own name/code (no stale header from the previous class)",
+      "Check console for errors throughout"
+    ],
+    "expected": "Typecheck, tests and build pass; class page features work as before; direct load of the class URL works; dashboard and home render and behave as before (hover lift/tilt still visible on hover); each class opens with its own correct header; no console errors"
+  }
+]
