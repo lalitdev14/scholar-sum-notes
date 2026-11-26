@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-26-semester-subjects-form-with-nyu-code-loo |
-| Status       | Ready for build                                         |
+| Status       | In test                                                 |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-26                                              |
 | Branch       | `claude/semester-subjects`                              |
@@ -93,6 +93,61 @@ Each criterion is testable and has an ID that test cases refer to.
 
 What was changed and how each acceptance criterion is met.
 
+Code commit: `bfa90a5`.
+
+**Files**
+
+- `src/lib/nyu-courses.functions.ts` (new): `searchNyuCourses({ q, term })` (POST) and `getNyuTerms()` (GET),
+  both behind `requireSupabaseAuth`; zod: `q` trimmed 2–80 chars, `term` 1–8 digits. Exports `NyuCourse` / `NyuTerm` types.
+- `src/lib/nyu-courses.server.ts` (new, server-only, loaded with dynamic import): FOSE request
+  (`<base>api/?page=fose&route=search&keyword=<q>`, JSON body `{other:{srcdb}, criteria:[{field:"keyword",value}]}`),
+  browser-like `User-Agent`, `Accept: application/json`, 8 s `AbortController` timeout; results de-duplicated by code
+  (sections merged, first named instructor kept), max 25. Term list parsed from `<select name="srcdb">` on the
+  class-search page, cached in memory 6 h; current semester = Jan–May Spring / Jun–Aug Summer / Sep–Dec Fall of this year,
+  else the first option; built-in fallback list (Spring 2027 … Spring 2026) if fetch/parse fails. HTTP call goes through
+  a swappable helper (`setNyuHttpFetch`) for tests; base URL overridable with `NYU_CLASS_SEARCH_URL` (documented in `.env.example`).
+- `src/components/SemesterSubjectsDialog.tsx` (new): shadcn Dialog "Your subjects this semester" with subject search
+  (350 ms debounce), term select (defaults to the current semester), results (code + title + Add/Added, "In your classes" for
+  ones already enrolled), "To add" chosen list with remove, "Your classes" list with Remove (confirm dialog: "Your notes are
+  kept…", deletes only the enrollment), error box with "Try again" and a link to Dashboard → Add class, Done button.
+- `src/components/WelcomeHome.tsx`: auto-opens the dialog once per device for a signed-in student with zero enrollments and no
+  `lectureloop:subjects-done:<uid>` flag (waits for any other open pop-up first); Done/close/Esc sets the flag; a small
+  "My subjects" pill button (aria-label/title "Update my subjects", icon-only on phones) next to the date reopens it.
+
+**Acceptance criteria**
+
+- AC-1: auto-open rule above (no classes AND no device flag); students with classes or the flag don't get it.
+- AC-2: ≥2 characters triggers the server search for the selected term; results show code and title, one row per code;
+  term select switches the search; empty results show "No NYU courses found for “…” in <term>".
+- AC-3: Done, per chosen course: look up an active class by `code` → enroll (23505 on enrollment = already enrolled, skipped);
+  otherwise insert class {subject: NYU title, code, term: term label, professor: instructor or "TBA", created_by, university_id
+  from profile} then enroll; on 23505 re-read by code and enroll. Courses already in the student's classes are skipped.
+  Invalidates `welcome-home`, `my-enrollments`, `classes`; toast e.g. "Added 3 subjects" (+ "N already in your classes" /
+  "N couldn't be added").
+- AC-4: "Update my subjects" button stays on the home page and reopens the form listing current classes; Remove un-enrolls
+  after confirmation; notes are not touched.
+- AC-5: any server failure/timeout shows "We couldn't reach NYU's class search" with Try again and the Dashboard → Add class link;
+  the home page is unaffected.
+- AC-6: NYU is called only from the server function (no NYU URL in the client bundle); unauthenticated calls are rejected
+  ("Unauthorized: Invalid token" seen with a fake session); input limits via zod and `maxLength`; dialog fits 390 px
+  (scrolls inside, no page overflow); all controls are buttons/inputs reachable by Tab; dashboard untouched.
+
+**Developer verification** (test data and mocks only)
+
+- `bun run typecheck`, `bun run build` pass; eslint + prettier clean on touched files.
+- Unit checks (bun test, mocked HTTP, NYU samples): request URL/body/headers/timeout signal, de-dup + 25 cap, HTTP 503 /
+  `{"fatal"}` / network error / 8 s timeout → friendly error, term parsing, current-term pick (Nov→Fall 2026, Feb→Spring 2027,
+  Jul→Summer 2026, unknown→first), 6 h cache, fallback list, env override — 6/6 pass.
+- Chromium (Playwright) against the dev server with a fake session, mocked Supabase REST and mocked server-function responses:
+  36/36 checks pass (auto-open/no auto-open cases, search, term switch, choose/remove, Done with create + reuse + 23505 race,
+  summary toast, flag, reopen + remove with confirm, no results, error + link to dashboard, 390 px, keyboard-only add/Done,
+  no page errors).
+
+**Limitations**: the live NYU endpoint is not reachable from the build machine, so the real FOSE call was verified only against
+the documented format and sample responses (reachability was verified from Vercel iad1 by the analyst). The "done" flag is per
+device (localStorage), as specified. If an NYU course code already exists as a class at another university (hidden by RLS),
+that course is reported as "couldn't be added".
+
 ## 8. Test summary (tester)
 
 | Total | Pass | Fail | Blocked | Evidence             |
@@ -117,8 +172,9 @@ Notes per acceptance criterion:
 
 Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Details>"`.
 
-| Time (UTC)           | Role                | Action                      | Details                                                                                                                                              |
-| -------------------- | ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-26T04:59:18Z | Requirement analyst | Requirement created         | Semester subjects form with NYU code lookup                                                                                                          |
-| 2026-11-26T04:59:18Z | Requirement analyst | Requirement ready for build | 6 acceptance criteria; source chosen by owner: live lookup on bulletins.nyu.edu (verified reachable from Vercel iad1, blocked from the test machine) |
-| 2026-11-26T05:01:00Z | Test master | Test cases written | 19 test cases covering AC-1..AC-6 |
+| Time (UTC)           | Role                | Action                      | Details                                                                                                                                                                      |
+| -------------------- | ------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-26T04:59:18Z | Requirement analyst | Requirement created         | Semester subjects form with NYU code lookup                                                                                                                                  |
+| 2026-11-26T04:59:18Z | Requirement analyst | Requirement ready for build | 6 acceptance criteria; source chosen by owner: live lookup on bulletins.nyu.edu (verified reachable from Vercel iad1, blocked from the test machine)                         |
+| 2026-11-26T05:01:00Z | Test master         | Test cases written          | 19 test cases covering AC-1..AC-6                                                                                                                                            |
+| 2026-11-26T05:09:00Z | Developer           | Build complete              | nyu-courses server functions + SemesterSubjectsDialog + WelcomeHome auto-open/Update my subjects; typecheck+build pass; unit 6/6, Chromium mock checks 36/36; commit bfa90a5 |
