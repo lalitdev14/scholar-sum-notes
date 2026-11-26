@@ -7,7 +7,7 @@
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/next-lecture-countdown` |
-| PR           | (added in step 6) |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/82 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -139,3 +139,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T17:26:53Z | Test master | Test cases written | 28 cases covering AC-1..AC-11 |
 | 2026-11-26T20:33:12Z | Developer | Build complete | Commit 154014b: getNyuSections, meeting parser + next-lecture (NY/DST) with tests, class_sections migration 20261126120000 + types, SectionPicker in subjects dialog/class page, Next lecture split-flap card; typecheck, 55 unit tests, build pass |
 | 2026-11-26T20:33:51Z | Product owner | Steps 3-5 waived | Product owner asked for the PR before testing ('generate pr'); test cases written, test run and PM review not done |
+| 2026-11-26T20:34:32Z | Release | PR raised | lalitdev14/scholar-sum-notes#82 into preprod |
