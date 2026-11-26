@@ -81,6 +81,15 @@ describe("school table", () => {
     expect(programsFor("nope")).toEqual([]);
     expect(schoolById(null)).toBe(null);
   });
+
+  test("Courant has its current name and full program list", () => {
+    const c = schoolById("courant");
+    expect(c?.name).toBe("Courant Institute School of Mathematics, Computing, and Data Science");
+    expect(c?.shortName).toBe("Courant");
+    expect(c?.programs).toContain("Information Systems (MS)");
+    expect(c?.programs.length).toBe(22);
+    expect(c?.programs).not.toContain(OTHER_PROGRAM);
+  });
 });
 
 describe("groupBySchool", () => {
