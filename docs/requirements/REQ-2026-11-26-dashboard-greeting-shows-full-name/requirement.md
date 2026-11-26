@@ -7,7 +7,7 @@
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/dashboard-full-name` |
-| PR           | (added in step 6) |
+| PR           | https://github.com/lalitdev14/scholar-sum-notes/pull/84 |
 
 Status values: Draft → Ready for build → In build → In test → In PM review → Changes requested
 → Approved → PR raised → Merged to preprod → Released.
@@ -97,3 +97,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T22:28:23Z | Requirement analyst | Requirement ready for build | 4 ACs; one-line copy change, shared helper |
 | 2026-11-26T22:28:23Z | Requirement analyst | Steps 3-5 skipped as trivial | Same treatment as earlier trivial name/copy changes; developer adds unit tests; PR raised after build |
 | 2026-11-26T22:30:06Z | Developer | Build complete | formatFullName moved to src/lib/format-name.ts (+7 unit tests), used by WelcomeHome and dashboard heading; heading wraps long names; typecheck, 72 tests, build, prettier pass; commit 1569d7d |
+| 2026-11-26T22:30:35Z | Release | PR raised | lalitdev14/scholar-sum-notes#84 into preprod |
