@@ -49,6 +49,9 @@ import { LectureSlideViewer } from "@/components/LectureSlideViewer";
 import { ensurePdfCopy, forgetDeck } from "@/lib/pptx-to-pdf";
 import { slideStorageFiles } from "@/lib/slide-copy-path";
 import { AdjustableClassWorkspace } from "@/components/AdjustableClassWorkspace";
+import { UploadProgressIcon, useUploadProgress } from "@/components/UploadProgress";
+import { useTabIndicator } from "@/hooks/use-tab-indicator";
+import { classTransitionName } from "@/lib/motion";
 import { toast } from "sonner";
 import { AuthenticatedHeader } from "@/components/AuthenticatedHeader";
 import {
@@ -154,6 +157,11 @@ function ClassPage() {
   const [removingSlideId, setRemovingSlideId] = useState<string | null>(null);
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const slidesInputRef = useRef<HTMLInputElement>(null);
+  const slideUpload = useUploadProgress();
+  // Sliding highlights for the workspace's own tab bars.
+  const viewTabs = useTabIndicator<HTMLHeadingElement>("underline");
+  const deckTabs = useTabIndicator<HTMLDivElement>("fill");
+  const notebookDeckTabs = useTabIndicator<HTMLDivElement>("fill");
 
   const { data: lectureSlides } = useQuery({
     queryKey: ["lecture-slides", classId],
@@ -197,6 +205,8 @@ function ClassPage() {
       return;
     }
     setUploadingSlides(true);
+    slideUpload.start(file.size);
+    let uploaded = false;
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -207,6 +217,7 @@ function ClassPage() {
         // Storage only accepts PDF and PowerPoint types, so send the checked type.
         .upload(filePath, new Blob([file], { type: contentType }), { contentType });
       if (uploadError) throw uploadError;
+      slideUpload.saving();
       const { data: row, error: saveError } = await supabase
         .from("lecture_slides")
         .insert({
@@ -228,10 +239,13 @@ function ClassPage() {
       if (contentType === PPTX_TYPE) void ensurePdfCopy(filePath, file);
       setSelectedSlideId(row.id);
       await queryClient.invalidateQueries({ queryKey: ["lecture-slides", classId] });
+      uploaded = true;
       toast.success("Slides uploaded");
     } catch (err) {
       toast.error(friendlyError(err, "Could not upload slides"));
     } finally {
+      if (uploaded) slideUpload.done();
+      else slideUpload.fail();
       setUploadingSlides(false);
       if (slidesInputRef.current) slidesInputRef.current.value = "";
     }
@@ -1021,8 +1035,13 @@ function ClassPage() {
       <AuthenticatedHeader trailing={klass && <Badge variant="secondary">{klass.code}</Badge>} />
 
       <main className="mx-auto max-w-[100rem] px-4 pt-4 pb-6 sm:px-6 lg:pb-4 lg:px-10 xl:px-16">
-        {/* Compact one-line class header so the editor and slides get the height. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        {/* Compact one-line class header so the editor and slides get the height. It shares
+            a View Transition name with the class card, so opening a class morphs the card. */}
+        <div
+          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+          style={{ viewTransitionName: classTransitionName(classId) }}
+          data-testid="class-header"
+        >
           <div className="flex min-w-0 items-center gap-3">
             <Button
               asChild
@@ -1031,7 +1050,7 @@ function ClassPage() {
               className="h-8 shrink-0 gap-1.5 px-2.5"
               title="Back to dashboard"
             >
-              <Link to="/dashboard" aria-label="Back to dashboard">
+              <Link to="/dashboard" viewTransition aria-label="Back to dashboard">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
@@ -1259,10 +1278,16 @@ function ClassPage() {
                           <div className="flex min-h-0 flex-1 flex-col gap-2">
                             {lectureSlides && lectureSlides.length > 1 && (
                               <div
-                                className="flex shrink-0 gap-1 overflow-x-auto rounded-lg bg-muted p-1 [scrollbar-width:none]"
+                                ref={notebookDeckTabs.listRef}
+                                className="relative flex shrink-0 gap-1 overflow-x-auto rounded-lg bg-muted p-1 [scrollbar-width:none]"
                                 role="tablist"
                                 aria-label="Slide decks"
                               >
+                                <span
+                                  ref={notebookDeckTabs.indicatorRef}
+                                  className="motion-tab-indicator rounded-md bg-background shadow-sm"
+                                  aria-hidden="true"
+                                />
                                 {lectureSlides.map((item) => (
                                   <button
                                     key={item.id}
@@ -1493,10 +1518,17 @@ function ClassPage() {
             >
               <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
                 <h2
-                  className="flex items-baseline gap-5 text-2xl"
+                  ref={viewTabs.listRef}
+                  className="relative flex items-baseline gap-5 text-2xl"
                   role="tablist"
                   aria-label="Show slides or AI summary"
                 >
+                  <span
+                    ref={viewTabs.indicatorRef}
+                    className="motion-tab-indicator h-0.5 rounded-full bg-primary"
+                    aria-hidden="true"
+                    data-testid="view-tab-indicator"
+                  />
                   {(
                     [
                       ["slides", "Slides"],
@@ -1548,8 +1580,16 @@ function ClassPage() {
                     disabled={uploadingSlides}
                     onClick={() => slidesInputRef.current?.click()}
                   >
-                    <FileUp className="mr-2 h-4 w-4" />
-                    {uploadingSlides ? "Uploading…" : "Add slides"}
+                    {slideUpload.state.phase === "idle" ? (
+                      <FileUp className="mr-2 h-4 w-4" />
+                    ) : (
+                      <UploadProgressIcon state={slideUpload.state} />
+                    )}
+                    {uploadingSlides
+                      ? `Uploading… ${slideUpload.state.phase === "uploading" ? `${slideUpload.state.percent}%` : ""}`.trim()
+                      : slideUpload.state.phase === "done"
+                        ? "Uploaded"
+                        : "Add slides"}
                   </Button>
                 ) : (
                   mySummary && (
@@ -1568,7 +1608,8 @@ function ClassPage() {
 
               {rightView === "summary" && (
                 <div
-                  className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1 lg:overscroll-contain"
+                  className="motion-tab-panel mt-4 min-h-0 flex-1 overflow-y-auto pr-1 lg:overscroll-contain"
+                  data-state="active"
                   aria-label="Your AI summary"
                 >
                   {mySummary ? (
@@ -1614,7 +1655,10 @@ function ClassPage() {
                     </>
                   ) : (
                     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-background/40 px-6 text-center">
-                      <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+                      <span
+                        className="motion-float grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary"
+                        data-testid="empty-float"
+                      >
                         <Sparkles className="h-5 w-5" />
                       </span>
                       <span className="text-base font-medium">
@@ -1639,15 +1683,25 @@ function ClassPage() {
 
               {/* Slides stay mounted while the summary is shown, so switching back is instant. */}
               <div
-                className={cn("flex min-h-0 flex-1 flex-col", rightView !== "slides" && "hidden")}
+                className={cn(
+                  "motion-tab-panel flex min-h-0 flex-1 flex-col",
+                  rightView !== "slides" && "hidden",
+                )}
+                data-state={rightView === "slides" ? "active" : "inactive"}
               >
                 {lectureSlides && lectureSlides.length > 0 && (
                   <div className="mt-4 flex h-9 shrink-0 items-center gap-1 rounded-lg bg-muted p-1">
                     <div
-                      className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none]"
+                      ref={deckTabs.listRef}
+                      className="relative flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none]"
                       role="tablist"
                       aria-label="Your slide decks"
                     >
+                      <span
+                        ref={deckTabs.indicatorRef}
+                        className="motion-tab-indicator rounded-md bg-background shadow-sm"
+                        aria-hidden="true"
+                      />
                       {lectureSlides.map((item) => {
                         const active = item.id === activeSlides?.id;
                         return (
@@ -1715,7 +1769,10 @@ function ClassPage() {
                     disabled={uploadingSlides}
                     className="mt-4 flex min-h-[320px] flex-1 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-background/40 px-6 text-center transition-colors hover:border-primary/40 hover:bg-background/70"
                   >
-                    <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">
+                    <span
+                      className="motion-float grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary"
+                      data-testid="empty-float"
+                    >
                       <FileUp className="h-5 w-5" />
                     </span>
                     <span className="text-base font-medium">Add your lecture slides</span>

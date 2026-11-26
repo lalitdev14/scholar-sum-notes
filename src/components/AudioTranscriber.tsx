@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, Pause, Play, Square, Trash2 } from "lucide-react";
+import { Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { pickAudioMimeType } from "@/lib/lecture-audio";
 import { encodeWav, isSilent } from "@/lib/wav";
 import { cn, formatDuration } from "@/lib/utils";
+import { levelBands } from "@/lib/motion";
 
 /**
  * Live lecture transcription with start / pause / resume / finish.
@@ -77,6 +78,7 @@ const PAUSE_RMS = 0.012;
 
 /** One recording can run at most 40 minutes; it then stops and saves by itself. */
 export const MAX_RECORDING_SECONDS = 40 * 60;
+const SILENT_BARS = [0, 0, 0, 0, 0];
 const WARN_AT_SECONDS = MAX_RECORDING_SECONDS - 5 * 60;
 
 // Minimal typing for the (still prefixed in some browsers) Web Speech API.
@@ -149,6 +151,13 @@ export function AudioTranscriber({
   const bufferedSecondsRef = useRef(0);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Live level bars on the record button (an AnalyserNode on the microphone, ~15 fps).
+  const [bars, setBars] = useState<number[]>(SILENT_BARS);
+  const meterRef = useRef<{
+    ctx: AudioContext;
+    timer: ReturnType<typeof setInterval>;
+    own: MediaStream | null;
+  } | null>(null);
 
   const setStatusBoth = (s: Status) => {
     statusRef.current = s;
@@ -251,10 +260,16 @@ export function AudioTranscriber({
     if (el) el.scrollTop = el.scrollHeight;
   }, [text, interim]);
 
+  // The level bars stop whenever recording stops (pause, finish, an error).
+  useEffect(() => {
+    if (status !== "recording") stopMeter();
+  }, [status]);
+
   // Stop everything on unmount.
   useEffect(
     () => () => {
       statusRef.current = "idle";
+      stopMeter();
       recognitionRef.current?.abort();
       stopAudioCapture();
       discardRecorder();
@@ -458,6 +473,46 @@ export function AudioTranscriber({
     setLevel(0);
   }
 
+  // ------------------------------------------------------------ level meter
+
+  async function startMeter() {
+    if (meterRef.current || typeof AudioContext === "undefined") return;
+    try {
+      // Reuse a microphone stream that is already open; otherwise open one just for the bars.
+      const shared = audioRef.current?.stream ?? recorderRef.current?.stream ?? null;
+      const stream = shared ?? (await navigator.mediaDevices?.getUserMedia({ audio: true }));
+      if (!stream) return;
+      if (statusRef.current !== "recording" || meterRef.current) {
+        if (!shared) stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      const ctx = new AudioContext();
+      void ctx.resume();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.6;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const timer = setInterval(() => {
+        analyser.getByteFrequencyData(data);
+        setBars(levelBands(data, SILENT_BARS.length));
+      }, 66);
+      meterRef.current = { ctx, timer, own: shared ? null : stream };
+    } catch {
+      /* no meter: the bars just stay still */
+    }
+  }
+
+  function stopMeter() {
+    const m = meterRef.current;
+    meterRef.current = null;
+    if (!m) return;
+    clearInterval(m.timer);
+    m.own?.getTracks().forEach((t) => t.stop());
+    void m.ctx.close();
+    setBars(SILENT_BARS);
+  }
+
   // ------------------------------------------------------------ controls
 
   async function start() {
@@ -473,6 +528,7 @@ export function AudioTranscriber({
         }
         await startAudioCapture();
       }
+      void startMeter();
     } catch (err) {
       setStatusBoth(textRef.current ? "paused" : "idle");
       const name = err instanceof DOMException ? err.name : "";
@@ -546,30 +602,49 @@ export function AudioTranscriber({
   return (
     <div className="mt-3 flex flex-col gap-3" data-testid="audio-transcriber">
       <div className="flex flex-wrap items-center gap-2">
-        {status === "idle" && (
-          <Button onClick={() => void start()} className="gap-2">
-            <Mic className="h-4 w-4" /> Start transcribing
-          </Button>
-        )}
-        {status === "recording" && (
-          <Button variant="secondary" onClick={pause} className="gap-2">
-            <Pause className="h-4 w-4" /> Pause
-          </Button>
-        )}
-        {status === "paused" && (
-          <Button
-            onClick={() => void start()}
-            className="gap-2"
-            disabled={seconds >= MAX_RECORDING_SECONDS}
-            title={
-              seconds >= MAX_RECORDING_SECONDS
-                ? "This recording reached the 40-minute limit. Save it and start a new one."
+        {/* Round record button; while recording it stretches into a "Recording · m:ss"
+            pill with level bars and a stop square. Stopping pauses (resume or finish & save). */}
+        <button
+          type="button"
+          className="motion-rec-btn"
+          onClick={() => (status === "recording" ? pause() : void start())}
+          disabled={
+            status === "saving" || (status === "paused" && seconds >= MAX_RECORDING_SECONDS)
+          }
+          aria-label={
+            status === "recording"
+              ? "Stop recording"
+              : status === "paused"
+                ? "Start recording (resume)"
+                : "Start recording"
+          }
+          aria-pressed={status === "recording"}
+          title={
+            status === "paused" && seconds >= MAX_RECORDING_SECONDS
+              ? "This recording reached the 40-minute limit. Save it and start a new one."
+              : status === "recording"
+                ? "Stop recording. You can resume, or finish and save."
                 : undefined
-            }
-          >
-            <Play className="h-4 w-4" /> Resume
-          </Button>
-        )}
+          }
+          data-testid="record-button"
+          data-state={status}
+        >
+          <span className="motion-rec" data-on={status === "recording"} aria-hidden="true">
+            <span className="motion-rec-inner">
+              <span className="motion-rec-dot" />
+              <span className="motion-rec-label">
+                Recording · {formatDuration(seconds)}
+                <span className="motion-rec-bars" data-testid="level-bars">
+                  {bars.map((lv, i) => (
+                    <i key={i} style={{ "--lv": lv.toFixed(2) } as React.CSSProperties} />
+                  ))}
+                </span>
+              </span>
+            </span>
+          </span>
+          {status === "idle" && <span>Start transcribing</span>}
+          {status === "paused" && <span>Resume</span>}
+        </button>
         {(status === "recording" || status === "paused" || status === "saving") && (
           <Button
             variant="outline"
