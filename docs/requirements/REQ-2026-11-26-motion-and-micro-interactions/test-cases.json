@@ -1,1 +1,456 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "ac": ["AC-1"],
+    "title": "Motion tokens defined once with expected values",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "App running (local production build or dev server); any page open in a desktop browser",
+    "steps": [
+      "Open DevTools and read getComputedStyle(document.documentElement) for the motion custom properties (or inspect the Tailwind theme tokens) for fast, base, slow durations, ease-out curve and spring curve",
+      "Search the shipped CSS for where these tokens are declared"
+    ],
+    "expected": "Tokens declared in one place: fast ≈140 ms, base ≈220 ms, slow ≈360 ms (±20 ms), an ease-out cubic-bezier, and a spring easing whose overshoot is ≤ ~5% (e.g. cubic-bezier y-values ≤ 1.05 or linear() peak ≤ 1.05). Screenshot of computed values"
+  },
+  {
+    "id": "TC-02",
+    "ac": ["AC-1"],
+    "title": "Animated components use the shared tokens",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Signed in as a test user with at least one class",
+    "steps": [
+      "Trigger a toast, a dialog open, a tab switch and the search result stagger",
+      "For each animating element, read getComputedStyle(el).animationDuration / transitionDuration and animationTimingFunction, or document.getAnimations() timing"
+    ],
+    "expected": "Each animation's duration matches one of the token values (≈140/220/360 ms) and its easing matches the token ease-out or spring curve; no ad-hoc durations outside the token set for these areas"
+  },
+  {
+    "id": "TC-03",
+    "ac": ["AC-3"],
+    "title": "Subject search results rise in with a stagger",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in as test user; subjects dialog open; course catalogue (test data or mocked) returns ≥ 8 results for a query",
+    "steps": [
+      "Type a query that returns ≥ 8 results",
+      "Record document.getAnimations() for each result row with startTime/delay, or read animation-delay per row",
+      "Take a screenshot ~100 ms after results appear (mid-animation)"
+    ],
+    "expected": "Each row has a translate-Y + opacity entrance; per-row delay increases by 30–60 ms; the last row's animation finishes within ~600 ms of the first starting; mid-animation screenshot shows rows at different opacity/offset"
+  },
+  {
+    "id": "TC-04",
+    "ac": ["AC-3"],
+    "title": "Add button rolls to 'Added ✓' and course pops into 'To add'",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Subjects dialog open with search results shown",
+    "steps": [
+      "Click 'Add' on one result",
+      "Capture animations on the button and on the new 'To add' item; screenshot mid-animation",
+      "Wait 500 ms and screenshot the end state"
+    ],
+    "expected": "Button animates (text/label transition) to 'Added ✓'; the course appears in the 'To add' list with a scale/pop entrance (scale from <1 to 1, spring easing); end state shows 'Added ✓' and the item in 'To add'"
+  },
+  {
+    "id": "TC-05",
+    "ac": ["AC-3", "AC-13"],
+    "title": "Removing a course from 'To add' shrinks it out faster than it entered",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "At least one course in the 'To add' list",
+    "steps": [
+      "Click the remove control on the course in 'To add'",
+      "Record the exit animation duration and compare with the pop-in duration from TC-04"
+    ],
+    "expected": "Item scales down/fades out and is then removed from the DOM; exit duration is shorter than the entrance duration; the matching result's button returns to 'Add'"
+  },
+  {
+    "id": "TC-06",
+    "ac": ["AC-4"],
+    "title": "Toast enters with an upward spring and exits sideways",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; an action that shows a toast (e.g. save notes, add subject)",
+    "steps": [
+      "Trigger a success toast; record its entrance animation (transform keyframes, easing) and screenshot mid-entrance",
+      "Dismiss it (close or wait for auto-dismiss); record exit keyframes and screenshot mid-exit"
+    ],
+    "expected": "Entrance translates from below (positive Y) to 0 with spring easing, finishes ≤ ~400 ms; exit translates on X and fades opacity to 0, and is shorter than the entrance"
+  },
+  {
+    "id": "TC-07",
+    "ac": ["AC-4", "AC-14"],
+    "title": "Several toasts stack without overlapping text",
+    "type": "Edge case",
+    "priority": "Medium",
+    "preconditions": "Signed in; ability to fire 3 toasts quickly (repeat an action or via test hook)",
+    "steps": [
+      "Trigger 3 toasts within 1 second",
+      "After animations settle, read getBoundingClientRect() of each toast's text",
+      "Screenshot at desktop width and at 390 px"
+    ],
+    "expected": "Toast text rectangles do not intersect; all toasts readable; close buttons work; behaviour matches the existing toast stacking"
+  },
+  {
+    "id": "TC-08",
+    "ac": ["AC-5"],
+    "title": "Active-tab highlight slides between Type / Handwrite / Transcribe",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; a test class with the class workspace open",
+    "steps": [
+      "Note the highlight element's bounding rect on 'Type'",
+      "Click 'Transcribe'; sample the highlight rect every ~30 ms for 400 ms (or read its transform/left transition); screenshot mid-slide",
+      "Repeat on another tab bar in the class workspace"
+    ],
+    "expected": "The highlight moves continuously from the old tab position to the new one (intermediate positions observed) using a transform/position transition, ends exactly under the selected tab; the same on other workspace tab bars"
+  },
+  {
+    "id": "TC-09",
+    "ac": ["AC-5"],
+    "title": "Tab panel content fades/rises in on switch",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Class workspace open",
+    "steps": [
+      "Switch tabs and inspect document.getAnimations() on the newly shown panel",
+      "Screenshot ~80 ms after switching"
+    ],
+    "expected": "New panel has an opacity (and optional small translate-Y) entrance ≤ ~400 ms; old panel content is not left visible on top; mid-animation screenshot shows partial opacity"
+  },
+  {
+    "id": "TC-10",
+    "ac": ["AC-5", "AC-14"],
+    "title": "Keyboard tab switching still works",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Class workspace open",
+    "steps": [
+      "Tab focus to the tab list",
+      "Press ArrowRight / ArrowLeft / Home / End and Enter/Space as applicable"
+    ],
+    "expected": "Focus and selection move between tabs as before; aria-selected updates; highlight slides to the keyboard-selected tab; the correct panel is shown"
+  },
+  {
+    "id": "TC-11",
+    "ac": ["AC-6"],
+    "title": "Slide upload shows a filling progress indicator then a ✓ pop",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Signed in; test class open; storage upload mocked or throttled (DevTools network 'Slow 3G') so upload takes several seconds; test PDF deck",
+    "steps": [
+      "Add slides → choose the test PDF",
+      "Screenshot at ~25% and ~75% of the upload; read the indicator's width/value/aria-valuenow",
+      "Screenshot on completion"
+    ],
+    "expected": "A visible progress indicator is shown and its fill increases over time; on success it turns into a ✓ with a scale pop animation; the existing success toast/state still appears"
+  },
+  {
+    "id": "TC-12",
+    "ac": ["AC-6"],
+    "title": "Slide thumbnails/pages enter one after another",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Upload of a multi-page test deck (≥ 4 pages) just completed, or a class with a deck opened where thumbnails are shown",
+    "steps": [
+      "Record animations on thumbnail/page elements as they appear",
+      "Screenshot mid-sequence"
+    ],
+    "expected": "Thumbnails have entrance animations with increasing delays (staggered); mid-sequence screenshot shows some thumbnails visible and later ones still entering"
+  },
+  {
+    "id": "TC-13",
+    "ac": ["AC-6", "AC-14"],
+    "title": "Slide upload error still shows as before",
+    "type": "Error",
+    "priority": "High",
+    "preconditions": "Storage upload mocked to fail (e.g. 500), or an unsupported/oversized test file",
+    "steps": [
+      "Add slides → choose the file",
+      "Observe the indicator and messages"
+    ],
+    "expected": "No ✓ is shown; the existing error message/toast appears as today; the progress indicator is removed or reset; the user can retry"
+  },
+  {
+    "id": "TC-14",
+    "ac": ["AC-7"],
+    "title": "Recording ring pulses and level bars follow microphone",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Chromium launched with --use-fake-ui-for-media-stream --use-fake-device-for-media-stream (fake tone/audio file); class workspace Transcribe tab open",
+    "steps": [
+      "Start recording",
+      "Confirm an infinite pulse animation on the ring around the record control (getAnimations, iterations = Infinity)",
+      "Sample level bar heights/transforms every 100 ms for 2 s; screenshot twice",
+      "Switch fake input to silence if possible and sample again"
+    ],
+    "expected": "Ring pulse animation running; level bar values change over time with input (not identical every sample) and drop to minimal with silence; update rate roughly 10–20 fps"
+  },
+  {
+    "id": "TC-15",
+    "ac": ["AC-7"],
+    "title": "Pulse and level bars stop when recording stops",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Recording in progress (as TC-14)",
+    "steps": [
+      "Stop recording",
+      "Wait 500 ms; inspect getAnimations() on the ring and level bar values; check that the mic track is stopped"
+    ],
+    "expected": "No running pulse animation; level bars static/hidden; no ongoing requestAnimationFrame-driven level updates; the recording is processed as before"
+  },
+  {
+    "id": "TC-16",
+    "ac": ["AC-8"],
+    "title": "Record button morphs into 'Recording · m:ss' pill and back",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Fake media stream as in TC-14; Transcribe tab open",
+    "steps": [
+      "Read the record button's width and border-radius; note the dot shape",
+      "Click start; screenshot mid-morph (~100 ms) and after settle",
+      "Read text at t≈1 s, 2 s, 3 s, and at 65 s",
+      "Click stop; screenshot mid-reverse and after settle"
+    ],
+    "expected": "Button widens from round to a pill (width transition observed), shows 'Recording · 0:01', '0:02', '0:03' … '1:05' updating once per second, includes level bars; dot morphs into a square (border-radius change); on stop it returns to the original round button with the dot"
+  },
+  {
+    "id": "TC-17",
+    "ac": ["AC-8"],
+    "title": "Record button accessible name says Start/Stop recording",
+    "type": "Accessibility",
+    "priority": "High",
+    "preconditions": "Transcribe tab open",
+    "steps": [
+      "Read the accessible name (Playwright getByRole('button', {name}) or DevTools accessibility pane) before recording",
+      "Start recording and read it again; stop and read again",
+      "Operate the button with keyboard (Space/Enter)"
+    ],
+    "expected": "Name contains 'Start recording' when idle and 'Stop recording' while recording (the timer text does not replace it); keyboard activation works"
+  },
+  {
+    "id": "TC-18",
+    "ac": ["AC-9"],
+    "title": "Empty states show a gently floating illustration",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Fresh test user with no classes; a class with no notes",
+    "steps": [
+      "Open the home/dashboard with no classes; inspect the empty-state illustration/icon animations",
+      "Open the class with no notes; inspect its empty state",
+      "Take two screenshots ~1 s apart"
+    ],
+    "expected": "Illustration has an infinite, slow translate-Y float animation (small amplitude, a few px); screenshots show slight vertical offset difference; empty-state text and actions unchanged"
+  },
+  {
+    "id": "TC-19",
+    "ac": ["AC-9"],
+    "title": "Invalid sign-in shakes the field once and error slides open",
+    "type": "Error",
+    "priority": "High",
+    "preconditions": "Signed out; /auth page open; auth requests to Supabase mocked or using a non-existent test email",
+    "steps": [
+      "Enter an invalid email (e.g. 'abc') or wrong password and submit",
+      "Record animations on the field (keyframes on translate-X, iteration count) and on the error message (height/opacity/translate)",
+      "Submit again with the same invalid value"
+    ],
+    "expected": "Field shakes horizontally exactly once (iterationCount 1) per invalid submission; error message animates open (slide/expand) and its text is the existing error copy; second submit shakes again once; valid sign-in still works"
+  },
+  {
+    "id": "TC-20",
+    "ac": ["AC-10"],
+    "title": "Primary buttons show cursor-following light on fine pointer",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Desktop browser with mouse (matchMedia('(hover: hover) and (pointer: fine)') true)",
+    "steps": [
+      "Move the mouse to the left side of a primary button, read the light's position (CSS vars / background-position / pseudo-element); screenshot",
+      "Move to the right side and read again; screenshot"
+    ],
+    "expected": "A soft radial highlight is visible on the button and its position follows the cursor (values differ between left and right positions); it disappears on mouse leave"
+  },
+  {
+    "id": "TC-21",
+    "ac": ["AC-10"],
+    "title": "Class cards tilt at most 4° on hover",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Fine-pointer desktop browser; home/dashboard with ≥ 1 test class card",
+    "steps": [
+      "Hover each corner of a class card; read computed transform and decompose rotateX/rotateY",
+      "Move mouse out"
+    ],
+    "expected": "Card tilts toward the pointer; absolute rotateX and rotateY each ≤ 4°; card returns to flat on mouse leave; card remains clickable"
+  },
+  {
+    "id": "TC-22",
+    "ac": ["AC-10"],
+    "title": "No hover light or tilt on touch devices",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "Playwright device emulation iPhone 13/14 (390 px, hasTouch, pointer: coarse, hover: none)",
+    "steps": [
+      "Tap and long-press a primary button and a class card",
+      "Inspect computed transform and light-layer state during/after touch"
+    ],
+    "expected": "No cursor-light effect and no tilt transform (transform none / identity); taps navigate/act normally"
+  },
+  {
+    "id": "TC-23",
+    "ac": ["AC-11"],
+    "title": "Class card morphs into class header and back (View Transitions)",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Chromium with View Transitions API; signed in; ≥ 2 test classes on home and dashboard",
+    "steps": [
+      "On home, read view-transition-name of each class card (must be unique per class)",
+      "Click a class card; during navigation check document.getAnimations() for ::view-transition-group(<name>) or that a transition is active; screenshot mid-morph",
+      "On the class page confirm the header has the same view-transition-name",
+      "Press browser Back and screenshot mid-morph",
+      "Repeat from the dashboard"
+    ],
+    "expected": "Card and class header share a unique name; a view-transition group animation runs between the card's and header's geometry on open and again on back; the class page loads correctly afterwards"
+  },
+  {
+    "id": "TC-24",
+    "ac": ["AC-11"],
+    "title": "Browsers without View Transitions navigate normally",
+    "type": "Edge case",
+    "priority": "High",
+    "preconditions": "Firefox (or Chromium with document.startViewTransition deleted via addInitScript)",
+    "steps": [
+      "Open home and click a class card",
+      "Press Back"
+    ],
+    "expected": "Navigation to the class page and back works instantly with no console errors; class content correct"
+  },
+  {
+    "id": "TC-25",
+    "ac": ["AC-12"],
+    "title": "Transcript highlight follows playback, scrolls, survives pause, moves on seek",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Test class with a saved lecture recording (test audio ≥ 60 s) and a long transcript without timestamps",
+    "steps": [
+      "Play the recording; at ~5 s note which transcript part is highlighted and whether it is in the scroll viewport",
+      "Let it play to ~30 s; check the highlight moved later in the text and is still in view",
+      "Pause; wait 3 s; confirm highlight unchanged",
+      "Seek to ~90% of the duration; check the highlight jumps near the end of the transcript and scrolls into view"
+    ],
+    "expected": "Exactly one highlighted part, its position in the text roughly proportional to currentTime/duration; it stays visible in the scroll container; pause keeps it; seek moves it"
+  },
+  {
+    "id": "TC-26",
+    "ac": ["AC-12"],
+    "title": "'Improve with audio' result fades in with 'Improved' badge pop",
+    "type": "Functional",
+    "priority": "Medium",
+    "preconditions": "Test lecture with recording; AI/transcription endpoint mocked to return an improved transcript",
+    "steps": [
+      "Click 'Improve with audio'",
+      "When it completes, record animations on the transcript container and on the badge; screenshot mid-animation"
+    ],
+    "expected": "Improved transcript text replaces the old one with an opacity fade-in; an 'Improved' badge appears with a scale pop; on error the existing error handling is shown"
+  },
+  {
+    "id": "TC-27",
+    "ac": ["AC-2"],
+    "title": "Reduced motion removes movement across all animated areas",
+    "type": "Accessibility",
+    "priority": "High",
+    "preconditions": "Browser emulating prefers-reduced-motion: reduce (Playwright reducedMotion: 'reduce'); fake media stream; test data as for other cases",
+    "steps": [
+      "For each area, trigger it and inspect animation keyframes / computed transform: search stagger + Add/To-add pop (2), toast in/out (3), tab highlight + panel (4), upload ✓ pop + thumbnails (8), recording pulse + level bars (9), record button morph (20), empty-state float + sign-in shake + error open (12), hover light + card tilt (14), card→header view transition (18), transcript highlight scroll + improved fade (19)",
+      "Screenshot each final state"
+    ],
+    "expected": "No keyframes or transitions on transform/translate/scale/rotate in any area (no slide, spring, scale, tilt, shake, pulse, float, morph; view transition not run or crossfade only); opacity/colour fades may remain; transcript scrolling is non-smooth; every element still appears in its correct final state and all functions work (Add, toasts, tabs, upload ✓, recording with timer and Stop name, error message, navigation)"
+  },
+  {
+    "id": "TC-28",
+    "ac": ["AC-13"],
+    "title": "Entrance animations ≤ ~400 ms and exits faster than entrances",
+    "type": "Performance",
+    "priority": "High",
+    "preconditions": "Desktop browser, default motion",
+    "steps": [
+      "For dialog open, toast, tab panel, To-add pop, ✓ pop, error slide-open, badge pop: read effect.getComputedTiming().endTime (duration + delay, excluding stagger offsets)",
+      "For dialog close, toast exit, To-add removal: read exit durations"
+    ],
+    "expected": "Every entrance ≤ ~400 ms (stagger delays excepted); every exit duration < its matching entrance duration"
+  },
+  {
+    "id": "TC-29",
+    "ac": ["AC-13"],
+    "title": "Animations never block clicks or typing",
+    "type": "Functional",
+    "priority": "High",
+    "preconditions": "Subjects dialog and sign-in page available",
+    "steps": [
+      "Open the subjects dialog and immediately (within 50 ms) type into the search field",
+      "While results are still staggering in, click 'Add' on the first row",
+      "While a toast is entering, click a button under/near it; switch tabs twice rapidly",
+      "On sign-in, type into the field during the shake"
+    ],
+    "expected": "All keystrokes register, clicks act on first try, rapid tab switches end on the last chosen tab; no pointer-events: none overlay blocks interaction during animations"
+  },
+  {
+    "id": "TC-30",
+    "ac": ["AC-13"],
+    "title": "No animation on the notes editor typing area or pen canvas",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Class workspace open",
+    "steps": [
+      "In the Type tab, type 20 characters; inspect document.getAnimations() filtered to the editor and descendants",
+      "In the Handwrite tab, draw strokes; inspect getAnimations() and computed transition on the canvas and its container",
+      "Check computed transform on the canvas"
+    ],
+    "expected": "Zero animations/transitions on the editor typing area and pen canvas; canvas transform none (strokes align with the pointer exactly); typing latency unchanged"
+  },
+  {
+    "id": "TC-31",
+    "ac": ["AC-14"],
+    "title": "Regression: dialogs, uploads, recording, transcript and navigation behave as before",
+    "type": "Regression",
+    "priority": "High",
+    "preconditions": "Test user; mocked AI/transcription; fake media stream",
+    "steps": [
+      "Open and close the subjects dialog with Esc, overlay click and close button; add a subject end to end",
+      "Upload slides and view them",
+      "Record 10 s, stop, confirm the recording is saved and transcribed",
+      "Play the saved recording; open/close notes; navigate home ↔ class ↔ dashboard with links and Back/Forward"
+    ],
+    "expected": "Every flow completes as before; focus is trapped/restored in dialogs; data saved; no console errors"
+  },
+  {
+    "id": "TC-32",
+    "ac": ["AC-14"],
+    "title": "390 px phone width: no horizontal scroll with animations",
+    "type": "Responsive",
+    "priority": "High",
+    "preconditions": "Viewport 390×844, touch emulation",
+    "steps": [
+      "Visit sign-in, home, dashboard, class workspace, subjects dialog",
+      "Trigger toasts, tab switches, recording pill, slide upload; during and after each, check document.documentElement.scrollWidth <= 390",
+      "Screenshot each page"
+    ],
+    "expected": "scrollWidth never exceeds clientWidth (including mid-animation for sideways toast exit and recording pill); recording pill fits; content readable"
+  },
+  {
+    "id": "TC-33",
+    "ac": ["AC-14"],
+    "title": "Typecheck, unit tests and build pass",
+    "type": "Build",
+    "priority": "High",
+    "preconditions": "Branch claude/motion-polish checked out, dependencies installed",
+    "steps": [
+      "Run bun run typecheck",
+      "Run the unit test suite",
+      "Run bun run build",
+      "Check package.json diff for new animation dependencies"
+    ],
+    "expected": "All three commands exit 0; no new animation library added (only CSS / Web Animations / tw-animate-css)"
+  }
+]

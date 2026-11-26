@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-motion-and-micro-interactions            |
-| Status       | In test           |
+| Status       | PR raised |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/motion-polish` |
@@ -163,3 +163,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T17:24:54Z | Requirement analyst | Requirement ready for build | 14 ACs; preview items 2,3,4,8,9,12,14,18,19,20 picked by product owner; Lively strength |
 | 2026-11-26T17:27:02Z | Test master | Test cases written | 33 cases covering AC-1..AC-14 |
 | 2026-11-26T20:36:03Z | Developer | Build complete | Commit c953f8e; AC-1..AC-14 built with CSS tokens/keyframes, tab indicator hook, upload progress, record morph + mic meter, transcript follow, view transitions; typecheck, 24 unit tests, build and prettier pass |
+| 2026-11-26T20:36:39Z | Product owner | Steps 4-5 waived | Product owner asked for the PR before testing ('generate pr'); test cases written, test run and PM review not done |
