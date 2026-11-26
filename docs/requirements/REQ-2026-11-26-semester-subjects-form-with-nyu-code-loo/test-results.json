@@ -1,1 +1,193 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "Home opened with no click: dialog \"Your subjects this semester\" visible true (163 ms after load); subject search field true; term selector shows \"Fall 2026\" (marked current by the server's term list); chosen list: \"not shown (nothing chosen yet)\"; button \"Done\"; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-01-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:18:11Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Fail",
+    "actual": "B with one class + enrollment (as in the precondition), no notes: pop-up after 5 s false; home shows B's class false (card: \"Open a class to begin \"); \"Update my subjects\" visible true; 0 page errors, 0 console errors; B with the class AND a note in it: pop-up after 5 s false; home shows B's class true (card: \"\"); \"Update my subjects\" visible true; 0 page errors, 0 console errors. AC-1 part (no automatic pop-up for a student with classes) passes in both variants. ISSUES: home does not show B's existing class: with a class but no notes/activity the home shows the generic \"Open a class to begin / Find a class\" card (the \"Continue where you left off\" card appears only for a class with activity, see second variant); same cause as TC-12; pre-existing home behaviour",
+    "evidence": [
+      "evidence/TC-02-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:20:29Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "closed with the X button: dialog gone true, home usable, \"Update my subjects\" visible true, device flag lectureloop:subjects-done:<A> = \"1\"; after reload pop-up shown again: false; after dashboard → Home (in-app link): false; Escape variant (fresh browser): closed true, shown again after reload false; inserts into classes/enrollments: 0/0; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-03-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:19:08Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "same browser, fake session swapped to student C: pop-up opens automatically true (done flags present: [lectureloop:subjects-done:a1]); swapped back to A: pop-up shown automatically false; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-04-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:19:16Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "Typed \"algorithms\": 2 results after 773 ms (incl. 350 ms debounce): [BMIN-GA 1170 Fundamental Algorithms Add ; CS-GY 6033 Design and Analysis of Algorithms I Add]; CS-GY 6033 listed 1× (the mock returned 2 sections of it); server-side NYU mock received POST /class-search/api/?page=fose&route=search&keyword=algorithms with body {\"other\":{\"srcdb\":\"9999\"},\"criteria\":[{\"field\":\"keyword\",\"value\":\"algorithms\"}]} (srcdb 9999 = Fall 2026, keyword \"algorithms\"), User-Agent \"Mozilla/5.0 (Windows NT 10.0; Win64; x64…\"; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-05-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:20:37Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "Term options [Spring 2027, January 2027, Fall 2026, Summer 2026], selected \"Fall 2026\"; chose Spring 2027 → selector \"Spring 2027\", the search ran again and the NYU mock received {\"other\":{\"srcdb\":\"1274\"},\"criteria\":[{\"field\":\"keyword\",\"value\":\"algorithms\"}]}; results now [CS-GY 6043 Design and Analysis of Algorithms II Add ; CSCI-UA 310 Basic Algorithms Add] (Spring 2027 data of the mock); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-06-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:20:40Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "After a search with 2 results, typed \"zzqx underwater basket\" (mock returned results: []): message \"No NYU courses found for “zzqx underwater basket” in Fall 2026. Try another name or term.\"; old results left: 0; toasts []; Done closed the dialog true; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-07-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:20:45Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "\"a\": 0 search calls, hint \"Type at least 2 characters to search NYU courses.\", results/no-results shown 0; empty: 0 calls, shown 0; typed 300 characters: field keeps 80 (maxlength=80); search sent q of 80 characters; NYU mock keyword length 80; \"al\": search calls 1 → 2 (q \"al\"); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-08-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:20:59Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "chosen list with 3: \"To add (3) CS-GY 6033 · Design and Analysis of Algorithms I BMIN-GA 1170 · Fundamental Algorithms ACCT-UB 1 · Principles of Financial Accounting\"; after removing ACCT-UB 1: \"To add (2) CS-GY 6033 · Design and Analysis of Algorithms I BMIN-GA 1170 · Fundamental Algorithms\"; pressed \"Done · add 2 subjects\"; classes inserted: [{\"subject\":\"Design and Analysis of Algorithms I\",\"code\":\"CS-GY 6033\",\"term\":\"Fall 2026\",\"professor\":\"Test Instructor B\",\"created_by\":\"<A>\",\"university_id\":\"u1\"},{\"subject\":\"Fundamental Algorithms\",\"code\":\"BMIN-GA 1170\",\"term\":\"Fall 2026\",\"professor\":\"TBA\",\"created_by\":\"<A>\",\"university_id\":\"u1\"}]; enrollments inserted: [{\"user_id\":\"<A>\",\"class\":\"CS-GY 6033\"},{\"user_id\":\"<A>\",\"class\":\"BMIN-GA 1170\"}]; toast \"Added 2 subjects\"; dialog closed true; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-09-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:19:47Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Pass",
+    "actual": "Existing class CS-GY 6033 (created by another test user) seeded; picked CS-GY 6033 and pressed Done: classes inserted 0; enrollments inserted 1 (user <A>, class_id of the existing class); toast \"Added 1 subject\"; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-10-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:21:11Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Pass",
+    "actual": "auto pop-up for a student with classes: false; opened with \"Update my subjects\"; CS-GY 6033 row reads \"CS-GY 6033 Design and Analysis of Algorithms I In your classes\" (Add button for it: 0); picked BMIN-GA 1170 → chosen \"To add (1) BMIN-GA 1170 · Fundamental Algorithms\"; Done: classes inserted [BMIN-GA 1170], enrollments inserted 1 (BMIN-GA 1170); toast \"Added 1 subject\"; 0 page errors, 0 console errors. Note: CS-GY 6033 cannot be picked at all (marked \"In your classes\", no Add button), so the summary only reports the 1 added; the \"already enrolled/skipped\" count appears only for a course picked before it was in the classes",
+    "evidence": [
+      "evidence/TC-11-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:21:19Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Fail",
+    "actual": "home without reload lists 0/2 new classes (); dashboard (in-app navigation) shows titles [Design and Analysis of Algorithms I,Fundamental Algorithms] and codes [CS-GY 6033,BMIN-GA 1170]; opened \"Fundamental Algorithms\" → /class/<id> with heading \"Welcome back, Test.\"; 0 page errors, 0 console errors. FAIL: right after Done the home page does not show the new classes: it still shows the generic \"Open a class to begin / Find your class by name or code on the dashboard\" card (screenshot left), because the home lists a class only in \"Continue where you left off\" once it has activity (notes, handwriting or a visit). The dashboard part passes: both classes listed with NYU title and code without a reload, and opening one goes to its class page. Requirement §3 says the class list (dashboard / \"Continue where you left off\") reflects the new classes immediately",
+    "evidence": [
+      "evidence/TC-12-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:19:51Z"
+  },
+  {
+    "id": "TC-13",
+    "result": "Pass",
+    "actual": "reload: auto pop-up false; form lists current classes \"Your classes BMIN-GA 1170 Fundamental Algorithms Remove CS-GY 6033 Design and Analysis of Algorithms I Remove\"; confirmation: \"Remove Fundamental Algorithms? The class is removed from your dashboard. Your notes are kept and come back if you enroll in it again. Cancel Remove class\"; confirmed → toast \"Class removed from your dashboard\"; delete calls: [{\"op\":\"delete enrollments\",\"filter\":[\"class_id=eq.<BMIN class>\",\"user_id=eq.<A>\"]}]; classes still has BMIN-GA 1170 row true; A's note still present true; form now lists \"Your classes CS-GY 6033 Design and Analysis of Algorithms I Remove\"; added ACCT-UB 1 → toast \"Added 1 subject\", classes inserted [ACCT-UB 1]; home: Fundamental Algorithms (\"Continue where you left off\" card) gone true, \"Update my subjects\" still present true; dashboard lists [Design and Analysis of Algorithms I,Principles of Financial Accounting]; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-13-1.png",
+      "evidence/TC-13-2.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:22:30Z"
+  },
+  {
+    "id": "TC-14",
+    "result": "Pass",
+    "actual": "[HTTP 503] message \"We couldn't reach NYU's class search. Please try again in a moment, or add the class yourself on the Dashboard → Add class. Try again\", link to \"/dashboard\", error toasts 0; link went to /dashboard (Add class button visible true, Add class dialog open false); back on Home, \"Update my subjects\" reopened the form true; 0 page errors, 0 console errors; [connection dropped] message \"We couldn't reach NYU's class search. Please try again in a moment, or add the class yourself on the Dashboard → Add class. Try again\", link to \"/dashboard\", error toasts 0; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-14-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:21:44Z"
+  },
+  {
+    "id": "TC-15",
+    "result": "Pass",
+    "actual": "typed \"algorithms\" with NYU never answering: \"Searching NYU…\" shown at 412 ms; replaced by \"We couldn't reach NYU's class search. Please try again in a moment, or add the class yourself on the Dashboard → Add class. Try again\" at 8490 ms after typing (server aborts NYU after 8 s; includes 350 ms debounce); page responsive throughout (slowest DOM read 6 ms); Close worked true; home usable, button visible true; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-15-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:21:56Z"
+  },
+  {
+    "id": "TC-16",
+    "result": "Pass",
+    "actual": "browser requests during the search: 281; to bulletins.nyu.edu or the NYU mock: 0; to LectureLoop server functions: [getNyuTerms_createServerFn_handler,searchNyuCourses_createServerFn_handler]; NYU mock received 1 POST from the server side; client modules loaded in the page that contain \"bulletins.nyu.edu\": []; direct calls to the search server function (curl): signed out → \"Unauthorized: No authorization header provided\"; fake (invalid) bearer → \"Unauthorized: Invalid token\"; signed out with q of 520 characters and term \"spring!!\" → \"Unauthorized: No authorization header provided\"; fake bearer with the same oversized input → \"Unauthorized: Invalid token\"; NYU mock calls from these 4 requests: 0; 0 page errors, 0 console errors. Limitation: with no real Supabase session available, a signed-in direct call could not be made: the auth middleware runs before input validation, so oversized q / invalid term were observed only as rejected (Unauthorized) and never forwarded to NYU. Server-side limits are the zod schema (q trimmed 2-80, term 1-8 digits); the client also caps the field at 80 (maxlength) and sends q.slice(0, 80) (TC-08). Developer unit tests: 6/6 pass",
+    "evidence": [
+      "evidence/TC-16-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium + curl",
+    "testedAt": "2026-11-26T05:22:00Z"
+  },
+  {
+    "id": "TC-17",
+    "result": "Pass",
+    "actual": "on open the focus is in the subject field (INPUT, inside dialog true); Tab to \"Add CS-GY 6033 Design and Analysis of Algorithms I\" (visible focus ring true), Enter → \"To add (1) CS-GY 6033 · Design and Analysis of Algorithms I\"; Shift+Tab to the term selector (ring true), Enter opens it, ArrowUp ×2 + Enter → \"Spring 2027\"; Tab to \"Remove CS-GY 6033 from the list\" (ring true), Enter → chosen list \"empty (section hidden)\"; back to \"Fall 2026\" with the keyboard and re-added CS-GY 6033 → \"To add (1) CS-GY 6033 · Design and Analysis of Algorithms I\"; 15 more Tabs: focus stayed inside the dialog true; Tab to \"Done · add 1 subject\" (ring true), Enter → toast \"Added 1 subject\", dialog closed true, classes inserted [CS-GY 6033]; Tab to the icon button (accessible name \"Update my subjects\", ring true), Enter → form reopened true; Escape → closed true, focus is on the page yes: <BODY> (not moved back to the icon button); 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-17-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:27:01Z"
+  },
+  {
+    "id": "TC-18",
+    "result": "Pass",
+    "actual": "390px: pop-up opened automatically; dialog box 0,118,390,609 in a 390x844 viewport; elements sticking out 0; page scrollWidth 390/390; results + chosen list \"To add (2) CS-GY 6033 · Design and Analysis of Algorithms I BMIN-GA 1170 · Fundamental Algorithms\"; Done reachable at y=665; Done → toast \"Added 2 subjects\"; home: icon button 38x30 at x=336, opens the form true; scrollWidth 390/390; 0 page errors, 0 console errors",
+    "evidence": [
+      "evidence/TC-18-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 390x844 (phone), fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:23:51Z"
+  },
+  {
+    "id": "TC-19",
+    "result": "Pass",
+    "actual": "Enroll in subject → searched \"Data Struct\", Enroll: enrollments inserted 1 (CS-UY 1134), toast \"Enrolled\"; Add class → classes inserted [{\"subject\":\"Test Seminar in Pedagogy\",\"code\":\"TEST-UA 101\",\"professor\":\"Prof. Example\",\"term\":\"Fall 2026\",\"created_by\":\"<A>\"}], enrollments now 2, toast \"Class added\"; dashboard list shows Data Structures true and Test Seminar in Pedagogy true; console review across all 19 test cases (every browser run on home and dashboard): 0 page errors and 0 console errors in every run",
+    "evidence": [
+      "evidence/TC-19-1.png"
+    ],
+    "environment": "Dev server (localhost:8080, branch claude/semester-subjects @ 5679665, NYU_CLASS_SEARCH_URL → local NYU mock), Chromium 1440x900, fake session + stateful mocked Supabase; server functions answered by the real nyu-courses.server.ts module against the NYU FOSE mock (auth middleware bypassed via page.route)",
+    "testedAt": "2026-11-26T05:24:01Z"
+  }
+]
