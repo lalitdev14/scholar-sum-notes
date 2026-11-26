@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-subject-search-narrowed-by-nyu-school-an            |
-| Status       | In PM review      |
+| Status       | Approved          |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/subject-search-by-school` |
@@ -178,15 +178,52 @@ sees no message, whereas the test case wording says the failure is "reported".
 
 | Field       | Value                          |
 | ----------- | ------------------------------ |
-| Decision    | (Approved / Changes requested) |
+| Decision    | Approved                       |
 | Verified by | Product manager agent          |
-| Date        |                                |
+| Date        | 2026-11-26                     |
+
+Checked against the user's request (school first → programs load → subject search with term;
+own school's courses on top; cross-registration still listed; all NYU schools), the build
+summary, `test-cases.json`, `test-results.json` (23/23 Pass, tested build includes code commit
+`b916579`), the screenshots in `evidence/` and a skim of `src/lib/nyu-schools.ts` and
+`src/components/SemesterSubjectsDialog.tsx`.
 
 Notes per acceptance criterion:
 
-| AC   | Met? | Notes |
-| ---- | ---- | ----- |
-| AC-1 |      |       |
+| AC    | Met? | Notes |
+| ----- | ---- | ----- |
+| AC-1  | Yes  | TC-01/TC-23 screenshots: numbered badges 1 "Your NYU school", 2 "Your program", 3 "Subject name" + "Term", in order (side by side on desktop, stacked on phone). |
+| AC-2  | Yes  | TC-02: 22 schools, all of 6.1, full names, no duplicates (`NYU_SCHOOLS` has 22 entries with the 6.1 codes). |
+| AC-3  | Yes  | TC-03/TC-23: program select ("Choose a school first"), subject box and term disabled; hint "Choose your school first to search subjects."; typing sends no search. |
+| AC-4  | Yes  | TC-04/05/06: school's programs load, every school ends with "Other / undeclared"; switching Courant → Stern replaces the list and resets to "Choose your program". |
+| AC-5  | Yes  | TC-07/08/12/20: own school's courses first under "From Courant" / "From Stern" / "From Tisch". |
+| AC-6  | Yes  | TC-07: Courant student searching "accounting" sees ACCT-UB 1 and ACCT-GB 6305 tagged "Stern" under "Other NYU schools · cross-registration" — exactly the user's example. TC-10: unknown code listed with no tag and can be added. TC-11: Courant/CAS/GSAS/IFA/ISAW/Shanghai/Abu Dhabi edge mappings correct. |
+| AC-7  | Yes  | TC-12: switching to Stern regrouped instantly, search request count unchanged (1 → 1), no loading state. |
+| AC-8  | Yes  | TC-08: NYU order kept inside each group. TC-09/TC-22: no own-school match → only the cross-registration group, no empty heading. |
+| AC-9  | Yes  | TC-13/14/15: saved in auth user metadata (no DB migration), pre-filled after reload and in a second browser; changing school/program updates the saved values. |
+| AC-10 | Yes  | TC-16–19, TC-21: debounce, term change, Add/Added, To add chips, "Done · add N", Your classes + Remove, error box + Try again (selections kept), keyboard flow and focus return all work. TC-20: a failed save does not block the dialog. |
+| AC-11 | Yes  | TC-22/23 at 390 px: scrollWidth 390, dropdown within the screen, long names wrap in the list, selects/search/Add usable. |
+
+**Behaviour vs. request:** matches — school first, programs from the school, subject + term
+search, own school on top, other schools still listed and tagged for cross-registration, all
+NYU schools included. Copy is clear: the intro line explains the order and the
+cross-registration list; headings and tags are short and readable.
+
+**TC-20 (save failure is silent):** accepted, not a change request. Saving the school/program is
+a background convenience; when it fails the choice still works for the current session and the
+search is unaffected — the only effect is that it is not pre-filled next time. No AC asks for a
+message, and an error message about a remembered preference would interrupt the student for
+little benefit. The test-case wording ("reported") is looser than the requirement; the
+requirement governs.
+
+**Non-blocking observations (optional follow-ups, not required for this release):**
+
+1. On desktop the selected long school names are cut off in the trigger (e.g. "Courant
+   Institute of Mathematical…", "Graduate School of Arts & Scien…"); the full name is visible in
+   the list and the "From <short name>" heading confirms the choice. Could show the short name or
+   a tooltip in the trigger later.
+2. If the save keeps failing, a small one-time "We couldn't remember your school for next time"
+   note could be considered in a later iteration.
 
 ## 10. Audit trail
 
@@ -200,3 +237,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T15:19:43Z | Developer | Build complete | Commit b916579: nyu-schools.ts (22 schools, schoolForCode, groupBySchool) + bun tests; dialog steps 1-3, grouped results, school/program saved in auth user_metadata; typecheck/tests/build pass |
 | 2026-11-26T15:29:33Z | Tester | Tests executed | 23 passed, 0 failed, 0 blocked (local production build, mocked Supabase and NYU search). TC-20: failed save of school is only console-logged, no UI message |
 | 2026-11-26T15:29:33Z | Tester | Evidence generated | test-results.json, 26 screenshots in evidence/, test-evidence.xlsx |
+| 2026-11-26T15:30:56Z | Product manager | PM approved | All 11 ACs met (23/23 tests, screenshots reviewed); behaves as requested: school first, programs per school, own-school results on top, cross-registration listed and tagged (Courant student sees Stern ACCT-UB), all 22 NYU schools. TC-20 silent save failure accepted (background preference, no AC requires a message). Optional follow-ups: long school names truncated in trigger; possible one-time save-failure note |
