@@ -3,7 +3,7 @@
 | Field        | Value                                                   |
 | ------------ | ------------------------------------------------------- |
 | ID           | REQ-2026-11-26-semester-subjects-form-with-nyu-code-loo |
-| Status       | Approved                                                |
+| Status       | Merged to preprod |
 | Requested by | Product owner                                           |
 | Created      | 2026-11-26                                              |
 | Branch       | `claude/semester-subjects`                              |
@@ -319,3 +319,4 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T14:32:08Z | Tester | Re-test executed | Re-test after PM review: TC-02, TC-12, TC-17, TC-20..TC-23, regression TC-01, TC-03, TC-09, TC-13, TC-19: 11/12 passed (TC-12 fails at its last step: after visiting one class, home shows only the Continue card); total 22/23 passed, 1 failed, 0 blocked |
 | 2026-11-26T14:32:08Z | Tester | Evidence regenerated | test-evidence.xlsx, 24 screenshots |
 | 2026-11-26T14:34:07Z | Product manager | PM approved | Follow-up fix 8ef15eb re-verified: Your classes card on home right after Done, focus returns to My subjects, schema unit tests 6/6; AC-1..AC-6 met; TC-12 last step: test expectation wrong (Continue card after activity is the intended design) |
+| 2026-11-26T15:54:44Z | Release | PR merged | lalitdev14/scholar-sum-notes#76 merged into preprod |
