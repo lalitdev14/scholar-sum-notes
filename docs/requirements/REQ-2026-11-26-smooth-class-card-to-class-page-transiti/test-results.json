@@ -1,1 +1,160 @@
-[]
+[
+  {
+    "id": "TC-01",
+    "result": "Pass",
+    "actual": "Dashboard card click (no hover pause and with 500 ms hover): one continuous morph. startViewTransition 6-10 ms after click, ready 93-113 ms, finished 476-496 ms; card-box (group) animation 360 ms, ready->finished ~380 ms; visible frames from first change to settled page 420-430 ms (screencast). Group has a single keyframe pair from the card box (373x179 at y=414, tilt-settling matrix3d) to the header box (1152x32 at x=64,y=95) with ease-out cubic-bezier(0.22,1,0.36,1) (no overshoot) so the motion is monotonic, no reversal or second jump (confirmed frame by frame). URL /class/<id>.",
+    "evidence": [
+      "evidence/TC-01-1-dash-open-sheet.png",
+      "evidence/TC-01-2-dash-open-crop.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-02",
+    "result": "Pass",
+    "actual": "Old/new snapshots of the card/header use object-fit:none (computed style during transition, size = group box) so text is never scaled: the card title \"Database Systems\" keeps the same glyph size/proportion in every intermediate frame until it fades out; the header title fades in at its own size. No stretched or squashed text in any frame (dashboard and home). Note: between ~60 and 360 ms the old card text and the new header text cross-fade inside the same box (both partially transparent, e.g. 278 ms frame); never both at full opacity.",
+    "evidence": [
+      "evidence/TC-02-1-unscaled-text-dash.png",
+      "evidence/TC-02-2-unscaled-text-home.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-03",
+    "result": "Pass",
+    "actual": "Light: max single-colour share per frame 0.55 (static dashboard background level), mean luminance never above the settled class page (215->231), no blank frame. Dark: max flat share 0.56, mean luminance stays 25-35 (start 35, end 28), white-pixel share 0.00 in every frame - no light flash. Card/header or page content visible in every frame. Old page stays under the new page during its 180 ms fade-in (brief ghosting of the dashboard text, no white dip).",
+    "evidence": [
+      "evidence/TC-03-1-dark-no-white-flash.png",
+      "evidence/TC-03-2-light-no-blank-frame.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-04",
+    "result": "Pass",
+    "actual": "Hover 300 ms then click: class + note requests fired on hover 253 ms before the click (500 ms hover: 451-456 ms before). Header h1 timeline: dashboard -> \"Database Systems\" at 105-145 ms (first new-page frame); \"Class\" placeholder never appeared. At transition finished the header reads \"Database Systems | Prof. Test | Fall 2026\"; the class code CSCI-GA 2433 is shown in the app-bar pill (page-specific item of the app bar) from the first new frame. A background refetch of class/note follows at ~105-147 ms with no loading state.",
+    "evidence": [
+      "evidence/TC-04-1-header-real-name-hover300.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-05",
+    "result": "Pass",
+    "actual": "Layout-shift observer from click to +1.6 s: CLS 0.0004 (one shift of 0.0004 at ~600 ms, after the transition). Boxes at finished +0/+300/+1000 ms identical: header [64,95,1152,32], editor [86,344,520,58], Slides tab/\"Add slides\" [1077,162,118,32]. Page body appears by an opacity fade (180 ms), no jumping.",
+    "evidence": [
+      "evidence/TC-05-1-no-layout-jump.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-06",
+    "result": "Pass",
+    "actual": "Keyboard: Tab to the \"Machine Learning\" card fired class + note requests on focus (~360 ms before Enter); Enter opened /class/...0002, header \"Machine Learning\" at 97 ms (no placeholder). 390 px touch emulation: touchstart fired class + note requests (~90 ms before touchend); transition started 162 ms, header \"Machine Learning\" on landing (236 ms), no placeholder.",
+    "evidence": [
+      "evidence/TC-06-1-focus-enter.png",
+      "evidence/TC-06-2-touch-390.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-07",
+    "result": "Pass",
+    "actual": "Card hovered near top-right 500 ms (tilt applied). Frames at 42/136 ms (card settling) and the first transition frame (167 ms) show the card at the same position (no jump, no rotation snap); the group starts from the card's still slightly tilted transform (matrix3d, ~1.8 deg) and eases to flat while moving. No frame shows the card snapping back before morphing.",
+    "evidence": [
+      "evidence/TC-07-1-tilt-no-jump.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-08",
+    "result": "Pass",
+    "actual": "Home \"Continue where you left off\" card: VT start 6-7 ms, ready 83-98 ms, finished 457-479 ms; visible 437 ms; dark card box travels into the header, text unscaled (object-fit none), max flat 0.31, header \"Database Systems\" from first new frame, prefetch on hover 295 ms before click. Home \"Your classes\" row (no last-class): finished 481-483 ms, visible 441 ms, same checks pass, h1 \"Database Systems\" at 91 ms, no \"Class\" placeholder.",
+    "evidence": [
+      "evidence/TC-08-1-home-continue-card.png",
+      "evidence/TC-08-2-home-your-classes-row.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-09",
+    "result": "Pass",
+    "actual": "\"Back to dashboard\": start 4 ms, ready 25-35 ms, finished 408-419 ms; visible 347-389 ms; header box moves down and grows back into the Database Systems card in one motion, text unscaled, no blank frame (light max flat 0.57; dark luminance 28-35, no white). Dashboard renders both cards, CLS 0, no [data-opening]/tilt left on the card. Also from a direct load of the class URL (backdirect): finished 419 ms. Browser Back button: lands on /dashboard with 2 cards, no half-rendered frame.",
+    "evidence": [
+      "evidence/TC-09-1-back-to-dashboard.png",
+      "evidence/TC-09-2-browser-back.png",
+      "evidence/TC-09-3-back-dark.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-10",
+    "result": "Pass",
+    "actual": "Class data delayed 1000/1500/2000 ms, clicked with no hover: the clicked card settles flat at ~17 ms; startViewTransition at 306-307 ms (wait capped at 300 ms), ready 401-415 ms (first transition frame ~400 ms), URL changes then. Page shows its normal loading state (header \"Class\", empty editor/slides) and the morph completes normally (finished 774-799 ms); no card snapshot stuck, no stretched header, no blank frame. Real name \"Machine Learning\" appears at 1021/1525/2025 ms (when data arrives). CLS 0.0022. Note for PM: the only feedback before ~300 ms is the card settling; the page change becomes visible at ~400 ms.",
+    "evidence": [
+      "evidence/TC-10-1-slow1500.png",
+      "evidence/TC-10-2-slow1000.png",
+      "evidence/TC-10-3-slow2000.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-11",
+    "result": "Fail",
+    "actual": "Reduced motion: no card-to-header movement (no morph animations; ready->finished 15-35 ms), class page shows correct name/code, no blank frame, Back is clean. BUT a broken frame appears for ~2-3 frames (~30-50 ms) when opening a class: dashboard -> the old \"Machine Learning\" card (another class) is drawn on top of the new class page and the header title is doubled with the old card title (frames 134/151/167 ms); home -> the dark \"Continue\" card background is drawn behind the header title (frames 116/131 ms). Cause seen in the pseudo-tree: the View Transition still runs with animation:none, so old snapshots stay at full opacity over the new page until finished. Expected: instant navigation or a plain fade, no stray old content.",
+    "evidence": [
+      "evidence/TC-11-1-reduced-dash.png",
+      "evidence/TC-11-4-reduced-dash-artifact-zoom.png",
+      "evidence/TC-11-2-reduced-back.png",
+      "evidence/TC-11-3-reduced-home.png",
+      "evidence/TC-11-5-reduced-home-artifact-zoom.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-12",
+    "result": "Pass",
+    "actual": "Chromium with document.startViewTransition deleted (init script): dashboard -> class, Back to dashboard, home -> class all navigate normally (no VT), landing on the right page with \"Database Systems\" / dashboard; no page errors or console errors; no blank frame (max flat 0.34-0.57).",
+    "evidence": [
+      "evidence/TC-12-1-noVT-dash.png",
+      "evidence/TC-12-2-noVT-back.png",
+      "evidence/TC-12-3-noVT-home.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-13",
+    "result": "Pass",
+    "actual": "390x844 touch, light and dark: tap card -> start 161-168 ms, finished 617-634 ms (group 360 ms, visible 460-467 ms); Back -> finished 416-500 ms (visible 330-361 ms). Single smooth morph both ways, text unscaled, header \"Database Systems\" (wraps) on landing, no placeholder; dark luminance 26-42, white share 0.00 (no flash); scrollWidth 390 = viewport (no horizontal scroll) during and after.",
+    "evidence": [
+      "evidence/TC-13-1-390px-light-dark.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  },
+  {
+    "id": "TC-14",
+    "result": "Pass",
+    "actual": "bun run typecheck exit 0; bun test src 94 pass / 0 fail; bun run build exit 0. Dashboard: 2 cards, hover tilt/lift present (matrix3d + translate 0 -4px), Add class dialog opens. Class page: typing in the editor works, Slides/Summary tabs switch (aria-selected), \"Add your lecture slides\" shown; direct load of /class/<id> shows \"Database Systems\". Opening Database Systems then (browser Back) Machine Learning shows each own header (no stale). Home Continue card opens /class/...0001 \"Database Systems\"; Your classes rows link to the right class. No page or console errors.",
+    "evidence": [
+      "evidence/TC-14-1-dashboard-hover.png",
+      "evidence/TC-14-2-class-summary-tab.png",
+      "evidence/TC-14-3-direct-load.png",
+      "evidence/TC-14-4-home.png"
+    ],
+    "environment": "Local production build (bun run build; node .output/server/index.mjs on :8095), branch claude/class-open-transition @ dc2f6b2; Playwright Chromium headless 1280x800 (390x844 touch where noted), DPR 1; mocked session + Supabase/serverFn answered by Playwright route mocks (+150 ms latency unless noted); test data \"Database Systems\" (CSCI-GA 2433) and \"Machine Learning\" (CSCI-GA 2565); CDP screencast frames, timings via wrapped document.startViewTransition (ms after pointerdown)",
+    "testedAt": "2026-11-27T00:15:00Z"
+  }
+]

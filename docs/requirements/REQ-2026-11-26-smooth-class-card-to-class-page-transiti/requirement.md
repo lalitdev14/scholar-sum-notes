@@ -3,7 +3,7 @@
 | Field        | Value             |
 | ------------ | ----------------- |
 | ID           | REQ-2026-11-26-smooth-class-card-to-class-page-transiti            |
-| Status       | In test   |
+| Status       | In PM review   |
 | Requested by | Product owner     |
 | Created      | 2026-11-26          |
 | Branch       | `claude/class-open-transition` |
@@ -134,7 +134,29 @@ screencast (Chromium 1280×800). Before/after strips: `evidence/dev-before.png`,
 
 | Total | Pass | Fail | Blocked | Evidence             |
 | ----- | ---- | ---- | ------- | -------------------- |
-|       |      |      |         | `test-evidence.xlsx` |
+| 14    | 13   | 1    | 0       | `test-evidence.xlsx` |
+
+Run on a local production build (`node .output/server/index.mjs`, port 8095) with Playwright
+Chromium, mocked session and Supabase (+150 ms latency), CDP screencast frames and timings from a
+wrapped `document.startViewTransition`. Frames were inspected by eye (contact sheets in `evidence/`).
+
+- **Pass (AC-1–AC-5, AC-7, AC-6 without VT):** dashboard/home open: VT starts ~7 ms after the click,
+  card box morph 360 ms (ready→finished ~380 ms, visible ~420–440 ms), one monotonic motion, text never
+  scaled (`object-fit: none`), no blank/white frame (dark luminance stays 25–42); header has the real
+  name on the first new frame (prefetch fires on hover/focus/touchstart), never "Class"; CLS 0.0004,
+  boxes static. Back to dashboard morphs back in ~350–390 ms. Slow data (1–2 s): transition starts at
+  306 ms, normal "Class" loading state, name fills in when data arrives. 390 px light/dark smooth, no
+  horizontal scroll. Without View Transitions all navigations work, no errors. Typecheck, 94 tests and
+  build pass; regression checks clean.
+- **Fail — TC-11 (AC-6, reduced motion):** navigation is instant, but for ~2–3 frames (~30–50 ms) old
+  snapshots are drawn over the new class page: from the dashboard the other class's card ("Machine
+  Learning") sits on top of the class page and the header title is doubled with the old card title;
+  from home the dark "Continue" card background shows behind the header title
+  (`evidence/TC-11-4-…`, `TC-11-5-…`). The View Transition still runs with `animation: none`, so old
+  snapshots stay at full opacity until it finishes. Back to dashboard is clean.
+- Notes for PM: TC-04 — the class code is shown in the app-bar pill, not in the page header row
+  (present from the first new frame). TC-10 — before ~300 ms the only feedback is the card settling
+  flat; the page change becomes visible at ~400 ms.
 
 ## 9. Product manager verification
 
@@ -160,3 +182,6 @@ Append rows with `node scripts/req/audit.mjs <folder> "<Role>" "<Action>" "<Deta
 | 2026-11-26T23:39:50Z | Requirement analyst | Requirement ready for build | 7 ACs |
 | 2026-11-26T23:40:59Z | Test master | Test cases written | 14 cases covering AC-1..AC-7 |
 | 2026-11-26T23:59:01Z | Developer | Build complete | Reproduced with CDP screencast frames (stretched snapshots, placeholder header, 215 ms frozen click from getUser per nav, root fade white dip, other cards on top, tilt). Fixed: unscaled morph box + cross-fade, prefetch on intent + 300 ms capped wait, auth check reuse, still app bar, tilt settle; typecheck/tests/build pass; evidence dev-before.png/dev-after.png |
+| 2026-11-27T00:12:47Z | Product owner | Decision: keep 60 s sign-in check reuse | Route guard reuses a server getUser() check from the last 60 s for the same access token; data access still verified server-side (RLS / requireSupabaseAuth) |
+| 2026-11-27T00:16:20Z | Tester | Tests executed | 14 run: 13 passed, 1 failed (TC-11 reduced motion: old snapshots - other class card / old card title - drawn over the class page for ~2-3 frames). Local prod build :8095, Playwright Chromium, mocks only |
+| 2026-11-27T00:16:20Z | Tester | Evidence generated | 35 PNGs in evidence/ (frame contact sheets per case), test-results.json, test-evidence.xlsx |
